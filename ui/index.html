@@ -251,7 +251,10 @@ function fit(){
   for(const p of PLACE.parts) for(let i=0;i<3;i++){ mn[i]=Math.min(mn[i],p.pos[i]); mx[i]=Math.max(mx[i],p.pos[i]); }
   cam.cx=(mn[0]+mx[0])/2; cam.cy=(mn[1]+mx[1])/2; cam.cz=(mn[2]+mx[2])/2;
   const ext=Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2],20);
-  cam.f=Math.min(cv.width,cv.height)*0.9; cam.dist=ext*1.6;
+  // near-orthographic: large dist so depth-variation is small (parallel lines stay parallel),
+  // f scaled so the structure fills ~70% of the viewport. Avoids the wide-FOV "taper to a point".
+  cam.dist=ext*5; cam.f=Math.min(cv.width,cv.height)*0.7*cam.dist/ext;
+  cam.yaw=-0.6; cam.pitch=0.42;
 }
 function draw(){
   if(!PLACE) return;
@@ -262,7 +265,9 @@ function draw(){
     const P=project(p.pos); if(!P)continue;
     if($("#optGlass").checked && isGlassPanel(p.type)){
       const [w,h]=dims(p.type), hw=w/2, hh=h/2;
-      const C=[[-hw,0,-hh],[hw,0,-hh],[hw,0,hh],[-hw,0,hh]].map(c=>{const r=qrot(p.quat,c);return project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]);});
+      // doors (glastuer) are thin in local Z -> span local X,Y (vertical); shelves thin in local Y -> span X,Z (horizontal).
+      const local = /tuer/.test(p.type) ? [[-hw,-hh,0],[hw,-hh,0],[hw,hh,0],[-hw,hh,0]] : [[-hw,0,-hh],[hw,0,-hh],[hw,0,hh],[-hw,0,hh]];
+      const C=local.map(c=>{const r=qrot(p.quat,c);return project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]);});
       if(C.every(Boolean)) prims.push({depth:P.depth,kind:"quad",C});
     }
     screenParts.push({id:p.id,sx:P.x,sy:P.y});
