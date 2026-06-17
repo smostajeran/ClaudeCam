@@ -1,0 +1,1162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression=""
+>
+<function description="gatherConfigInfos">
+	<param name="groupid" description="Moebel" type="Id" />
+	<returnvalue type="String" description="Informations about Moebel" />
+	<definition
+		expression="def gatherConfigInfos(groupid,articles) {
+    my infos = '';
+    my weight = '';
+    my rohrdicke = 23;
+    my bodenabstand = 0;
+    my bodenabzug = 0;
+    my imperialfactor = 25.4;
+    my bodenelement = Localize('[CO][MB] ohne Nivellierfüsse') ++ '@n';
+    my group_parts = call groupIdPartList(groupid);
+    my notcalculated = Bool(Size(FilterList(group_parts,'element',`Bool(Feature(element, 'calculated'));`)));
+    my verticalMetalPanels = FilterList(group_parts,'element',`not IsSubTypeOf(element,'metallverkleidung');`);
+    verticalMetalPanels = FilterList(verticalMetalPanels,'element',`not call vertikalVerkleidung(element);`);
+    my group_volumes = call groupIdVolumeList(groupid);
+    my group_articles_raw = FilterList(articles,'element',`element['groupid'] ne groupid or element['type'] eq 'ar_qs_article';`);
+    my group_articles = CompressTable(group_articles_raw, 'key', 'quantity');
+   	my cartridge = group_articles[0]['cartridge'];
+   	
+   	def my tischKlappenInfos(tb){
+   		my tischklappe_features = List('f_tischklappenvariante_R','f_tischklappenvariante_M','f_tischklappenvariante_L','f_tischklappenvariante_L_top','f_tischklappenvariante_R_top','f_tischklappenvariante_RL_top','f_tischklappenvariante_RM_top','f_tischklappenvariante_RR_top');
+		my klappen_anzahl = 0;
+		my klappen_text = '';
+		for (my featurename: tischklappe_features) {
+			klappen_anzahl = klappen_anzahl + (Feature(tb, featurename) ne 'keine_Klappe' and Feature(tb, featurename) ne '' ? 1 : 0);
+		}
+		if (klappen_anzahl gt 0) {
+			if (klappen_anzahl gt 1){
+				klappen_text = klappen_anzahl ++ ' ' ++Localize('Klappen');
+			}else {
+				klappen_text = klappen_anzahl ++ ' '++ Localize('Klappe');
+			}
+		}
+   	};
+   	
+   	if (cartridge eq 'usm_haller') {
+	    my doortypes = List();
+	    my dim = call groupIdDimemsions(group_parts,'measure');
+	    my aztuere = '';
+	    my azschubtuere = '';
+	    my klapptuere = '';
+	    my einschubtuere = '';
+	    my glastuere = '';
+	    my openshelfcount = '';
+	    my schublade = '';
+	    my tablare = '';
+	    my waende = '';
+	    my farbe = '';
+	    /* Bodenelement */
+	    my anz_fussgross = group_articles['key','15167']['quantity'];
+	    my anz_fussklein = group_articles['key','15168']['quantity'];
+	    if (anz_fussgross or anz_fussklein) {
+	       bodenabstand = 40;
+	       bodenabzug = 40;
+	       bodenelement = Localize('[CO][MB] inkl. Nivellierfüsse') ++ '@n'; 
+	    }  
+	     
+	    my anz_rollegross = group_articles['key','18880']['quantity'];
+	    my anz_rollegross_bremse= group_articles['key','18881']['quantity'];
+	    if (anz_rollegross or anz_rollegross_bremse) {
+	       bodenabstand = 100;
+	       bodenabzug = 109;
+	       bodenelement = Localize('[CO][MB] inkl. Doppel-Lenkrolle') ++ '@n';  
+	    }    
+	    
+	    my anz_rolle = group_articles['key','10762']['quantity'];
+	    my anz_rolle_bremse = group_articles['key','12067']['quantity'];
+	    if (anz_rolle or anz_rolle_bremse) {
+	       bodenabstand = 80;
+	       bodenabzug = 89;
+	       bodenelement = Localize('[CO][MB] inkl. Lenkrolle weich') ++ '@n'; 
+	    } 
+	    
+	    my anz_rollehart = group_articles['key','10761']['quantity'];
+	    my anz_rollehart_bremse = group_articles['key','12066']['quantity'];
+	    if (anz_rollehart or anz_rollehart_bremse) {
+	       bodenabstand = 80;
+	       bodenabzug = 89;
+	       bodenelement = Localize('[CO][MB] inkl. Lenkrolle hart') ++ '@n'; 
+	    }
+	    /* Imperial */
+	    if (UnitSystem() eq 'imperial') {
+	    	bodenabstand = Round(bodenabstand / imperialfactor, 0.01);     
+	    	bodenabzug = Round(bodenabzug / imperialfactor, 0.01); 
+	    	rohrdicke = Round(rohrdicke / imperialfactor, 0.01);    
+	    } 
+	    /* Groesse */
+	    my dimensions = Localize('[CO][MB] LxTxH:') ++ ' ' ++ (dim[2] + rohrdicke) ++ 'x' ++ (dim[1] + rohrdicke) ++ 'x' ++ (dim[0] - bodenabzug + bodenabstand) ++ ' ' ++ dim[4];
+	    dimensions = notcalculated ? dimensions ++ '   ' ++ Localize('[CO][MB] inkl. nicht kalkulierter Teile') ++ '@n' : dimensions ++ '@n';
+	    /* Material  + Farben 
+	       Do not inclued soft panels */
+	    my materials = call configColor(FilterList(group_articles, 'element', `element['type'] eq 'ar_soft_panel';`));
+	    my material = Localize('[CO][MB] Material') ++ ': ' ++ materials[0] ++ '@n';
+	    farbe = Localize('[CO][MB] Farbe') ++ ': ' ++ materials[1] ++ '@n';
+	    /* Gewicht */
+	    for (my art : CopyTable(group_articles)) {
+	     	weight = weight + Number(art['weight']) * Number(art['quantity']);
+	    }
+	    weight = Localize('[CO][MB] Gewicht:') ++ ' ' ++ Round(weight,0.001) ++ Localize('[CO][MB] kg') ++ '@n';
+	   
+	    /* Tueren */
+	    doortypes = call doorTypes(group_volumes);
+	    aztuere = doortypes[0];   
+	    azschubtuere = doortypes[1];   
+	    klapptuere = doortypes[2];
+	    einschubtuere = doortypes[3];   
+	    glastuere = doortypes[4];       
+	    schublade = doortypes[5];  
+	    openshelfcount = doortypes[6];
+	    
+	    
+	    /* Soft Panels */
+	    my soft_panels = FilterList(group_articles, 'element', `element['type'] ne 'ar_soft_panel';`);
+		for(my i =0; i lt Size(soft_panels); i = i + 1){
+			my name_list = StringToList(soft_panels[i]['name'], ',');
+			/* get last two elements */
+			my desc_list = ListSplice(name_list, Size(name_list)-2, -1, 0);
+			soft_panels[i]['short_description'] = Trim(ListToString(desc_list, ','));
+		}
+		soft_panels = CompressTable(soft_panels, List('short_description'), List('quantity'));
+		
+		my soft_panel_desc = '';
+		
+		for(my panel : soft_panels){
+			soft_panel_desc = soft_panel_desc ++ String(panel['quantity'])++ 'x ' ++ Localize('SoftPanel') ++ ', ' ++ panel['short_description'] ++ '@n';
+		}
+		
+	    
+	    /* Tablare */ 
+	    tablare = call tablarTypes(group_volumes);
+	    my tablarinfo = tablare['shelfinfo'];
+	    openshelfcount = openshelfcount - tablare['shelfcount'];
+	    
+	    my othercontent = call contentTypes(group_volumes);
+	    my contentinfo = othercontent['shelfinfo'];
+	    
+	    waende = call panelingTypes(group_volumes)++'@n';
+	    my openshelf = Bool(openshelfcount) ? openshelfcount ++ 'x ' ++ Localize('[CO][MB] offenes Fach') ++ '@n' : '';
+	   
+	    my regalverbindercount = Size(FilterList(ChildrenListOfTypeDeepA(Forest('articlestructure'), 'RegalVerbinder'), 'a', `not (Feature(AnyLeaf(a), '_PXi_permanent_group_id') eq groupid);`));
+	    my regalverbinder = regalverbindercount ? regalverbindercount ++ 'x ' ++ Localize('[CO][MB] Regalverbinder') ++ '@n' : '';
+	    
+	    my wandverankerungcount = Size(FilterList(ChildrenListOfTypeDeepA(Forest('articlestructure'), 'Wandverankerung'), 'a', `not (Feature(AnyLeaf(a), '_PXi_permanent_group_id') eq groupid);`));
+	    my wandverankerung =  wandverankerungcount ? wandverankerungcount ++ 'x ' ++ Localize('[CO][MB] Wandverankerung') ++ '@n' : '';
+	    
+	    my bodenverankerungcount = Size(FilterList(ChildrenListOfTypeDeepA(Forest('articlestructure'), 'Bodenverankerung'), 'a', `not (Feature(AnyLeaf(a), '_PXi_permanent_group_id') eq groupid);`));
+	    my bodenverankerung = bodenverankerungcount ? bodenverankerungcount ++ 'x ' ++ Localize('[CO][MB] Bodenverankerung') ++ '@n' : '';
+	    
+	    my ggwcount = Size(FilterList(ChildrenListOfTypeDeepA(Forest('articlestructure'), 'Gewichtsplatte_Set'), 'a', `not (Feature(AnyLeaf(a), '_PXi_permanent_group_id') eq groupid);`));
+	    my ggw =  ggwcount ? ggwcount ++ 'x ' ++ Localize('[CO][MB] Gegengewichtsplatten') ++ '@n' : '';
+	    
+	    
+	    my blechausschnittcount = Size(FilterList(ChildrenListOfTypeDeepA(Forest('articlestructure'), 'Blechausschnitt'), 'a', `not (Feature(AnyLeaf(a), '_PXi_permanent_group_id') eq groupid);`));
+	    my blechausschnitt =  blechausschnittcount ? blechausschnittcount ++ 'x ' ++ Localize('[CO][MB] Blechausschnitt') ++ '@n' : '';
+
+		/*if (Scenario() eq 'web') {
+		    my inoscount = Size((my boxen = ChildrenListOfTypeDeep(Forest('mainstructure'), 'at_inosBox')));
+		    my kastensetcount = Size(ChildrenListOfTypeDeep(Forest('mainstructure'), 'kastenset'));
+		    my topfcount = Size((my topflist = ChildrenListOfTypeDeep(Forest('mainstructure'), 'co_pflanzentopf')));
+		    my inoscolorlist = UniqueList(FeatureValuesFromPartList(boxen, 'f_inosBoxMaterial'));
+		    my inosfarbe = inoscount gt 0 ? call getRALFromColorcodes(inoscolorlist, ', ', false, false) : '';
+		    my inos = inoscount gt 0 ? Format(Localize('%0x [CO][MB] Inos Box, %1'), inoscount, inosfarbe)++'@n' : '';
+		    my kastensetfarbe = kastensetcount gt 0 ? call getRALFromColorcodes(call globalColorList(GetComponentListOfType('schalenkasten'), false, true), ', ', false, false) : '';
+		    my kastenset = kastensetcount gt 0 ? Format(Localize('%0x [CO][MB] Schubladenkasten')++', %1', kastensetcount, kastensetfarbe)++'@n' : '';
+		    my pflanzentopffarbe = topfcount gt 0 ? Localize(Feature(topflist[0], 'f_topffarbe')) : '';
+		    my pflanzentopf = topfcount gt 0 ? Format(Localize('%0x [CO][MB] Pflanzentopf, %1'), topfcount, pflanzentopffarbe)++'@n' : '';
+
+		    infos = '@n';
+		    infos = infos ++dimensions++ weight ++ material ++ farbe ++ bodenelement;
+		    infos = infos ++'@n';
+		    infos = infos ++ klapptuere ++ aztuere ++ azschubtuere ++ einschubtuere ++ glastuere ++ schublade ++ tablarinfo;
+		    if ((inoscount + kastensetcount + topfcount) gt 0) {
+			    infos = infos ++'@n';
+			    infos = infos ++ inos  ++ kastenset ++ pflanzentopf;
+			};
+	    } else {*/
+	    	infos = 
+	    		dimensions ++ 
+	    		weight ++
+	    		material ++ 
+	    		farbe ++ 
+	    		/*summarizedVolumeInfo ++ 		-->Informationen werden nicht mehr auf die einzelnen Fächer aufsummiert.
+	    		openshelf  ++ */
+	    		
+	    		klapptuere ++ 
+	    		aztuere ++ 
+	    		azschubtuere ++ 
+	    		einschubtuere ++ 
+	    		glastuere ++
+	    		soft_panel_desc ++ 
+	    		schublade ++ 
+	    		tablarinfo ++
+	    		
+	    		regalverbinder++
+	    		wandverankerung++
+	    		bodenverankerung++
+	    		ggw++
+	    		blechausschnitt++
+	    		
+	    		
+	    		/** Ausstattung */
+	    		contentinfo++
+	    		
+	    		bodenelement;
+	   /* };*/
+	};
+	
+	if (cartridge eq 'usm_hallertisch') {
+	
+		my tischblatt_list = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'tischblatt'));`);
+		my tischblatt_advanced = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_kabelwanne_i'));`);
+		my tischblatt_i_list = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_tisch_i'));`);
+		my bein_list = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'tischbein'));`);
+		my bein_vario_list = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'tischbein_vario'));`);
+		my laenge = 'undef';
+		my breite = 'undef';
+		my hoehe = 'undef';
+		my material = 'undef';
+		my hoehenverstellbar = '';
+		my klappen_text ='';
+		if (Size(tischblatt_list) and Scenario() ne 'web'){
+			infos = Localize('usm_hallertisch');
+		}
+		if (Size(tischblatt_i_list)){
+			infos = Localize('[CO]: Hallertisch integral standard');
+		}
+		if (Size(tischblatt_advanced)){
+			infos = Localize('[CO]: Hallertisch integral advanced');
+		};
+		
+		if (Size(tischblatt_list)) {
+			my tb = tischblatt_list[0];
+			laenge = PartAttr(tb, 'laenge')*10;
+			breite = PartAttr(tb, 'breite')*10;
+			material = Feature(tb, 'Tischmaterial');
+		}
+		if (Size(bein_list)) {
+			hoehe = SubStr(GetTypeName(bein_list[0]), IndexOfSubStr(GetTypeName(bein_list[0]), '_') +1)*10;
+		}
+		
+		if (Size(bein_vario_list)) {
+			hoehe = '680-860';
+			hoehenverstellbar = Localize('pty_Vario_Tisch');
+		}
+		
+		if (Size(tischblatt_list)) {
+			my dimensions = Localize('[CO][MB] LxTxH:') ++ ' ' ++laenge++'x'++breite++'x'++hoehe++' mm';
+			infos = infos ++ '@n'++dimensions;
+		};
+		
+		if (StrLen(hoehenverstellbar)) {
+			infos = infos ++ '@n'++hoehenverstellbar;
+		};
+		
+		klappen_text = call tischKlappenInfos(tb);
+		if(klappen_text ne 0){
+			infos = infos ++ '@n'++klappen_text;
+		};
+		
+		if (Size(tischblatt_list)) {
+			my tischblatt = tischblatt_list[0];
+			my tischmaterial = tischblatt ? Feature(tischblatt, 'Tischmaterial') : ''; 
+			if (tischmaterial ne '') {
+				my hint_text = Localize('key_hint_'++FillLeft(tischmaterial,2,'0'));	
+				infos = infos ++'@n'++Format(Localize('Material')++': %0', hint_text); 
+			};
+		};
+	};
+		
+	if (cartridge eq 'usm_kitos') {
+	
+		my tischblatt_list = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_tischblatt'));`);
+		my tischblatt_kitos = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'tischblatt'));`);
+		my tischblatt_plus = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_fuehrungswinkel_plus'));`);
+		my tischblatt_meeting = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_tischblatt_meeting'));`);
+		my tischblatt_freistehend_rechteckig = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_tischblatt_frst_eckig'));`);
+		my tischblatt_freistehend_rund = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_tischblatt_frst_rund'));`);
+		my kabelwanne = FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'ct_kabelwanne'));`);
+		my klappen_text = '';
+		my kabel= kabelwanne[0];
+		my tb = tischblatt_list[0];
+		my tbk = tischblatt_kitos[0];
+		my tisch_e = (ParentOfType(tb, 'mainstructure', 'at_tisch_e'));
+		my tisch_m = (ParentOfType(tb, 'mainstructure', 'at_tisch_m'));
+		my tisch_k = (IsSubTypeOf(tbk, 'standardtischblatt_1s'));
+		
+		if (Size(tischblatt_list) and IsSubTypeOf(tisch_m, 'at_tisch_m')){
+			infos = Localize('Kitos M');
+		};
+		if (Size(tischblatt_list) and IsSubTypeOf(tisch_e, 'at_tisch_e')){
+			infos = Localize('USM Kitos E');
+		};
+		if (Size(tischblatt_plus) and IsSubTypeOf(tisch_m, 'at_tisch_m')){
+			infos = Localize('Kitos M Plus');
+		};
+		if (Size(tischblatt_plus) and IsSubTypeOf(tisch_e, 'at_tisch_e')){
+			infos = Localize('USM Kitos E Plus');
+		};
+		if (Size(tischblatt_meeting) and IsSubTypeOf(tisch_m, 'at_tisch_m')){
+			infos = Localize('Kitos M Meeting'); 
+		};
+		if (Size(tischblatt_meeting) and IsSubTypeOf(tisch_e, 'at_tisch_e')){
+			infos = Localize('Kitos E Meeting'); 
+		};
+		if (Size(tischblatt_freistehend_rechteckig)){
+			infos = Localize('USM Kitos E freistehend quadratisch');
+		};
+		if (Size(tischblatt_freistehend_rund)){
+			infos = Localize('USM Kitos E freistehend rund');
+		};
+		if (Size(tischblatt_kitos) and tisch_k eq true){
+			infos = Localize('USM Kitos freistehend quadratisch');
+		};
+		if (IsSubTypeOf(tbk, 'tischblatt_standard') and (Size(tischblatt_kitos))){
+			infos = Localize('USM Kitos');
+		};
+		
+		if (IsSubTypeOf(tb, 'ct_tischblatt')) {
+		
+			my dimension = call getKitosDimension(tb, false);
+			my basic_e_text = '';
+			my tisch_e = (ParentOfType(tb, 'mainstructure', 'at_tisch_e_einheit'));
+			my vario = (ParentOfType(tb, 'mainstructure', 'as_tisch_tio_vario'));
+			my vario_text = '';
+			my klappe = call tischKlappenInfos(tb);
+			
+			if (vario and IsSubTypeOf(vario, 'as_tisch_tio_vario')){
+				my basic_e_text = 'x700-1110';
+				vario_text = Localize('pty_Vario_Tisch');
+				}
+				else{
+					my basic_e_text = 'x740';
+			};
+			if (kabel ne null){
+				my f = Feature(kabel, 'f_saeulenpaar');
+				if (Size(tisch_e) and f eq 'saeulenpaar_e3'){
+					my basic_e_text = 'x650-1300';
+					vario_text = Localize('pty_Vario_Tisch');
+				}
+				if (Size(tisch_e) and f eq 'saeulenpaar_e2'){
+					my basic_e_text = 'x700-1200';
+					vario_text = Localize('pty_Vario_Tisch');
+				}
+				if (Size(tisch_e) and f eq 'saeulenpaar_e1'){
+					my basic_e_text = 'x740';
+				}
+			};
+			if (tisch_m and Size(tischblatt_meeting)){
+				my basic_e_text = 'x700-1150';
+				vario_text = Localize('pty_Vario_Tisch');
+			};
+			if (tisch_m and not Size(tischblatt_meeting) and IsSubTypeOf(tisch_m, 'at_tisch_m')){
+				my basic_e_text = 'x700-1200';
+				vario_text = Localize('pty_Vario_Tisch');
+			};
+			my dimension_text = Localize('[CO][MB] LxTxH:') ++ ' ' ++ dimension  ++ basic_e_text ++ ' mm';
+			
+			infos = infos ++ '@n'++dimension_text;
+			
+			if (klappe ne 0){
+				klappen_text = klappe;
+				infos = infos ++ '@n'++klappen_text;
+			};
+		};
+			
+		if ((Size(tischblatt_kitos) and IsSubTypeOf(tbk, 'tischblatt_standard')  )) {
+			my dimension_k = call getKitosDimension(tbk, false);
+			my basic_e_text = '';
+			my vario_text = '';
+			my vario = (ParentOfType(tbk, 'mainstructure', 'tisch_normal'));
+			my zweisaeulen = (ParentOfType(tbk, 'mainstructure', 'zweisaeuliger_tisch'));
+			
+			if (vario){
+				my key = Property(vario, 'hc_saeulen'); 
+				basic_e_text = if(key eq 'saeule_A740') {'x740';} 
+									else if(vario and vario eq zweisaeulen) {'x700-1200';}
+									else if (key eq 'saeule_B1') {'x681-1081';}
+									else if (key eq 'saeule_B2') {'x680-1090';};
+				if (key eq 'saeule_B1' or key eq 'saeule_B2'){
+					vario_text = Localize('pty_Vario_Tisch');
+				};
+			}; 
+			my dimension_text = Localize('[CO][MB] LxTxH:') ++ ' ' ++ dimension_k ++ basic_e_text ++ ' mm';
+			
+			infos = infos ++ '@n'++dimension_text;
+		};
+		if (tb or tbk) {
+			my tischblatt = tb ? tb : tbk;
+			my tischmaterial = tischblatt ? Feature(tischblatt, 'Tischmaterial') : ''; 
+			if (tischmaterial ne '') {
+				my hint_text = Localize('key_hint_'++FillLeft(tischmaterial,2,'0'));	
+				infos = infos ++'@n'++Format(Localize('Material')++': %0', hint_text); 
+			};
+		};
+		if(StrLen(vario_text)){
+			infos = infos ++ '@n' ++ vario_text;
+		};
+		
+	};
+
+	return  infos;
+  };" />
+</function>
+<function>
+	<definition expression="def getKitosDimension(tischblatt, with_unit) {
+		my dimension = '';
+        my length = Round(PartAttr(tischblatt,'length')) * 10;
+        my length_2 = Round(PartAttr(tischblatt,'length_2')) * 10;
+        my width = Round(PartAttr(tischblatt,'width')) * 10;
+        my radius = PartAttr(tischblatt,'radius') * 10;
+        if (length_2 eq 0) {
+         dimension = length ++ 'x' ++ width;
+        } else {           dimension = length ++ 'x' ++ width ++ 'x' ++ length_2;
+        }
+        if (PartAttr(tischblatt,'radius') gt 0) {
+           dimension = 2*radius;
+        }
+        
+        if (with_unit) {
+			dimension = dimension ++ ' mm';        
+        }
+        return dimension;
+	}"/>
+</function>
+<function description="generates the used color and material">
+    <param description="Articles of the Shelf" name="group_articles"/>
+    <returnvalue description="materials and used colors" type="List"/>
+    <definition expression="def configColor(group_articles) {
+    my materials = List();
+    my material = '';
+    my glasmaterial = '';
+    my metalmaterial = '';
+    my colors = '';
+    my colorlist = List();
+    my colorTable = List();
+    for (my i : IndexList(Size(group_articles))) {
+        colorTable[i]['quantity'] = group_articles[i]['quantity']; 
+        my col = '';
+        
+        my key = group_articles[i]['key'];
+        /* my inos = EndsWith(BASE['key',key]['Kurzbezeichnung'],'Bibliotheks-Rasterschiene') or EndsWith(BASE['key',key]['Zubhoer'],'inos'); */
+        
+        my splitcol = StringToList(key,'.'); 
+        if (InList(ALLGLASSES,splitcol[0])) {
+           col = 80;
+           glasmaterial = Localize('[CO][MB] Glas');
+        } else if (StrLen(splitcol[1]) gt 1) {
+            if (BeginsWith(group_articles[i]['name'],'USM Haller')) {
+              col = splitcol[1];
+              if (StrLen(col) eq 2 or StrLen(col) eq 4) {
+                /* nur Metallfarben, keine Schloesser und keine PPs Farben */
+                 metalmaterial = Localize('[CO][MB] Metall');
+              } else {
+                col = '';
+              }
+            }
+        } else {
+          col = '';
+        }
+        colorTable[i]['colorcode'] = col;  
+      }
+      colorTable = FilterList(colorTable,'element',`element['colorcode'] eq '';`);
+      colorlist = CompressTable(colorTable, 'colorcode', 'quantity');
+      material = StrLen(metalmaterial) gt 0 ? material = metalmaterial : material;
+      material = StrLen(glasmaterial) gt 0 ? material = glasmaterial : material;
+      material = StrLen(metalmaterial) gt 0 and StrLen(glasmaterial) gt 0 ? material = metalmaterial ++ ', ' ++ glasmaterial : material;
+      for (my j : IndexList(Size(colorlist))) {
+        my color = colorlist[j]['colorcode'];
+        if (StrLen(color) eq 2 or StrLen(color) eq 4) {
+            color = colornames['Farbcode',color]['Bezeichnung_'++UpperCase(EnvValue('DYNAMIC.Language'))];   
+            color = StrLen(color) ? color : '['++colorlist[j]['colorcode']++']';      
+          if (StrLen(colors) eq 0) {
+          colors = color;
+          } else {
+           colors = colors ++ ', ' ++ color;
+          }
+        }
+      }
+      materials[0] = material;
+      materials[1] = colors;
+      return materials;
+    }
+  "/>
+  </function>
+
+<function description="Bschreibung alle Tablare eines Moebels">
+  <param name="group_volumes" description="Volumen/Fach" type="List(Objects)"/>
+  <returnvalue type="List" description="Liste aller Tuerbeschreibungen"/>
+  <definition expression="def tablarTypes(group_volumes) {
+    my result = List();
+	result['shelfcount'] = Size(group_volumes);
+    my anz_aztablare = 0;
+    my anz_azvktablare = 0;
+    my anz_srtablare = 0;
+    my anz_metalltablare = 0;
+    my anz_glastablare = 0;
+    my aztablare = List();
+    my azvktablare = List();
+    my srtablare = List();
+    my tablare = '';
+    my tablarelist = List();
+    my metalltablare = List();
+    my glastablare = List();
+    my shelflist = List();
+    /* my headers = List('azt','met','glas');
+    my values = List('','','');
+    my tablartable = CreateTable(headers,values);
+    tablartable = AsList(tablartable); */
+    
+    my tablartable = Dictionary(List('azt','azvkt', 'srt', 'met','glas'), List(0,0,0,0,0));
+    
+    for (my i : IndexList(Size(group_volumes))) {
+    	my vol = group_volumes[i];
+      aztablare = ChildrenListOfTypeDeep(vol, 'ausziehtablar');
+      /* sicherstellen dass das Tablar nicht zu einer AZTuere gehoert */
+      aztablare = FilterList(aztablare,'element',`Bool(ConnectedDocksOfType(element, 'tablar2tuer'));`);
+      anz_aztablare = Size(FilterList(aztablare,'element',`not Bool(Feature(element, 'calculated'));`));
+      azvktablare = ChildrenListOfTypeDeep(vol, 'ausziehtablarverkehrt');
+      /* sicherstellen dass das Tablar nicht zu einer AZTuere gehoert */
+      azvktablare = FilterList(azvktablare,'element',`Bool(ConnectedDocksOfType(element, 'tablar2tuer'));`);
+      anz_azvktablare = Size(FilterList(azvktablare,'element',`not Bool(Feature(element, 'calculated'));`));
+      srtablare = ChildrenListOfTypeDeep(vol, 'schraegtablar');
+	  srtablare = FilterList(srtablare,'element',`GetTypeName(element) ~ 'klemmzunge';`);
+	  anz_srtablare = Size(FilterList(srtablare,'element',`not Bool(Feature(element, 'calculated'));`));
+      metalltablare = ChildrenListOfTypeDeep(vol, 'metalltablar');
+      anz_metalltablare = Size(FilterList(metalltablare,'element',`not Bool(Feature(element, 'calculated'));`));
+      glastablare = ChildrenListOfTypeDeep(vol, 'glastablar');  
+      anz_glastablare = Size(FilterList(glastablare,'element',`not Bool(Feature(element, 'calculated'));`));
+      /*tablartable[i]['count'] = 1;
+      tablartable[i]['azt'] = anz_aztablare;
+      tablartable[i]['met'] = anz_metalltablare;
+      tablartable[i]['glas'] = anz_glastablare;*/
+      tablartable['azt'] = tablartable['azt'] + anz_aztablare;
+      tablartable['azvkt'] = tablartable['azvkt'] + anz_azvktablare;
+      tablartable['srt'] = tablartable['srt'] + anz_srtablare;
+      tablartable['met'] = tablartable['met'] + anz_metalltablare;
+      tablartable['glas'] = tablartable['glas'] + anz_glastablare;
+    }
+   /*  my sep = '@t';
+    my sep = ', ';
+    if (Bool(tablartable[0]['count'])) {
+      tablarelist = CompressTable(tablartable, List('azt','met','glas'), 'count');
+      tablarelist = CompressTable(tablartable, '', List('azt','met','glas'));
+      for (my fach : tablarelist) {
+        /* Nuller rausfiltern */ /*
+        my azt = Bool(fach['azt']) ? fach['azt'] ++ 'x ' ++ Localize('[CO][MB] Auszugstablar'): '';
+        my met = Bool(fach['met']) ? fach['met'] ++ 'x ' ++ Localize('[CO][MB] Metalltablar') : '';
+        my glas = Bool(fach['glas']) ? fach['glas'] ++ 'x ' ++ Localize('[CO][MB] Glastablar') : '';
+        if ((fach['azt'] + fach['met'] + fach['glas']) gt 0) {
+         my text = '';
+         tablare = tablare ++ 
+                  fach['count'] ++ 'x ' ++ Localize('[CO][MB] Fach inkl. Tablare:') ++ ' ';
+                  text = text ++ azt;
+                  text = text ++ (StrLen(text) and Bool(fach['met']) ? sep : '') ++ met;
+                  text = text  ++ (StrLen(text) and Bool(fach['glas']) ? sep : '') ++ glas;
+                  text = text ++ '@n';
+            tablare = tablare ++ text;
+    		result['shelfcount'] = result['shelfcount'] + fach['count'];
+         }
+      }
+    }*/
+    
+    my anz_tablare = tablartable['azt'] + tablartable['azvkt'] + tablartable['srt'] + tablartable['met'] + tablartable['glas'];
+    
+    if (anz_tablare gt 0) {
+    	if(tablartable['azt'] gt 0) {
+    		tablare = tablare ++ tablartable['azt'] ++ 'x ' ++ Localize('[CO][MB] Auszugstablar') ++ '@n';
+    	}
+    	if(tablartable['azvkt'] gt 0) {
+    		tablare = tablare ++ tablartable['azvkt'] ++ 'x ' ++ Localize('[CO][MB] Auszugstablar verkehrt') ++ '@n';
+    	}
+    	if(tablartable['srt'] gt 0) {
+    		tablare = tablare ++ tablartable['srt'] ++ 'x ' ++ Localize('[CO][MB] Schraegtablar') ++ '@n';
+    	}
+    	if(tablartable['met'] gt 0) {
+    		tablare = tablare ++ tablartable['met'] ++ 'x ' ++ Localize('[CO][MB] Metalltablar') ++ '@n';
+    	}
+    	if(tablartable['glas'] gt 0) {
+    		tablare = tablare ++ tablartable['glas'] ++ 'x ' ++ Localize('[CO][MB] Glastablar') ++ '@n';
+    	}
+    }
+    
+   result['shelfinfo'] = tablare;
+  
+   return result;
+   }"/>
+</function>
+<function  description="returns all inos box of volume: attached, child, on tablar">
+	<param name="volume"/>
+	<definition expression="def getAllInosBoxenOfVolume(volume) {
+		my boxen = List();
+		my top_panel_list = FilterList(GetVolumeRefParts(volume), 'p', `not (IsSubTypeOf(p, 'verkleidung') and FindPart(p, 'ct_inosBox'));`);
+		for (my p: top_panel_list) {
+		 	my blist = call connectedPartsByDockType(p, 'dt_tablar_2_inosBox');
+		 	for (my b: blist) { 
+		 		my box = call getRootParentOfType(b, 'mainstructure', 'at_inosBoxKonzept');
+		 		if (box) {
+		 			if (IsSubTypeOf(box, 'as_inosBoxStappel')) { 
+		 				ListExtend(boxen, ChildrenListOfTypeDeep(box, 'as_inosBox'));
+		 				
+		 			} else {
+		 				ListAdd(boxen, box);
+		 			}
+		 		};
+		 	};
+		};
+		
+		my tablar_list = FilterList(ChildrenListOfTypeDeep(volume, 'ct_tablar'), 'p', `not (FindPart(p, 'ct_inosBox'));`);
+		for (my p: tablar_list) {
+		 	my blist = call connectedPartsByDockType(p, 'dt_tablar_2_inosBox');
+		 	for (my b: blist) {
+		 		my box = call getRootParentOfType(b, 'mainstructure', 'at_inosBoxKonzept');
+		 		if (box) {
+		 			if (IsSubTypeOf(box, 'as_inosBoxStappel')) { 
+		 				ListExtend(boxen, ChildrenListOfTypeDeep(box, 'as_inosBox'));
+		 				
+		 			} else {
+		 				ListAdd(boxen, box);
+		 			}
+		 		};
+		 	};
+		};
+	
+		return boxen;
+	}"/>
+</function>
+<function description="Bschreibung aller Contents eines Moebels - Inos Box, Kastenset, Pflanzentopf">
+  <param name="group_volumes" description="Volumen/Fach" type="List(Objects)"/>
+  <returnvalue type="List" description="Liste aller content Types (inos, kastenset, pflanzen)"/>
+  <definition expression="def contentTypes(group_volumes) {
+    my result = List();
+	result['shelfcount'] = 0;
+    my anz_inos = 0;
+    my anz_kastenset = 0;
+    my anz_pflanzen = 0;
+    my inoslist = List();
+    my kastensetlist = List();
+    my pflanzenlist = List();
+   
+    my shelflist = List();
+    my headers = List('count','inos','kastenset','pflanzen');
+    my values = List('','','','');
+    my contenttable = CreateTable(headers,values);
+    my contentlist = List();
+    my contenttext = '';
+    
+    for (my i : IndexList(Size(group_volumes))) {
+		my v = group_volumes[i];
+		/** inos boxen in oder an volume oder auf tablar in volume */
+		my iblist = call getAllInosBoxenOfVolume(v);
+		for (my b: iblist) {
+			not InList(inoslist, b) ? ListAdd(inoslist, b) : null;
+		}
+		my klist = ChildrenListOfTypeDeep(v, 'schalenkasten');
+		for (my b: klist) {
+			not InList(kastensetlist, b) ? ListAdd(kastensetlist, b) : null;
+		}
+		my topflist = FilterList(call getAllPflanzenOfVolume(v), 'p', `not (IsSubTypeOf(p, 'co_pflanzentopf'));`);
+		for (my t: topflist) {
+			not InList(pflanzenlist, t) ? ListAdd(pflanzenlist, t) : null;
+		}
+    } 
+    
+    anz_inos = Size(inoslist);
+    anz_kastenset = Size(kastensetlist);
+    anz_pflanzen = Size(pflanzenlist);
+    
+    my inoscolorlist = anz_inos ? UniqueList(FeatureValuesFromPartList(inoslist, 'f_inosBoxMaterial_top')) : List();
+    my inosfarbe = anz_inos gt 0 ? call getRALFromColorcodes(inoscolorlist, ', ', false, false) : '';
+    my inos = anz_inos gt 0 ? Format(Localize('%0x [CO][MB] Inos Box, %1'), anz_inos, inosfarbe)++'@n' : '';
+    my kastensetfarbe = anz_kastenset gt 0 ? call getRALFromColorcodes(call globalColorList(kastensetlist, false, true), ', ', false, false) : ''; 
+    my kastenset = anz_kastenset gt 0 ? Format(Localize('%0x [CO][MB] Schubladenkasten'), anz_kastenset)++ ', ' ++ kastensetfarbe ++'@n' : '';
+    my pflanzentopffarbe = anz_pflanzen gt 0 ? Localize(Feature(pflanzenlist[0], 'f_topffarbe')) : '';
+    my pflanzentopf = anz_pflanzen gt 0 ? Format(Localize('%0x [CO][MB] Pflanzentopf'), anz_pflanzen)++ ', ' ++ pflanzentopffarbe ++ '@n' : '';
+
+    if ((anz_inos + anz_kastenset + anz_pflanzen) gt 0) {
+	    result['shelfinfo'] = result['shelfinfo'] + 1;
+	    contenttext = contenttext ++ inos  ++ kastenset ++ pflanzentopf;
+	};
+    
+    result['shelfinfo'] = contenttext;
+
+  
+   return result;
+   }"/>
+</function>
+
+<function description="Bschreibung alle Tueren eines Moebels">
+  <param name="group_volumes" description="Volumen/Fach" type="List(Objects)"/>
+  <returnvalue type="List" description="Liste aller Tuerbeschreibungen"/>
+  <definition expression="def doorTypes(group_volumes) {
+   my doors = List();
+   my aztueren = List();
+   my aztuerenschublade = List();
+   my klapptueren = List();
+   my einschubtueren = List();
+   my glastueren = List();
+   my schubladen = List();
+   my calc_open_shelf = call calcopenshelf(group_volumes);
+   my calc_group_volumes = call groupIdCalcVolumeList(calc_open_shelf);
+   for (my vol : group_volumes) {
+     my aztuereschublade = call countDoor(vol,'aztuerschubladenset','tuerelement');
+     if (aztuereschublade) {
+      aztuerenschublade = ListAdd(aztuerenschublade, aztuereschublade);
+     }else {
+	     my aztuere = call countDoor(vol,'aztuertabset_norm','tuerelement');
+	     if (aztuere) {
+	      aztueren = ListAdd(aztueren, aztuere);
+	     }
+	     my aztuere = call countDoor(vol,'aztuertabset_kurz','tuerelement');
+	     if (aztuere) {
+	      aztueren = ListAdd(aztueren, aztuere);
+	     }
+     }
+     my klapptuere = call countDoor(vol,'klapptuerset','tuerelement');
+     if (klapptuere) {
+       klapptueren = ListAdd(klapptueren, klapptuere);
+     }
+     my einschubtuere = call countDoor(vol,'einschubtuerset','einschubtuer');
+     if (einschubtuere) {
+      einschubtueren = ListAdd(einschubtueren, einschubtuere);
+     }
+     my glastuere = call countDoor(vol,'glastuerset','glastuer');
+     if (glastuere) {
+      glastueren = ListAdd(glastueren, glastuere);
+     }
+     my schublade = call countDoor(vol,'schubladenauszugset','schublade');
+     if (schublade) {
+      schubladen = ListAdd(schubladen, schublade);
+     }
+   }
+   /* Message(Size(group_volumes) ++ ', ' ++ Size(aztueren) ++ ', ' ++ Size(klapptueren) ++ ', ' ++ Size(einschubtueren) ++ ', ' ++  Size(glastueren)); */
+   my countfachoffen = Size(calc_group_volumes) - (Size(aztueren) + Size(klapptueren) + Size(einschubtueren) + Size(glastueren) + Size(schubladen));
+   my nrofdoors = List();
+   my keys = List('name','amount');
+   ListAdd(nrofdoors,Dictionary(keys,List('Ausziehtüre',Size(aztueren))));
+   ListAdd(nrofdoors,Dictionary(keys,List('Ausziehtüre Schublade',Size(aztuerenschublade))));
+   ListAdd(nrofdoors,Dictionary(keys,List('Klapptüre',Size(klapptueren))));
+   ListAdd(nrofdoors,Dictionary(keys,List('Einschubtüre',Size(einschubtueren))));
+   ListAdd(nrofdoors,Dictionary(keys,List('Glastüre',Size(glastueren))));
+   ListAdd(nrofdoors,Dictionary(keys,List('Schubladen',Size(schubladen))));
+   my aztinfo = Bool(Size(aztueren)) ? call doorInfo(aztueren,'azt') : '';
+   my aztschubinfo = Bool(Size(aztuerenschublade)) ? call doorInfo(aztuerenschublade,'aztschub') : '';
+   my klappinfo = Bool(Size(klapptueren)) ? call doorInfo(klapptueren,'klapp') : '';
+   my einschubinfo = Bool(Size(einschubtueren)) ? call doorInfo(einschubtueren,'schub') : '';
+   my glastuerinfo = Bool(Size(glastueren)) ? call doorInfo(glastueren,'glas') : '';
+   my schubladeinfo = Bool(Size(schubladen)) ? call doorInfo(schubladen,'lade') : '';
+   doors[0] = aztinfo;
+   doors[1] = aztschubinfo;
+   doors[2] = klappinfo;     
+   doors[3] = einschubinfo;  
+   doors[4] = glastuerinfo;  
+   doors[5] = schubladeinfo; 
+   doors[6] = countfachoffen;
+   doors[7] = nrofdoors; 
+   return doors;
+   }"/>
+</function>
+
+<function description="Berechnet kalkulierte Faecher ">
+  <param name="group_volumes" description="Verbaute Faecherliste" type="List(Object)"/>
+  <returnvalue type="List(Object)" description="kalkulierte Faecherliste"/>
+  <definition expression="def groupIdCalcVolumeList(group_volumes) {
+			my calc_volumes = List();
+			for ( my vol : group_volumes ) { 
+				my rohre = FilterList(GetVolumeRefParts(vol),'element',`not IsSubTypeOf(element,'rohr');`);
+				rohre = FilterList(rohre,'element',`not Bool(Feature(element,'calculated'));`);
+				if ( Bool(Size(rohre)) ) {
+					calc_volumes = ListAdd(calc_volumes,vol);
+				}
+			}
+			return calc_volumes;
+	}"/>
+</function>
+
+<function description="Berechnet die offenen Fächer">
+  <param name="group_volumes" description="Verbaute Faecherliste" type="List(Object)"/>
+  <returnvalue type="List(Object)" description="offene Fächerliste"/>
+  <definition expression="def calcopenshelf(group_volumes) {
+		my calc_volumes = List();
+		my verkleidung = List();
+			for ( my vol : group_volumes ) 
+			{ 
+				verkleidung = FilterList(GetVolumeRefParts(vol),'e',`not IsSubTypeOf(e,'verkleidung');`);
+				
+				if (Size(verkleidung) lt 6)
+				{
+					calc_volumes = ListAdd(calc_volumes,vol);
+				}
+			}
+			
+		return calc_volumes;
+			
+			
+	}"/>
+</function>
+
+<function description="Tueren mit griff/schloss">
+  <param name="part" description="tueren" type="List(Object)"/>
+  <param name="kind" description="Art der Tuere: azt,klapp,schub" type="Str"/>
+  <returnvalue type="String" description="Tuerbeschreibung"/>
+  <definition expression="def doorInfo(doors, kind) {
+    my griffinfo = '';
+   /* my tuerinfo = Localize('[CO][MB] Fach inkl.');  */
+    my tuerinfo = '';
+    if (kind eq 'azt') {
+      tuerinfo = tuerinfo ++ Localize('[CO][MB] Ausziehtüre');
+    } else if (kind eq 'aztschub') {
+      tuerinfo = tuerinfo ++ Localize('[CO][MB] Ausziehtüre mit Einlegerahmen');
+    } else if (kind eq 'klapp') {
+      tuerinfo = tuerinfo ++ Localize('[CO][MB] Klapptüre');
+    } else if (kind eq 'schub') {
+      tuerinfo = tuerinfo ++ Localize('[CO][MB] Einschubtüre');
+    } else if (kind eq 'glas') {
+      tuerinfo = tuerinfo ++ Localize('[CO][MB] Glastüre');
+    } else if (kind eq 'lade') {
+      tuerinfo = tuerinfo ++ Localize('[CO][MB] Schubladen');
+    }
+    my anz_griff_normal = Size(FilterList(doors,'element',`not ChildOfTypeDeep(element, 'griff_normal');`));
+    if (Bool(anz_griff_normal)) {
+       griffinfo = anz_griff_normal ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Griff (ohne Schloss)') ++ '@n';
+    }
+    my anz_griff_m_nummer = Size(FilterList(doors,'element',`not ChildOfTypeDeep(element, 'griff_m_nummer');`));
+    if (Bool(anz_griff_m_nummer)) {
+       my schloesser = List();
+       my anz_c_schloesser = 0;
+       for(my door : FilterList(doors,'element',`not ChildOfTypeDeep(element, 'griff_m_nummer');`)){
+       		ListAdd(schloesser, ChildOfTypeDeep(door, 'griff_m_nummer'));
+       }
+       my schlossNr = '';
+       my marked_schloesser = List();
+       for(my schloss : schloesser){
+       		if(Feature(schloss, 'Schliessung') ~ 'schloss_c'){
+       			anz_griff_m_nummer = anz_griff_m_nummer - 1;
+       			anz_c_schloesser = anz_c_schloesser + 1;
+       		} else {
+       			my prefix = StrLen(schlossNr) GT 0 ? ', $' : ' $';
+       			my schloss_key = HALLERARTICLE['type',GetTypeName(Parent('articlestructure',schloss))]['value'] ++ (StrLen(Feature(schloss,'lockid')) gt 0? '_'++Feature(schloss,'lockid') : '$');
+       			if (not InList(marked_schloesser, schloss_key)){
+	       			schlossNr = schlossNr ++ prefix ++ schloss_key;
+	       			ListAdd(marked_schloesser, schloss_key);
+	       		}
+       		}
+       }
+       
+       if (Bool(anz_griff_m_nummer)) {
+       		griffinfo = griffinfo ++ anz_griff_m_nummer ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Griff (mit Schloss)') ++ schlossNr ++ '@n';
+       }
+       if (Bool(anz_c_schloesser)) {
+       		griffinfo = griffinfo ++ anz_c_schloesser ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Griff (mit C-Schloss)') ++ '@n';
+       }
+    }
+    my anz_schnapp_griff_normal = Size(FilterList(doors,'element',`not ChildOfTypeDeep(element, 'schnapp_griff_normal');`));
+    if (Bool(anz_schnapp_griff_normal)) {
+       griffinfo = griffinfo ++ anz_schnapp_griff_normal ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Schnappdrehgriff (ohne Schloss)') ++ '@n';
+    }
+    my anz_schnapp_griff_m_nummer = Size(FilterList(doors,'element',`not ChildOfTypeDeep(element, 'schnapp_griff_m_nummer');`));
+    if (Bool(anz_schnapp_griff_m_nummer)) {
+       my schloesser = List();
+       my anz_c_schloesser = 0;
+       for(my door : FilterList(doors,'element',`not ChildOfTypeDeep(element, 'schnapp_griff_m_nummer');`)){
+       		ListAdd(schloesser, ChildOfTypeDeep(door, 'schnapp_griff_m_nummer'));
+       }
+       my schlossNr = '';
+       my marked_schloesser = List();
+       for(my schloss : schloesser){
+       		if(Feature(schloss, 'Schliessung') ~ 'schloss_c'){
+       			anz_schnapp_griff_m_nummer = anz_schnapp_griff_m_nummer - 1;
+       			anz_c_schloesser = anz_c_schloesser + 1;
+       		} else {
+       			my prefix = StrLen(schlossNr) GT 0 ? ', $' : ' $';
+       			my schloss_key = HALLERARTICLE['type',GetTypeName(Parent('articlestructure',schloss))]['value'] ++ (StrLen(Feature(schloss,'lockid')) gt 0? '_'++Feature(schloss,'lockid') : '$');
+       			if (not InList(marked_schloesser, schloss_key)){
+	       			schlossNr = schlossNr ++ prefix ++ schloss_key;
+	       			ListAdd(marked_schloesser, schloss_key);
+	       		}
+       		}
+       }
+       if (Bool(anz_schnapp_griff_m_nummer)) {
+       		griffinfo = griffinfo ++ anz_schnapp_griff_m_nummer ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Schnappdrehgriff (mit Schloss)') ++ schlossNr ++ '@n';
+       }
+       if (Bool(anz_c_schloesser)) {
+       		griffinfo = griffinfo ++ anz_c_schloesser ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Schnappdrehgriff (mit C-Schloss)') ++ '@n';
+       }
+    }
+    my chromgriff = Size(FilterList(doors,'element',`not ChildOfTypeDeep(element, 'chromgriff');`));
+    if (Bool(chromgriff)) {
+       griffinfo = griffinfo ++ chromgriff ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Chromgriff (ohne Schloss)') ++ '@n';
+    }
+    my glasgriff_schloss_m = Size(FilterList(doors,'element',`not ChildOfTypeDeep(element, 'glasgriff_schloss_m');`));
+    if (Bool(glasgriff_schloss_m)) {
+       my schloesser = List();
+       my anz_c_schloesser = 0;
+       for(my door : FilterList(doors,'element',`not ChildOfTypeDeep(element, 'glasgriff_schloss_m');`)){
+       		ListAdd(schloesser, ChildOfTypeDeep(door, 'glasgriff_schloss_m'));
+       }
+       my schlossNr = '';
+       my marked_schloesser = List();
+       for(my schloss : schloesser){
+       		if(Feature(schloss, 'Schliessung') ~ 'schloss_c'){
+       			glasgriff_schloss_m = glasgriff_schloss_m - 1;
+       			anz_c_schloesser = anz_c_schloesser + 1;
+       		} else {
+       			my prefix = StrLen(schlossNr) GT 0 ? ', $' : ' $';
+       			my schloss_key = HALLERARTICLE['type',GetTypeName(Parent('articlestructure',schloss))]['value'] ++ (StrLen(Feature(schloss,'lockid')) gt 0? '_'++Feature(schloss,'lockid') : '$');
+       			if (not InList(marked_schloesser, schloss_key)){
+	       			schlossNr = schlossNr ++ prefix ++ schloss_key;
+	       			ListAdd(marked_schloesser, schloss_key);
+	       		}
+       		}
+       }
+       if (Bool(glasgriff_schloss_m)) {
+       		griffinfo = griffinfo ++ glasgriff_schloss_m ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Glasgriff (mit Schloss)') ++ schlossNr ++ '@n';
+       }
+       if (Bool(anz_c_schloesser)) {
+       		griffinfo = griffinfo ++ anz_c_schloesser ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Glasgriff (mit C-Schloss)') ++ '@n';
+       }
+    }
+    my anz_schubladenGriff = Size(FilterList(doors,'element',`ChildOfTypeDeep(element, 'schublade_schloss_num');`));
+    if (Bool(anz_schubladenGriff) and kind eq 'lade') {
+       griffinfo = griffinfo ++ anz_schubladenGriff ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Schubladengriff (ohne Schloss)') ++ '@n';
+    }
+    my anz_schubladenSchloss = Size(FilterList(doors,'element',`not ChildOfTypeDeep(element, 'schublade_schloss_num');`));
+    if (Bool(anz_schubladenSchloss)) {
+       my schloesser = List();
+       my anz_c_schloesser = 0;
+       for(my door : FilterList(doors,'element',`not ChildOfTypeDeep(element, 'schublade_schloss_num');`)){
+       		ListAdd(schloesser, ChildOfTypeDeep(door, 'schublade_schloss_num'));
+       }
+       my schlossNr = '';
+       my marked_schloesser = List();
+       for(my schloss : schloesser){
+       		if(Feature(schloss, 'Schliessung') ~ 'schloss_c'){
+       			anz_schubladenSchloss = anz_schubladenSchloss - 1;
+       			anz_c_schloesser = anz_c_schloesser + 1;
+       		} else {
+       			my prefix = StrLen(schlossNr) GT 0 ? ', $' : ' $';
+       			my schloss_key = HALLERARTICLE['type',GetTypeName(Parent('articlestructure',schloss))]['value'] ++ (StrLen(Feature(schloss,'lockid')) gt 0? '_'++Feature(schloss,'lockid') : '$');
+       			if (not InList(marked_schloesser, schloss_key)){
+	       			schlossNr = schlossNr ++ prefix ++ schloss_key;
+	       			ListAdd(marked_schloesser, schloss_key);
+	       		}
+       		}
+       }
+       if (Bool(anz_schubladenSchloss)) {
+       		griffinfo = griffinfo ++ anz_schubladenSchloss ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Schubladengriff (mit Schloss)') ++ schlossNr ++ '@n';
+       }
+       if (Bool(anz_c_schloesser)) {
+       		griffinfo = griffinfo ++ anz_c_schloesser ++ 'x ' ++ tuerinfo ++ ' ' ++ Localize('[CO][MB] mit Schubladengriff (mit C-Schloss)') ++ '@n';
+       }
+    }
+    return griffinfo;
+   }"/>
+</function>
+
+<function description="Art der Verkleidung">
+  <param name="group_volumes" description="Liste von Volumen, die zum Moebel gehoeren" type="List"/>
+  <returnvalue description="Art der Verkleidung" type="String"/>
+  <definition expression="def panelingTypes(group_volumes) {
+    my paneling = '';
+    my positions = 3;
+    my sides = 0;
+    my mountedpanels = 0;
+    my side = '';
+    my partly = '';
+    my back = '';
+    my panels = List();
+    my glaspanels = List();
+    my rohre = List();
+    my rows = List();
+    my count = Size(group_volumes);
+    my cols = 1; /* Shelfs per row */
+    for (my vol : group_volumes) {
+      my refparts = GetVolumeRefParts(vol);
+      panels = JoinList(panels,FilterList(refparts,'element',`not IsSubTypeOf(element,'metallverkleidung');`));  
+      glaspanels = JoinList(glaspanels,FilterList(refparts,'element',`not IsSubTypeOf(element,'glasverkleidung');`));
+      rohre = JoinList(rohre,FilterList(refparts,'element',`not IsSubTypeOf(element,'rohr');`));
+    }
+    panels = FilterList(panels,'element',`not Bool(call vertikalBlech(element));`);
+    panels = FilterList(panels,'element',`not Bool(Feature(element,'calculated'));`);
+    glaspanels = FilterList(glaspanels,'element',`not call vertikalGlas(element);`);
+    glaspanels = FilterList(glaspanels,'element',`not Bool(Feature(element,'calculated'));`);
+    mountedpanels = Size(panels) + Size(glaspanels);
+    
+    /* Berechnung Seiten, damit vollstaendig verkleidet ausser einer Seite offen oder mit Turren */
+    rohre = FilterList(rohre,'element',`Feature(element,'f_horizontal');`);
+    for (my rohr : rohre){
+      rows = ListAdd(rows, Round(PartPos(rohr)['z']));
+    }  
+    rows = UniqueList(rows);
+    rows = Size(rows);
+    if (rows ge 1) {
+      cols = count/rows;
+    }
+    /* Definition der Verkleidung aufgrund der Aussenwaende */
+    if (cols eq 1) {
+      sides = cols * positions * rows;
+    } else if (cols gt 1) {
+      sides = ((cols * positions) - ((cols - 2) * 2) - 2) * rows;
+    }
+    /* Message( mountedpanels ++ ', ' ++ sides ); */
+    if (mountedpanels ge sides) {
+      paneling = Localize('[CO][MB] inkl. Rück-/und Seitenwände');
+    } else if (mountedpanels lt sides) {
+      if (mountedpanels gt 0) {
+        paneling = Localize('[CO][MB] inkl. Rück-/und Seitenwände (teilweise)');
+       }
+    }
+    return paneling;
+     /*
+    my group_volumes = call groupIdVolumeList(5);
+    call panelingTypes(group_volumes);
+    */
+    }
+  "/>
+</function>
+
+  <function>
+		<definition expression="
+def getRALFromColorcodes(colorcodes) {
+	call getRALFromColorcodes(colorcodes,'@n',false, true);
+};
+def getRALFromColorcodes(colorcodes, html) {
+	call getRALFromColorcodes(colorcodes,'@n',html, true);
+};
+
+def getRALFromColorcodes(colorcodes, sep, html, withral) {
+	my inoslist = List('70','71');
+	my ral_codes = '';
+	my i = 0;
+	for (my colorcode: colorcodes) {
+		my kbez = colornames['Farbcode',colorcode]['Kurzbezeichnung'];
+		my klist = StringToList(kbez, ':');
+		
+		my ral_code = '';
+		if (Size(klist) gt 1 or InList(inoslist, colorcode)) {
+			my  bez = colornames['Farbcode',colorcode]['Bezeichnung_'++UpperCase(Language())];
+			my ral = StrLen(klist[1]) and withral ? ' [RAL '++klist[1]++']' : '';
+			ral_codes = ral_codes ++ (i gt 0 ? sep : '') ++ bez++ral;
+			i = i + 1;
+		}; 
+		
+	}
+	
+	if (html) {
+		return PXFormattingToHTML(ral_codes, false);
+	} else {
+		return ral_codes;
+	};
+	
+};		
+		
+		"/>
+	</function>
+	
+<function>
+	<definition expression="def buildVolumeDoorAndShelfInfo(articellist) {
+	my doorInfo = call getDoorInfo(articellist);
+	my shelfInfo = call getShelfInfo(articellist);
+	if (SubStr(shelfInfo,0,2) EQ ', ') {
+		shelfInfo = SubStr(shelfInfo,2,StrLen(shelfInfo)-2);
+	}
+	my fachinfo = doorInfo ++ (StrLen(doorInfo) GT 0 AND StrLen(shelfInfo) GT 0 ? ', ' : '') ++ shelfInfo;
+	return fachinfo;
+}"/>
+</function>
+<function>
+	<definition expression="def getDoorInfo(articellist){
+	my tuerinfo = '';
+	for (my part : articellist) {
+		my name = GetTypeName(part);
+		if (StringContains(name,'tuer') OR StringContains(name,'schublade')){
+			if (StringContains(name,'azt')){
+				tuerinfo = tuerinfo ++ Localize('[CO][MB] Ausziehtüre');
+				for (my element : ChildrenList(part)){
+					if (StringContains(GetTypeName(element),'tuer')){
+						tuerinfo = tuerinfo ++ ' ' ++  call getHandleInfo(element,'tuer');
+					}
+				};
+			} else if (StringContains(name,'klapp')){
+				tuerinfo = tuerinfo ++ Localize('[CO][MB] Klapptüre') ++ ' ' ++ call getHandleInfo(part,'klapp');
+			} else if (StringContains(name,'einschub')){
+				tuerinfo = tuerinfo ++ Localize('[CO][MB] Einschubtüre') ++ ' ' ++  call getHandleInfo(part,'einschub');
+			} else if (StringContains(name,'glas')){
+				tuerinfo = tuerinfo ++ Localize('[CO][MB] Glastüre') ++ ' ' ++  call getHandleInfo(part,'glas');
+			} else if (StringContains(name,'lade')){
+				tuerinfo = tuerinfo ++ Localize('[CO][MB] Schubladen') ++ ' ' ++  call getHandleInfo(part,'lade');
+			}
+			if (EndsWith(tuerinfo,' ')) {
+				tuerinfo = SubStr(tuerinfo,0,StrLen(tuerinfo)-1);
+			}
+		}
+	}
+	return tuerinfo;
+}"/>
+</function>
+<function>
+	<definition expression="def getHandleInfo(set,kind) {
+	my result = '';
+	for (my element : ChildrenList(set)){
+		if (ChildCount(element) GT 0) {
+			for (my child : ChildrenList(element)) {
+				result = call getHandleName(child);
+			}
+		} else {
+			result = call getHandleName(element);
+		}
+	}
+	return result;
+}"/>
+</function>
+<function>
+	<definition expression="def getHandleName(part) {
+		my name = GetTypeName(part);
+		if (StringContains(name,'griff') OR StringContains(name,'schloss')){
+			if (name EQ 'griff_normal'){
+				return Localize('[CO][MB] mit Griff (ohne Schloss)');
+			} else if (name EQ 'griff_m_nummer'){
+				return Localize('[CO][MB] mit Griff (mit Schloss)');
+			} else if (name EQ 'schnapp_griff_normal'){
+				return Localize('[CO][MB] mit Schnappdrehgriff (ohne Schloss)');
+			} else if (name EQ 'schnapp_griff_m_nummer'){
+				return Localize('[CO][MB] mit Schnappdrehgriff (mit Schloss)');
+			} else if (name EQ 'chromgriff'){
+				return Localize('[CO][MB] mit Chromgriff (ohne Schloss)');
+			} else if (name EQ 'glasgriff_schloss_m'){
+				return Localize('[CO][MB] mit Glasgriff (mit Schloss)');
+			} else if (kind EQ 'lade' AND name EQ 'schublade_schloss_num'){
+				return Localize('[CO][MB] mit Schubladengriff (mit Schloss)');
+			} else if (kind EQ 'lade' AND name NE 'schublade_schloss_num'){
+				return Localize('[CO][MB] mit Schubladengriff (ohne Schloss)');
+			}
+		} else {
+			return '';
+		}
+}"/>
+</function>
+<function>
+	<definition expression="def getShelfInfo(articellist){
+	my tablarinfo = '';
+	my nrOfTablar = Dictionary(List('auz','met','glas'),List(0,0,0));
+	for (my part : articellist){
+		my name = GetTypeName(part);
+		if (StringContains(name,'tablar') AND StringContains(name,'zieh')){
+			nrOfTablar['auz'] = nrOfTablar['auz'] + 1;
+		} else if (StringContains(name,'tablar') AND StringContains(name,'glas')) {
+			nrOfTablar['glas'] = nrOfTablar['glas'] + 1;
+		} else if (StringContains(name,'tablar') AND !StringContains(name,'zieh') AND !StringContains(name,'glas')) {
+			nrOfTablar['met'] = nrOfTablar['met'] + 1;
+		}
+	}
+	return (nrOfTablar['auz'] GT 0 ? ', ' ++ nrOfTablar['auz'] ++ 'x ' ++ Localize('[CO][MB] Auszugstablar') : '')	++ (nrOfTablar['met'] GT 0 ? ', ' ++ nrOfTablar['met'] ++ 'x ' ++ Localize('[CO][MB] Metalltablar') : '') ++ (nrOfTablar['glas'] GT 0 ? ', ' ++  nrOfTablar['glas'] ++ 'x ' ++ Localize('[CO][MB] Glastablar') : '');
+}"/>
+</function>
+
+</code>

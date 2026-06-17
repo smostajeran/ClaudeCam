@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression=""
+>
+
+<function>
+  <param name="view" type="String" description="normalview, frontview, etc."/>
+  <returnvalue description="Icon name" type="String" />
+    <definition expression="def viewSelectedIcon(view) {
+      my prefix = 'res://co/';
+      my icon = '';
+      my camera = call getCurrentCamera();
+      if (view eq 'normalview') {
+         icon = 'ViewSelection.png';
+      }else if (view eq '2dviewtop') {
+         icon = 'ViewOnTop.png';
+      }else if (view eq 'left') {
+         icon = 'ViewLeftside.png';
+      }else if (view eq 'right') {
+         icon = 'ViewRightside.png';
+      }else if (view eq 'back') {
+         icon = 'ViewBackside.png';
+      }else if (view eq 'front') {
+         icon = 'ViewFrontside.png';
+      }  
+      if (view eq camera)  {
+        icon = 'SelectionActive.png';
+      }  
+      if (StrLen(icon))  {
+        icon = prefix ++ icon;
+      }  
+       
+      return icon;
+   }"/>
+</function>
+
+<function>
+  <param name="view" type="String" description="normalview, frontview, etc."/>
+  <returnvalue description="Icon name" type="String" />
+    <definition expression="def viewActiveIcon(activestate) {
+      my icon = '';
+      my state = false;
+      if (BeginsWith(activestate,'CO.VisualCategory')) {
+         state = SubStr(activestate, 18);
+         state = state eq EnvValue('CO.VisualCategory');
+      } else {
+        state = Bool(EnvValue(activestate));
+      }
+      if (state) {
+         icon = 'res://co/SelectionActive.png';
+      }
+      /* Ausnahme dür Haller-E */
+      if (EndsWith(activestate,'standard') and EnvValue('CO.displayHallerE')) {
+         icon = '';
+      }
+      return icon;
+   }"/>
+</function>
+<function>
+  <returnvalue description="Ist eine Zone vorhanden?" type="BOOL" />
+    <definition expression="def anyZonePart() {
+      my state = false;
+		if (call anyPart()) {
+			state = Bool(Size(GetZoneList()));
+      }
+      return state;
+    }"/>
+</function>
+<function>
+  <returnvalue description="Ist ein importierter Plan vorhanden und sichtbar (definiert im Import Menu)?" type="BOOL" />
+    <definition expression="def anyImportPlan() {
+      my state = false;
+		if (call anyPart()) {
+			state = Bool(StrLen(DwgPlanFilePath('1000')));
+      }
+      return state;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Ist eine Hilfslinie vorhanden?" type="BOOL" />
+    <definition expression="def anyHelpLinePart() {
+      my state = false;
+		if (call anyPart()) {
+			state = StringContains(DumpToString(GetContextElementList()),'Help');
+      }
+      return state;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Ist ein Teil vorhanden ?" type="BOOL" />
+    <definition expression="def anyPart() {
+      my state = false;
+      if (VarDefined('tope')) {
+        if (tope) {
+          state = Size(GetComponentList()) or Size(GetContextElementList());
+        }
+      }
+      return state;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Ist ein Teil selektiert ?" type="BOOL" />
+    <definition expression="def selectedPart() {
+		  my state = false;
+		  if (VarDefined('tope')) {
+			  if (tope) {
+			    state = Bool(GetSelectedPart('mainstructure'));
+			  }
+		  }
+		  return state;
+		}"/>
+</function>
+
+<function>
+  <returnvalue description="Ist ein Teil eines Typs innerhalb der Selektion ?" type="BOOL" />
+    <definition expression="def selectedComponentType(type) {
+		  my state = false;
+		  my list = List();
+		  if (VarDefined('tope')) {
+			  if (tope) {
+			    list = GetSelectedComponentList('mainstructure');
+          list = FilterList(list,'element',`not IsSubTypeOf(element,type);`);
+			    state = Bool(Size(list));
+			  }
+		  }
+		  return state;
+		}"/>
+</function>
+
+<function>
+  <returnvalue description="cartridge des zuletzt selektierten Teils" type="String" />
+    <definition expression="def lastSelectedCartridge() {
+      my cartridge = 'undefined';
+      my list = List();
+      my size = 0;
+      if (call selectedPart()) {
+        list = GetSelectedPartList('mainstructure');
+        size = Size(list);
+        if (Bool(size)) {
+          my last = list[size-1];
+          cartridge = not IsSubTypeOf(last, 'gCE_ContextZone') ? GetCartridge(last) : cartridge;
+        }
+      }
+      return cartridge;
+    }"/>
+</function>
+
+<function>
+  <param name="kind" description="surface,inos,glassholder, tablesurface, metal"/>
+  <returnvalue description="Global Material" type="String" />
+    <definition expression="
+    def globalMaterial(kind) {
+    	call globalMaterial('usm_haller', kind);
+    };
+    def globalMaterial(cartridge, kind) {
+    
+    	 return Load(Expand(`${DYNAMIC.DocumentDir}/config.vuh`),'header','cartridge')['cartridgename',cartridge]['material'][kind];
+		 
+	};"/>
+</function>
+
+<function>
+  <param name="cartridge" description="usm_haller,usm_hallertisch, etc."/>
+  <returnvalue description="Ist ein Teil dieser Cartridge selektiert ?" type="BOOL" />
+  <definition expression="def selectedCartridge(cartridge) {
+     my state = false;
+     my partlist = List();
+     if (call selectedPart()) {
+       partlist = GetSelectedPartList('mainstructure');
+       partlist = FilterList(partlist,'element',`GetCartridge(element) ne cartridge;`);
+       state = Bool(Size(partlist));
+     }
+     return state;
+   }"/>
+</function>
+
+<function>
+  <param name="case" description="addons oder show"/>
+  <returnvalue description="Ist ein Teil nur eine Cartridge selektiert ?" type="BOOL" />
+  <definition expression="def singleSelectedCartridge(case) {
+     my state = false;
+     my addons = false;
+     my count = 0;
+     my partlist = List();
+     my cartridgeparts = List();
+     my cartridgelist = List('usm_haller','usm_hallertisch','usm_kitos','usm_primo','space_configurator','');
+     if (case eq 'addons') {
+        cartridgelist = ListAddFirst(cartridgelist,'usm_addons');
+     } 
+     if (call selectedPart()) {
+       partlist = GetSelectedPartList('mainstructure');
+       for (my i = 0; i lt Size(cartridgelist); i = i + 1) {
+          cartridgeparts = FilterList(partlist,'element',`GetCartridge(element) ne cartridgelist[i];`);
+          if (Size(cartridgeparts)) {
+            count = count + 1;
+          }
+       }
+     }
+     state = count eq 1;
+     return state;
+   }"/>
+</function>
+
+<function>
+  <returnvalue description="Ist ein Teil nur eine Cartridge selektiert ?" type="BOOL" />
+  <definition expression="def disablePropertiesWindow() {
+     my addons = false;
+     my state = call singleSelectedCartridge('addons');
+     if (state) {
+        addons = call selectedCartridge('usm_addons');
+     }
+     state = addons;
+     
+     return state;
+   }"/>
+</function>
+<function>
+	<definition expression="def topeChanged() {
+		return ChangeCount('FC,EC',false) gt CO_GLOBAL['change_count'];
+	};"/>
+</function>
+<function>
+  <returnvalue description="Gibt es ein Teil aus dieser Cartridge ?" type="BOOL" />
+    <definition expression="def existPartOfCartridge(cartridge) {
+      my state = false;
+      my list = List();
+      if (VarDefined('tope') and tope) {
+      	if (cartridge ne 'context') {
+	        if (cartridge ne 'context') {
+	          list = GetComponentList();
+	          for (my p: list) {
+	            if (GetCartridge(p) eq cartridge) {
+	              state = true;
+	              break;
+	            }
+	          }
+	          
+	      } 
+	    } else
+	      {   
+	       list = GetContextElementList();
+	        for (my p: list) {
+	          if (GetTypeName(p) ne 'gCE_ContextPrintZone') {
+	            state = true;
+	            break;
+	          }
+	        }
+	     } 
+      }
+      return state;
+    }"/>
+</function>
+<function>
+  <returnvalue description="Gibt es ein Teil von diesem Typ ?" type="BOOL" />
+    <definition expression="def existComponentType(type) {
+      my state = false;
+      my list = List();
+      if (VarDefined('tope')) {
+        if (tope) {
+          return Size(GetComponentListOfType(type));
+        }
+      }
+      return state;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Gibt es ein getrenntes USM Haller Teil, das auf getrennt gesetzt wurde ?" type="BOOL" />
+    <definition expression="def existiertElementGetrennt() {
+      my state = false;
+      my components = List();
+      my features = List();
+      if (VarDefined('tope') and tope) {
+          components = GetComponentList();
+          features = FeatureValuesFromPartList(components, 'montageid');
+          for (my i: IndexList(Size(features))) {
+            if (features[i] ne '') {
+               state = true;
+               break;
+            }
+          }
+      }
+      return state;
+    }"/>
+</function>
+<function>
+  <returnvalue description="Gibt es ein vermasstes USM Haller Teil?" type="BOOL" />
+    <definition expression="def volumeDimension(part) {
+      my dimension = '';
+      my depth = 0;
+      my width = 0;
+      my height = 0; 
+      my temp = 0;
+      width = Feature(part,'xlength') * 10;
+      depth = Feature(part,'ylength') * 10;
+      height = Feature(part,'zlength') * 10;
+      if (call volumeIsRotated(part)) {
+         temp = width;
+         width = depth;
+         depth = temp;
+       }
+      dimension = width ++ 'x' ++ depth ++ 'x' ++ height;                      
+      return dimension;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Gibt es ein vermasstes USM Haller Teil?" type="BOOL" />
+    <definition expression="def blechDimension(part) {
+      my dimension = '';
+      my name = GetTypeName(part);
+      my length = StrLen(name);
+      my depth = 0;
+      my width = 0;
+      my temp = 0;
+      my height = 0; 
+      my offset = 0;
+      if (EndsWith(name, '_ggw')) {
+        offset = 4;
+      }
+      depth = SubStr(name, length - 7 - offset, 3);
+      width = SubStr(name, length - 3 - offset, 3);
+      if (depth lt width) {
+         temp = width;
+         width = depth;
+         depth = temp;
+       }
+      dimension = depth ++ 'x' ++ width;                     
+      return dimension;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Gibt es es alte Grössen von USM Haller Rohren oder Metallelementen" type="BOOL" />
+    <definition expression="def oldHallerSize() {
+      my oldsize = false;
+      if (CO_GLOBAL['CHECK_OLD_HALLER_SIZE']) {
+	      my list = List();
+	      my name = '';
+	      if (VarDefined('tope') and tope) {
+		      list = GetSelectedComponentList('mainstructure');
+		      list = FilterList(list,'element',`not IsSubTypeOf(element,'rohr') and not IsSubTypeOf(element,'metallverkleidung');`);
+		      for (my p: list) {
+		          name = GetTypeName(p);
+		          if (StringContains(name,'200') or StringContains(name,'275') or StringContains(name,'550') or StringContains(name,'625') or name eq 'blech750_750') {
+		            oldsize = true;
+		            break;
+		          }
+		       }  
+		  };
+	  };
+      return oldsize;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Gibt es ein vermasstes USM Haller Teil?" type="BOOL" />
+    <definition expression="def existiertVermasstesElement() {
+      my state = false;
+      my components = List();
+      my features = List();
+      my measure = List();
+      if (VarDefined('tope')) {
+        if (tope) {
+          components = GetComponentListOfType('kugel_std');
+          features = FeatureValuesFromPartList(components, 'measurement_0');
+		  measure = FilterList(features,'element', `not (element lt -1 or element gt 1);`);
+         state =  Bool(Size(measure));
+        }
+      }
+      return state;
+    }"/>
+</function>
+
+<function description="Hint-Text for a command is not active">
+  <param name="type" description="selection,usm_haller, montage, etc."/>
+  <returnvalue description="Hint-Text?" type="String" />
+  <definition expression="def notActiveHint(type) {
+     my hint = '';
+     if (type eq 'selection') {
+       if (not call selectedPart()) {
+       hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Element muss selektiert sein');
+		} else {  
+        hint = '';
+		}
+     } else if (type eq 'usm_haller') {
+       if (not call selectedCartridge('usm_haller')) {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein USM Haller Element muss selektiert sein');
+		} else if (call oldHallerSize()){ 
+		    hint = Localize('[CO]:[TT] Hinweis: USM Haller Element mit alter Grösse dürfen nicht selektiert sein');
+		} else {
+		hint = '';
+		}
+     } else if (type eq 'usm_haller_measure') {
+       if (not call existiertVermasstesElement()) {
+        hint = Localize('[CO]:[TT] Hinweis: Auf mindestens einem USM Haller Element muss eine Vermassung definiert sein');
+		} else { 
+		hint = '';
+		}
+     } else if (type eq 'usm_haller_vitrine') {
+       if (not (call existComponentType('leuchtgruppe') or call existComponentType('leitgestaengeassembly'))) {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein USM Haller Vitrine mit Beleuchtung muss in der Szene sein');
+		} else { 
+		hint = '';
+	  }
+		} else if (type eq 'usm_hallerE') {
+       if ( not(call existComponentType('co_trafo_E')) ) {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein USM Haller E Trafo in der Szene sein');
+     } else { 
+       hint = '';
+		 }
+     } else if (type eq 'inscene') {
+       if (not call anyPart()) {     
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Element muss in der Szene sein');
+		} else {  
+        hint = '';
+		}
+     } else if (type eq 'montage') {
+		if (not (call existPartOfCartridge('usm_haller') or call existComponentType('ct_primo_screen') or true)) {
+        /* hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Element von USM Haller oder USM Privacy Panels muss in der Szene sein'); */
+        hint = '';
+		} else {  
+        hint = '';
+		}
+     } else if (type eq 'printzone') {
+       if (not (call selectedCartridge('usm_haller') or call selectedComponentType('ct_primo_screen'))) {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein USM Haller Element oder USM Privacy Panels muss selektiert sein');
+		} else { 
+		hint = '';
+		}
+     } else if (type eq 'helpline') {
+		if (not call anyHelpLinePart()) {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens eine Hilfslinie muss in der Szene sein');
+		} else {  
+        hint = '';
+		}
+     } else if (type eq 'import') {
+		if (not call anyImportPlan()) {
+        hint = Localize('[CO]:[TT] Hinweis: Ein Plan muss in der Szene sein');
+		} else {  
+        hint = '';
+		}
+     } else if (type eq 'zones') {
+		if (not call anyZonePart()) {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens eine Zone muss in der Szene sein');
+		} else {  
+        hint = '';
+		}
+     } else if (type eq 'touch') {
+        hint = Localize('[CO]:[TT] Hinweis: Touch-Interface kann nur einmal aufgerufen werden');
+     } else if (type eq 'kitos_classic') {
+       if (not call existComponentType('tisch_normal')) {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Classic Tisch muss in der Szene sein');
+		} else {  
+        hint = '';
+		}
+
+     } else if (type eq 'getrennt_montiert') {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Element muss getrennt sein');
+     } else if (type eq 'nicht_kalkuliert') {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Element muss auf nicht kalkuliert gesetzt sein');
+     } else if (type eq 'nicht_montiert') {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Element muss auf unmontiert gesetzt sein');
+     } else if (type eq 'montiert') {
+        hint = Localize('[CO]:[TT] Hinweis: Mindestens ein Element muss auf montiert gesetzt sein');
+     }
+     return '@n' ++ hint;
+   }"/>
+</function>
+ <function>
+	<definition expression="
+def canEditQS() {
+	(call isUSM() and EndsWith(InstallationType(),'test') and UserHasRole('superuser')) or CheckAuthoringSupport();
+};	
+	"/>
+</function>
+
+</code>
+

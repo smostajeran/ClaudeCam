@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd" expression="
+
+def table_sheet_normal()
+{
+/* bis 2014: 02 04 05 06 07 08 09 11 12 13 14 41 42 43 80 */
+my normal = FALSE;
+my farbe = Feature('Tischmaterial') gt 0 ?  Feature('Tischmaterial') : Feature('Metallfarbe'); 
+my normal1 = farbe eq '15' or farbe eq '16' or farbe eq '17' or farbe eq '18' or farbe eq '41' or farbe eq '44' or farbe eq '45' or farbe eq '46' or farbe eq '47'? TRUE:FALSE;
+my normal2 = farbe eq '51' or farbe eq '52' or farbe eq '53' ? TRUE:FALSE;
+my normal3 = farbe eq '56' or farbe eq '57' or farbe eq '58' ? TRUE:FALSE;
+my normal_ht = farbe eq '02' or farbe eq '05' or farbe eq '06' or farbe eq '07' ? TRUE:FALSE;
+my normal_kt = farbe eq '2' or farbe eq '5' or farbe eq '6' or farbe eq '7' ? TRUE:FALSE;
+my mdf = call table_sheet_mdf();
+my heavy = call table_sheet_heavy();
+normal = normal1 or normal2 or normal3 or normal_ht or normal_kt or mdf or heavy;
+};
+
+
+def table_sheet_corner()
+{
+/* bis 2014: 5 6 7 11 12 13 14 */
+my normal = FALSE;
+my farbe = Feature('Tischmaterial') gt 0 ?  Feature('Tischmaterial') : Feature('Metallfarbe'); 
+my normal_kt1 = farbe eq '5' or farbe eq '6' or farbe eq '7' ? TRUE:FALSE;
+my normal_kt2 = farbe eq '15'  or farbe eq '16' or farbe eq '17' or farbe eq '18' ? TRUE:FALSE;
+normal = normal_kt1 or normal_kt2;
+};
+
+
+def get_material_wood(farbe)
+{
+/* bis 2014: 02 04 05 06 07 11 12 13 14 41 42 43 */
+my holz = FALSE;
+my holz_ht = farbe eq '02' or farbe eq '05' or farbe eq '06' or farbe eq '07' ? TRUE:FALSE;
+my holz_kt = farbe eq '2' or farbe eq '5' or farbe eq '6' or farbe eq '7' ? TRUE:FALSE;
+my holz1 = farbe eq '41' or farbe eq '44' or farbe eq '45' or farbe eq '46' or farbe eq '47' ? TRUE:FALSE;
+my holz2 = farbe eq '51' or farbe eq '52' or farbe eq '53' or farbe eq '15'  or farbe eq '16' or farbe eq '17' or farbe eq '18' ? TRUE:FALSE;
+my kuha3   = farbe eq '56' or farbe eq '57' or farbe eq '58' ? TRUE:FALSE; /* Fenix */
+holz =holz_ht or holz_kt or holz1 or holz2 or kuha3 or call table_sheet_mdf();
+}
+
+
+def get_material_naturalwood(farbe)
+{
+/* bis 2014: 05 06 07 11 12 13 14 */
+my holz = FALSE;
+my holz_ht = farbe eq '05' or farbe eq '06' or farbe eq '07' ? TRUE:FALSE;
+my holz_kt = farbe eq '5' or farbe eq '6' or farbe eq '7' ? TRUE:FALSE;
+my holz1   = farbe eq '15' or farbe eq '16' or farbe eq '17' or farbe eq '18' ? TRUE:FALSE;
+holz =holz_ht or holz_kt or holz1;
+}
+
+
+def table_plastic_border()
+{
+/* bis 2014: 02 04 41 42 43 */
+my farbe = Feature('Tischmaterial') gt 0 ?  Feature('Tischmaterial') : Feature('Metallfarbe'); 
+my kuha_ht = farbe eq '02' or farbe eq '41' or farbe eq '44' or farbe eq '45' or farbe eq '46' or farbe eq '47'? TRUE:FALSE;
+my kuha_kt = farbe eq '2' ? TRUE:FALSE;
+my kuha1   = farbe eq '51' or farbe eq '52' or farbe eq '53' ? TRUE:FALSE;
+my kuha2   = farbe eq '56' or farbe eq '57' or farbe eq '58' ? TRUE:FALSE; /* Fenix */
+my kuha = kuha_ht or kuha_kt or kuha1 or kuha2;
+}
+
+def table_kelco()
+{
+my farbe = Feature('Tischmaterial') gt 0 ?  Feature('Tischmaterial') : Feature('Metallfarbe'); 
+my kuha1 = farbe eq '02' or farbe eq '2'  ? TRUE:FALSE;
+my kuha2 = farbe eq '51' or farbe eq '52' or farbe eq '53' ? TRUE:FALSE;
+my kuha3   = farbe eq '56' or farbe eq '57' or farbe eq '58' ? TRUE:FALSE; /* Fenix */
+my kuha = kuha1 or kuha2 or kuha3;
+}
+
+def table_sheet_buntglas()
+{
+  my retval = true;
+  my farbe = '__';
+  my buntglas = true; /* Haller Regal */
+  my subkat = '';
+  my colorlist = List('__','22','23','24','25','26','27','28','29','30','31','32','33','34','35');
+  if (PropertyActive('tischmaterial')) {
+    /* Klassische Haller- und Kitos-Tische */
+    farbe = Feature('Tischmaterial');
+    subkat = Feature('f_materialSubKategorie');
+    buntglas = subkat eq 'buntglas' or subkat eq 'mattglas';
+    retval = InList(colorlist,farbe) and buntglas;
+  }
+  return retval;
+}
+
+def glasMaterial() {
+  /* calculates the material-id of glas */
+ 
+  my farbe = Feature('Tischmaterial');
+   
+  if (call table_sheet_buntglas()) {
+    if (Feature('f_materialSubKategorie') eq 'buntglas'){ 
+      farbe = 'glas_' ++ farbe;
+    }else if(Feature('f_materialSubKategorie') eq 'mattglas') {
+      farbe = 'mattglas_' ++ farbe;
+    } 
+  } 
+  return farbe;
+}
+
+def table_sheet_mdf()
+  {
+      my retval = false;
+      my farbe = Feature('Tischmaterial');
+      my mdf = false;
+      if (farbe gt 0) {
+        /* Haller und KitosTische */
+        mdf = Feature('f_materialSubKategorie') eq 'mdf' or IsSubTypeOf(part,'ct_tisch_i') or IsSubTypeOf(part,'ct_tischblatt');
+      }else if (Feature('Metallfarbe') gt 0) {
+        /* Haller Regal */
+        farbe = Feature('Metallfarbe');
+      }
+     my colorlist = List('__','22','23','24','25','26','27','28','29','30','31','32','33','34','35','99');
+      if (InList(colorlist,farbe) and mdf) {
+        retval = true;
+      }
+    retval;
+  }
+
+def table_sheet_heavy()
+{
+/* Fuss oder Rolle */
+my material = Feature('Tischmaterial') gt 0 ?  Feature('Tischmaterial') : Feature('Metallfarbe');
+my heavy1 = material eq '80' or material eq '61' or material eq '62' or material eq '63' ? TRUE:FALSE;
+my heavy2 = material eq '9' or material eq '09' ? TRUE:FALSE;
+my heavy = heavy1 or heavy2;
+};
+
+def table_stein_glas()
+{
+/* Fuss oder Rolle */
+  my material = Feature('Tischmaterial') gt 0 ?  Feature('Tischmaterial') : Feature('Metallfarbe');
+  my glas = material eq '80' ? TRUE:FALSE;
+  my stein = material eq '9' or material eq '09' or material eq '61' or material eq '62' or material eq '63' ? TRUE:FALSE;
+  return stein or glas;
+}
+
+def colormatch_light() 
+{
+my color = Feature('Metallfarbe') eq '24' or Feature('Metallfarbe') eq '29' or Feature('Metallfarbe') eq '35' ? TRUE:FALSE;
+Feature('Akustik') eq 'yes' and color ? TRUE:FALSE;
+};
+
+def colormatch_dark()
+{
+Feature('Akustik') eq 'yes' and Feature('Metallfarbe') ne '24' and Feature('Metallfarbe') ne '29' and Feature('Metallfarbe') ne '35' ? TRUE:FALSE;
+};
+
+def checkVis(part,size,pos) {
+/* Funktion gibt die Sichtbarkeit der Tischklappen zurueck (true, false) */
+/* part, size= k(lein) or g(ross) and pos = 1,2 or 3) */
+/* Für TDA Tische */
+  my vis = false;
+  if (size eq 'k' and pos eq '1' and StringContains(Property(part,'pr_tischklappenvariante_L'),'klein')) {vis =true;};
+  if (size eq 'k' and pos eq '2' and StringContains(Property(part,'pr_tischklappenvariante_M'),'klein')) {vis =true;};
+  if (size eq 'k' and pos eq '3' and StringContains(Property(part,'pr_tischklappenvariante_R'),'klein')) {vis =true;};
+  if (size eq 'g' and pos eq '1' and StringContains(Property(part,'pr_tischklappenvariante_L'),'gross')) {vis =true;};
+  if (size eq 'g' and pos eq '2' and StringContains(Property(part,'pr_tischklappenvariante_M'),'gross')) {vis =true;};
+  if (size eq 'g' and pos eq '3' and StringContains(Property(part,'pr_tischklappenvariante_R'),'gross')) {vis =true;};
+  if (size eq 'k' and pos eq '4' and StringContains(Property(part,'pr_tischklappenvariante_RL'),'klein')) {vis =true;};
+  if (size eq 'k' and pos eq '5' and StringContains(Property(part,'pr_tischklappenvariante_RM'),'klein')) {vis =true;};
+  if (size eq 'k' and pos eq '6' and StringContains(Property(part,'pr_tischklappenvariante_RR'),'klein')) {vis =true;};
+  if (size eq 'g' and pos eq '4' and StringContains(Property(part,'pr_tischklappenvariante_RL'),'gross')) {vis =true;};
+  if (size eq 'g' and pos eq '5' and StringContains(Property(part,'pr_tischklappenvariante_RM'),'gross')) {vis =true;};
+  if (size eq 'g' and pos eq '6' and StringContains(Property(part,'pr_tischklappenvariante_RR'),'gross')) {vis =true;};
+  /* WriteInfoLog('ppp:' ++ GetTypeName(part) ++ ' vis: ' ++ vis); */
+  vis;
+};
+
+def checkVisBasis(part,size,pos) {
+/* Für normale basis Tische */
+  /* part, size= k(lein) or g(ross) and pos = 1,2,3,4,5,6 oder any) */
+  /* Funktion gibt die Sichtbarkeit der Tischklappen zurueck (true, false) */
+  my vis = false;
+   /* Nur Tische mit Holzmaterial können eine Tischklappe haben */
+  my mat = Feature(part,'f_materialKategorie') eq 'standard';
+  /* da die Zuweisung des Properties konditioniert ist, muss zusätzlich PropertyActive abgefragt werden */
+  my pr_active = PropertyActive(part,'pr_tischklappenvariante_L_top');
+  /* Nur Tische ab 150 haben eine Tischklappe, neu auch Tischblatt 125x75 (Hallertisch), attribute length fuer kitos tisch */
+  my lenght = PartAttr(part,'laenge') ge 125 or PartAttr(part,'length') ge 150;
+  
+  if (pr_active and mat and lenght){
+      if (size eq 'k' and pos eq '1' and StringContains(Property(part,'pr_tischklappenvariante_L_top'),'klein')) {vis =true;};
+      if (size eq 'k' and pos eq '3' and StringContains(Property(part,'pr_tischklappenvariante_R_top'),'klein')) {vis =true;};
+      if (size eq 'g' and pos eq '1' and StringContains(Property(part,'pr_tischklappenvariante_L_top'),'gross')) {vis =true;};
+      if (size eq 'g' and pos eq '3' and StringContains(Property(part,'pr_tischklappenvariante_R_top'),'gross')) {vis =true;};
+       /* fuer Klappen beim 3m Stanadard Hallertisch */
+      if (size eq 'k' and pos eq '4' and StringContains(Property(part,'pr_tischklappenvariante_RL_top'),'klein')) {vis =true;};
+      if (size eq 'k' and pos eq '5' and StringContains(Property(part,'pr_tischklappenvariante_RM_top'),'klein')) {vis =true;};
+      if (size eq 'k' and pos eq '6' and StringContains(Property(part,'pr_tischklappenvariante_RR_top'),'klein')) {vis =true;};
+      if (size eq 'g' and pos eq '4' and StringContains(Property(part,'pr_tischklappenvariante_RL_top'),'gross')) {vis =true;};
+      if (size eq 'g' and pos eq '5' and StringContains(Property(part,'pr_tischklappenvariante_RM_top'),'gross')) {vis =true;};
+      if (size eq 'g' and pos eq '6' and StringContains(Property(part,'pr_tischklappenvariante_RR_top'),'gross')) {vis =true;};
+  };
+  /* WriteInfoLog('ppp:' ++ GetTypeName(part) ++ ' vis: ' ++ vis); */
+  vis;
+};
+
+def getKlappenRotation(part,pos) {
+  /* Funktion gibt die Rotation der Tischklappen zurueck (0, 180) */
+  /* pos = Lage der Tischklappen Links, Mitte, Rechts*/
+  /* rot = Rotation der Klappen 0, 180 */
+  /* type = Typ der Tischklappe */
+  my rot = 0;
+  my type = '';
+  if (PropertyActive(part,'pr_tischklappenvariante_L_top')) {
+    if(pos eq 'L'){type = Feature(part,'f_tischklappenvariante_L_top');};
+    if(pos eq 'R'){type = Feature(part,'f_tischklappenvariante_R_top');};
+    if(pos eq 'RL'){type = Feature(part,'f_tischklappenvariante_RL_top');};
+    if(pos eq 'RR'){type = Feature(part,'f_tischklappenvariante_RR_top');};
+  }else if (PropertyActive(part,'pr_tischklappenvariante_L')) {
+    if(pos eq 'L'){type = Feature(part,'f_tischklappenvariante_L');};
+    if(pos eq 'M'){type = Feature(part,'f_tischklappenvariante_M');};
+    if(pos eq 'R'){type = Feature(part,'f_tischklappenvariante_R');};
+    if(pos eq 'RL'){type = Feature(part,'f_tischklappenvariante_RL');};
+    if(pos eq 'RM'){type = Feature(part,'f_tischklappenvariante_RM');};
+    if(pos eq 'RR'){type = Feature(part,'f_tischklappenvariante_RR');};
+  }
+  if(EndsWith(type,'_hinten')) {rot = 180;};
+  /* Meeting Tische */
+  if (pos eq 'R' and EndsWith(type,'_innen')) {rot = 180;};
+  if (pos eq 'L' and EndsWith(type,'_aussen')) {rot = 180;};
+  /* WriteInfoLog('ppp:' ++ ' rot: ' ++ rot); */ 
+  rot;
+}
+
+def anyTischKlappe(part) { 
+  /* Hat das Tischblatt eine Tischklappen (true, false) */
+  /* Standard Tische, keine TDAs */
+  my tischklappe = false;
+  if (PropertyActive(part,'pr_tischklappenvariante_L_top')) {
+    /* stellt fest ob ueberhaupt eine Klappe benutzt wird */
+    tischklappe = not (Property(part,'pr_tischklappenvariante_L_top') eq 'keine_Klappe' and 
+                       Property(part,'pr_tischklappenvariante_R_top') eq 'keine_Klappe');
+  /* 300er Tisch */                     
+  if (PropertyActive(part,'pr_tischklappenvariante_RL_top')) {
+     tischklappe = not (Property(part,'pr_tischklappenvariante_L_top') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_R_top') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_RL_top') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_RM_top') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_RR_top') eq 'keine_Klappe');     
+    };
+  };
+  /* Hat das Tischblatt eine Tischklappen (true, false) */
+  /* Plus, Access, Advanced Tische, TDAs */
+  if (PropertyActive(part,'pr_tischklappenvariante_L')) {
+     tischklappe = not (Property(part,'pr_tischklappenvariante_L') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_M') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_R') eq 'keine_Klappe');
+  /* 300er Tisch */
+  if (PropertyActive(part,'pr_tischklappenvariante_RL')) {
+     tischklappe = not (Property(part,'pr_tischklappenvariante_L') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_M') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_R') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_RL') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_RM') eq 'keine_Klappe' and 
+                        Property(part,'pr_tischklappenvariante_RR') eq 'keine_Klappe');     
+    };
+  };
+  tischklappe;
+};
+
+def handausloeserTransX(part,xpos) {
+  my offset = 10.5;
+  my wanne = Null;
+  my dock = Null;
+  my tio = Null;
+  if (Feature(part,'f_tischmodell') eq 'm_plus') {
+    tio = Parent('mainstructure',part);
+	  if (tio) {
+			wanne = ChildWithId(tio,'kwa');
+			wanne = ChildWithId(wanne,'kw1');
+			dock = Dock(wanne,'kabelwanne_2_achse',1);
+			xpos = GetDOFValue(dock) + offset + xpos;
+		}
+	}
+	return xpos;
+}
+
+def handausloeserTransY(part) {
+  my breite = Number(Feature(part,'f_breite'));
+  my ypos = 41;
+  if (breite eq 80) {
+     ypos = 45;
+  }else if (breite eq 90) {
+     ypos = 45;
+  }
+  return ypos;
+}
+
+def kitosAdvTurnActive(part) {
+  /* Kleine Hilfsgeomtrie zum Ziehen, damit Tischblatt gedreht werden kann */
+  my state = false;
+  my dofmax = 31.5;
+  my localdock = Dock('achse_2_kabelwanne', 1);
+  my partnerdock = DockGetConnectedDock(localdock);
+  my val = -Round(GetDOFValue(partnerdock),0.1);
+  my rot = Round(GetDOFValue(Dock('achse_2_tischblatt', 1)),0.1);
+  if (val eq dofmax and rot ge 0) {
+     state = true;
+  }
+  return state;
+}
+
+def kitosAdvDragActive(part) {
+  /* Grosse Hilfsgeomtrie zum Ziehen, damit Tischblatt nur noch gezogen werden kann */
+  my state = false;
+  my dofmax = 31.5;
+  my localdock = Dock('achse_2_kabelwanne', 1);
+  my partnerdock = DockGetConnectedDock(localdock);
+  my val = Abs(Round(GetDOFValue(partnerdock),0.1));
+  my rot = Round(GetDOFValue(Dock('achse_2_tischblatt', 1)),0.1);
+  if (val lt dofmax and rot eq 0) {
+     state = true;
+  }
+  return state;
+}
+
+def sperrstangenTransX(part) {
+  /* Verschiebung Sperrstange, wegen neunen Sperrtablaren, die kleinere Schlitze haben */
+  my corr = 1.3; 
+  if (Abs(PartRot(part)['z']) ne 0) {
+     corr= -1.3;
+  }
+  return corr;
+}
+
+def tischklappenMaterial(part) {
+  /* material des Tischklappenrandes */
+  /* Wenn sehr dunke zB. Eiche, dann sollte er heller sein */
+	my material = '-102'; 
+  my tischmaterial = Feature(part,'Tischmaterial');
+	if (InList(call getListOfDarkMaterials(), tischmaterial)) {
+    material = '46';
+  }
+  return material;
+}
+
+def getListOfDarkMaterials() {
+	/* liste aller Materialien, in denen dunkle Tischklappenränder schlecht sichtbar sind*/
+	return List('6', '06', '41', '47','56','58');
+}
+
+def setChromMaterial(part) {
+	my material_id = '-101';
+	if ( EnvValue('CO.3DS_export')) {
+		material_id = '-101_export';
+	}
+	return material_id;
+}
+
+def geomHQ() {
+	my high_quality = false;
+	if (Bool(EnvValue('CO.3DS_export') and part and not IsSubTypeOf(part,'rohr') and not IsSubTypeOf(part,'kugel_std')) or Bool(EnvValue('CO.HQ_geom'))) {
+		high_quality = true;
+	}
+	return high_quality;
+}
+
+def volIsSelected(part) {
+	my selected = false;
+	my volumes = GetRefVolumes(part, 'mainstucture');
+	for (my vol: volumes) {
+		selected = vol and IsSelected('mainstructure', vol) ? true : false;
+		if (selected) {
+			break;
+		};
+	};
+	return selected;
+}
+def volHasChildOfType(part, type) {
+	my hastype = false;
+	my volumes = GetRefVolumes(part, 'mainstucture');
+	for (my vol: volumes) { 
+		hastype = vol and ChildOfTypeDeep(vol, type) ? true : false;
+		if (hastype) {
+			break;
+		};
+	}
+	return hastype;
+}
+
+def volRefpartOfType(part, type) {
+	my hastype = false;
+	my volumes = GetRefVolumes(part, 'mainstucture');
+	for (my vol: volumes) { 
+		my refparts = GetVolumeRefParts(vol);
+		hastype = vol and Size(FilterList(refparts, 'p', `not (IsSubTypeOf(p, type));`)) ? true : false;
+		if (hastype) {
+			break;
+		};
+	}
+	return hastype;
+}
+
+def volIsSelectedRotated(part) {
+	my selected = false;
+	my vol = GetRefVolumes(part, 'mainstucture')[0]; 
+	selected = vol and IsSelected('mainstructure', vol) ? true : Abs(Round(VectorNormal(PartRot(), Vector(1,1,0))['z'])) eq 180;
+	return selected;
+}
+"/>

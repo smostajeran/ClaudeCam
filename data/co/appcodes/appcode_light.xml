@@ -1,0 +1,2806 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression=""
+>
+
+
+<!-- HALLER E -->
+
+<function>
+	<definition expression="def hallerEActive() {
+		my active = false;
+		if (call isUSM()) {
+			active = true;
+		} else {
+			 my country = partnertable['country'];
+			 active = Size(TableRows(haller_e_country, 'iso', country, true)) gt 0;
+		
+		};
+	
+		return active;
+	};"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="Position der Verbraucher Geometrie" type="Number" />
+    <definition expression="def verbraucherSnapPos(laenge) {
+      my positions = List();
+      my links = List();
+      my mitte = List();
+      my rechts = List();
+      my x = 0;
+      my z = 0;
+      laenge = laenge / 10;
+      links = List(Vector(x,- laenge/2 + 10,z),Vector(x,- laenge/2 + 25,z));
+      mitte = List(Vector(x,-7.5,z),Vector(x,7.5,z));
+      rechts = List(Vector(x,laenge/2 - 25,z),Vector(x,laenge/2 - 10,z));
+      /* if (laenge eq 15 ) {  
+        mitte = List(Vector(-7.5,0,z),Vector(7.5,0,z));  
+        positions = ListAdd(positions,mitte);
+      }  */
+      if (laenge eq 15 or laenge eq 35 or laenge eq 75) {      
+        positions = ListAdd(positions,mitte);
+      }  
+      if (laenge eq 50 or laenge eq 75) {      
+        positions = ListAdd(positions,links);
+        positions = ListAdd(positions,rechts);
+      }  
+      
+      return positions;
+   }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="normal_volume" type="Pointer"/>
+  <returnvalue description="Ist eines der VolmenenParts auf HallerEdit, dann ist auch das Volumen im Status hallerEditE" type="String" />
+    <definition expression="def volumeHallerE(part) {
+     my hallerE = false;  
+     hallerE = Bool(Size(FilterList(GetVolumeRefParts(part),'element',`not Feature(element,'f_hallerE');`)));
+     return hallerE;
+   }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="normal_volume" type="Pointer"/>
+  <returnvalue description="Ist eines der VolmenenParts auf HallerEdit, dann ist auch das Volumen im Status hallerEditE" type="String" />
+    <definition expression="def rohrToBlechConnected(part,blech) {
+  my connected = false;
+  my dock = null;
+  my connection = null;
+  for (my index : IndexList(4)) {
+    index = index + 1;
+    dock = Dock(part,'rohr2blech',index);
+    connection = DockGetConnectedPart(dock);
+    if (connection eq blech) {
+      connected = true;
+      break;
+    }
+  }
+  return connected;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="normal_volume" type="Pointer"/>
+  <returnvalue description="Ist eines der VolmenenParts auf HallerEdit, dann ist auch das Volumen im Status hallerEditE" type="String" />
+  <definition expression="def rohrToGlasConnected(part,glas) {
+	  my connected = false;
+	  my dock = null;
+	  my glasdock = null;
+	  my connection = null;
+	  for (my index : List(1,2,3,4,11,12,13,14)) {
+	    dock = Dock(part,'rohr2glashalter',index);
+	    connection = DockGetConnectedPart(dock);
+	    if (connection) {
+	      glasdock = Dock(connection,'glashalter2glas',1);
+	      connection = DockGetConnectedPart(glasdock);
+	      if (connection eq glas) {
+	        connected = true;
+	        break;
+	      }
+	    }
+	  }
+	  return connected;
+	  }"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="DefaultRohrRichtung der Verbraucher" type="String" />
+    <definition expression="def rohrRichtungDefault(part) {
+     my richtung = 'richtung-innen-25';  
+     if (call verbraucherHorizontalVerkleidung(part,'glas')) {
+     	my volumes = GetRefVolumes(part, 'mainstructure');
+     	my volume = FilterList(volumes, 'v', `not (RelativePartPos(v,part)['z'] gt 0);`)[0];
+     	if (volume) {
+     		my has_tuer = ChildOfTypeDeep(volume, 'at_tuerset');
+     		richtung = not has_tuer ? 'richtung-innen-45' : richtung;
+     	}
+     }
+     if (call rohrRichtungAussen(part,'default')) {
+       richtung = 'richtung-aussen-270';   
+     }
+      if (call rohrRichtungOben(part,'default')) {
+       richtung = 'richtung-oben-180';   
+     }
+     
+     return richtung;
+   }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Verbraucher-Rohr" type="Pointer"/>
+  <returnvalue description="Ist RohrRichtung Innen der Verbraucher moeglich" type="Bool" />
+  <definition expression="def rohrRichtungInnen(part) {
+    my innen = true;
+    my bodenrohr = PartPos(part)['z'] lt 10;
+    my laenge750 = PartAttr(part,'hc_length') eq '750';
+    my blech_unten = call verbraucherVertikalVerkleidung(part,'blech','unten');
+    my glas_unten = call verbraucherVertikalVerkleidung(part,'glas','unten');
+    my blech_seite = call verbraucherHorizontalVerkleidung(part,'blech');
+    my glas_seite = call verbraucherHorizontalVerkleidung(part,'glas');
+    my blechwinkel = blech_unten and blech_seite;
+    my glaswinkel = glas_unten and glas_seite;
+    my mixwinkel = (glas_unten and blech_seite and not laenge750) or blech_unten and glas_seite;
+    my registratur = call verbraucherTuere(part,'registraturset','oben','seite'); 
+    
+    if ( (blechwinkel or mixwinkel or registratur) and not bodenrohr) {
+      innen = false;
+    }
+
+    if (glas_unten and blech_seite and not laenge750){
+   		if (call rohrRichtungAussen(part,'valid')){
+   			innen = true;
+   		}
+    }
+    
+    return innen;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Verbraucher-Rohr" type="Pointer"/>
+  <returnvalue description="Ist RohrRichtung Oben der Verbraucher moeglich" type="Bool" />
+  <definition expression="def rohrRichtungOben(part,mode) {
+    my oben = false;
+    my nichtverkleidet = false;
+    my ohnetuere = false;
+    my laenge750 = PartAttr(part,'hc_length') eq '750';
+    my bodenrohr = PartPos(part)['z'] lt 10;
+    my blechwinkel = false;
+    
+    nichtverkleidet = not call verbraucherVertikalVerkleidung(part,'neutral','oben');
+    ohnetuere = not call verbraucherTuere(part,'neutral','oben','vorne') or (call tuereSeiteRohr(part) and nichtverkleidet);
+    
+    if (not laenge750 or call verbraucherHorizontalVerkleidung(part,'glas') or call verbraucherHorizontalVerkleidung(part,'einsatz')) {
+      /* Fuer Glas horizontal oder Rohre kleiner als 750 */
+      oben = nichtverkleidet and ohnetuere;
+    } else {
+      blechwinkel = call verbraucherHorizontalVerkleidung(part,'blech') and call verbraucherVertikalVerkleidung(part,'blech','unten');
+      oben = nichtverkleidet and ohnetuere and blechwinkel and not bodenrohr;
+    }
+    
+    if (mode eq 'default') {
+       oben  = oben and call posVolume(part,'unten') and call posVolume(part,'seiteunten') and not call posVolume(part,'oben') and not bodenrohr;
+    } else {
+      oben = oben;
+    }
+    return oben;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Verbraucher-Rohr" type="Pointer"/>
+  <returnvalue description="Ist RohrRichtung Aussen der Verbraucher moeglich" type="Bool" />
+  <definition expression="def rohrRichtungAussen(part,mode) {
+    my aussen = true;
+    my laenge750 = PartAttr(part,'hc_length') eq '750';
+    my bodenrohr = PartPos(part)['z'] lt 10;
+    my verkleidung = true;
+    my kuha = false;
+    my glas = false;
+    my blech = false;
+    my blechuntenoben = false;
+    my winkel = false;
+    my winkelT = false;
+    my blechwinkel = false;
+    my glasblechwinkel = false;
+    my blechobenglasunten750 = false;
+    my tuere = true;
+    my neutral_oben = false;
+    my glasoben = false;
+    /* call posVolume(part,'seiteoben') kontrolliert, dass es nicht seitlich ein Volumen hat */
+    tuere = not call verbraucherTuere(part,'neutral','unten','vorne');
+    winkel = call verbraucherHorizontalVerkleidung(part,'neutral') and call verbraucherVertikalVerkleidung(part,'neutral','unten') and not bodenrohr;
+    winkel = winkel and not call posVolume(part,'seiteunten');  
+    winkelT = winkel and call verbraucherVertikalVerkleidung(part,'neutral','oben') and not call posVolume(part,'seiteoben');
+    glas = call verbraucherHorizontalVerkleidung(part,'glas');
+    blech =  call verbraucherVertikalVerkleidung(part,'blech','unten');
+    blechobenglasunten750 = call verbraucherHorizontalVerkleidung(part,'blech') and call verbraucherVertikalVerkleidung(part,'glas','unten') and laenge750;
+    blechwinkel = blech and call verbraucherVertikalVerkleidung(part,'blech','unten') and not call posVolume(part,'seiteunten') and not bodenrohr;
+    glasblechwinkel = glas and blech and not call posVolume(part,'seiteunten') and not bodenrohr;
+    glasoben =  call verbraucherVertikalVerkleidung(part,'glas','oben');
+    
+    if (laenge750 and mode eq 'valid'){
+      kuha = call verbraucherHorizontalVerkleidung(part,'einsatz_blech');
+    }
+    if (mode eq 'default') {
+      aussen = ((winkel and tuere) or glasblechwinkel or blechwinkel or winkelT) and not blechobenglasunten750;
+    } else if (mode eq 'valid') {
+      verkleidung = ((not laenge750 and not call posVolume(part,'seiteunten')) or (laenge750 and kuha) or 
+                    (laenge750 and glas) or glasoben or (laenge750 and blechwinkel)) and not blechobenglasunten750;
+      tuere = not laenge750 or (laenge750 and tuere);
+      
+      aussen = verkleidung and tuere;
+
+    }
+    
+
+    return aussen;
+  }"/>
+</function>
+
+<function description="Haller-E" >
+  <returnvalue description="korrekte Rohr-Richtung/Winkel" type="String" />
+    <definition expression="def rohrRichtungValid(part) {
+     /* innen-oben-aussen */
+     my valid = '---';
+     my valides = List();
+     my innen = call rohrRichtungInnen(part);
+     my oben = call rohrRichtungOben(part,'valid');
+     my aussen = call rohrRichtungAussen(part,'valid');
+     if (innen) {
+       valides = ListAdd(valides,'innen');
+     }
+     if (oben) {
+       valides = ListAdd(valides,'oben');
+     }
+     if (aussen) {
+       valides = ListAdd(valides,'aussen');
+     }
+     valid = ListToString(valides,'-');
+     return valid;
+   }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Einspeisekugel" type="Pointer"/>
+  <param name="richtung" description="x, y oder z" type="String"/>
+  <returnvalue description="DockRotation von kugel_2_trafo in der entsprechenden Richtung" type="Integer" />
+  <definition expression="def dockRotationKugel(part,richtung) {
+    my rotation = 0;
+    /* Richtung des Z-Richtung */
+    my vector_z = LocalPos(part, VectorAdd(Vector(0,0,-1), PartPos(part)));
+    my x = Round(vector_z['x']);
+    my y = Round(vector_z['y']);
+    my z = Round(vector_z['z']);
+    my kugelrotz = PartRot(part)['z'];
+    my rotx = 0;
+    my roty = 0;
+    my rotz = 0;
+
+    if (richtung eq 'x') {
+      if (z eq 1) {
+        rotx = -180;
+      } else if (y eq -1) {
+        rotx = -90;
+      }  else if (y eq 1) {
+        rotx = 90;
+        if (kugelrotz eq -180) {
+          rotx = 90;
+        }
+      }
+      rotation = rotx;
+    }
+    if (richtung eq 'y') {
+      if (x eq 1) {
+        roty = -90;
+      } else if (y eq 1 and kugelrotz eq -180) {
+        roty = 0;
+      }
+      rotation = roty;
+    }
+    if (richtung eq 'z') {
+      if (y eq 1 and kugelrotz eq -180) {
+        rotz = 180;
+      }
+      rotation = rotz;
+    }
+    return rotation;
+   } 
+ "/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="Winkel der Lichter in der Geom. Rep" type="String" />
+  <definition expression="def rotationsWinkel(part) {
+    my angle = 0;
+    my eparts = GetComponentListOfConnectionId(ConnectionId(part));
+    my rohre = FilterList(eparts,'element',`not IsSubTypeOf(element,'normalrohr');`);
+    rohre = FilterList(rohre,'element',`not call horizontalPart(element);`);
+    my richtung = Feature(part,'f_rohrRichtung');
+    richtung = StringToList(richtung,'-')[2];
+    my visavis = call visaviRohr(part,rohre);
+    my down = LocalPos(part, VectorAdd(Vector(0,0,-1), PartPos(part)));
+    my innen = VectorNormalize(LocalPos(part, PartPos(visavis)));
+    
+    my downAngle = Deg(VectorAngle(Vector(1, 0, 0), down, Vector(0,1,0)));
+    if (downAngle lt 0) {
+      downAngle = downAngle + 360;
+    }
+    
+    my innenAngle = Deg(VectorAngle(Vector(1, 0, 0), innen, Vector(0,1,0)));
+    if (innenAngle lt 0) {
+      innenAngle = innenAngle + 360;
+    }
+    
+    if (innenAngle gt downAngle) {
+      angle = downAngle + richtung;
+    } else {
+      angle = downAngle - richtung;
+    }
+    return angle;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="Vector der Lichter in der Geom. Rep" type="Vector" />
+  <definition expression="def directionOfLight(part) {
+   my winkel = call rotationsWinkel(part);
+   my x = Cos(Rad(winkel));
+   my z = Sin(Rad(winkel));
+   my vector = Vector(x, 0.0, -z);
+   return vector;
+   }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Verbraucher-Rohr" type="Pointer"/>
+  <param name="typ" description="blech/glas oder neutral" type="String"/>
+  <returnvalue description="blech,glas, einsatz_blech, einsatz_glas, ?" type="Bool" />
+  <definition expression="def verbraucherHorizontalVerkleidung(part,typ) {
+    my eingebaut = false;
+    my tuere = null;
+    my volumes = GetRefVolumes(part, 'mainstructure');
+    my unten = volumes[0];
+    my verkleidung = List();
+    my einsatz = List();
+    my blech = List();
+    my glas = List();
+    if (typ eq 'blech' or typ eq 'neutral') {
+      verkleidung = FilterList(GetVolumeRefParts(unten),'element',`not IsSubTypeOf(element,'ct_standardblech');`);
+      verkleidung = FilterList(verkleidung,'element',`Round(PartPos(element)['z']) ne Round(PartPos(part)['z']);`);
+      blech = verkleidung;
+    } else if (typ eq 'glas' or typ eq 'neutral') {
+      verkleidung = FilterList(GetVolumeRefParts(unten),'element',`not IsSubTypeOf(element,'glasverkleidung');`);
+      verkleidung = FilterList(verkleidung,'element',`Round(PartPos(element)['z']) ne Round(PartPos(part)['z']);`);
+      glas = verkleidung;
+    } 
+    if (typ eq 'neutral') {
+      verkleidung = blech or glas;
+    }
+    if (not Bool(verkleidung) or BeginsWith(typ,'einsatz')) {          
+        verkleidung = FilterList(GetVolumeRefParts(unten),'element',`not IsSubTypeOf(element,'einsatzverkleidung');`);
+        verkleidung = FilterList(verkleidung,'element',`Round(PartPos(element)['z']) ne Round(PartPos(part)['z']);`);
+        einsatz = verkleidung;
+        
+        if (EndsWith(typ,'blech') or typ eq 'neutral') {
+          verkleidung = FilterList(verkleidung,'element',`Feature(element,'Metallfarbe') ne '02';`); 
+          blech = verkleidung;
+          
+        } else  if (EndsWith(typ,'glas') or typ eq 'neutral') {
+          verkleidung = FilterList(verkleidung,'element',`Feature(element,'Metallfarbe') eq '02';`);
+          glas = verkleidung;
+        } 
+        if (typ eq 'neutral') {
+         verkleidung = blech or glas;
+        }
+    }     
+    eingebaut = Bool(Size(verkleidung));
+
+    return eingebaut;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Verbraucher-Rohr" type="Pointer"/>
+  <param name="typ" description="blech/glas oder neutral" type="String"/>
+  <param name="pos" description="unten/oben" type="String"/>
+  <returnvalue description="blech/glas: unten/oben ?" type="Bool" />
+  <definition expression="def verbraucherVertikalVerkleidung(part,typ,pos) {
+    my eingebaut = false;
+    my hasblech = false;
+    my hasglas = false;
+    my vol = call posVolume(part,pos);
+    my verkleidung = List();
+    
+    if (typ eq 'blech' or typ eq 'neutral') {
+      verkleidung = FilterList(GetVolumeRefParts(vol),'element',`not IsSubTypeOf(element,'metallverkleidung');`);
+      verkleidung = FilterList(verkleidung,'element',`Round(PartPos(element)['z']) eq Round(PartPos(part)['z']);`);
+      verkleidung = FilterList(verkleidung,'element',`not call rohrToBlechConnected(part,element);`);  
+      hasblech = Bool(Size(verkleidung));
+    } 
+    if (typ eq 'glas' or typ eq 'neutral') {
+      verkleidung = FilterList(GetVolumeRefParts(vol),'element',`not IsSubTypeOf(element,'glasverkleidung');`);
+      verkleidung = FilterList(verkleidung,'element',`Round(PartPos(element)['z']) eq Round(PartPos(part)['z']);`);
+      verkleidung = FilterList(verkleidung,'element',`not call rohrToGlasConnected(part,element);`);
+      hasglas = Bool(Size(verkleidung));
+    } 
+    if (typ eq 'neutral') {
+      eingebaut = hasblech or hasglas;
+    } else {
+      eingebaut = Bool(Size(verkleidung));
+    }
+
+    return eingebaut;
+    }"/>
+</function>
+
+
+
+<function description="Haller-E">
+  <param name="part" description="e-Rohr" type="Pointer"/>
+  <returnvalue description="Ist dieses Verbraucherrohr eine Seitenrohr einer Darunterliegenden Tuere?" type="Bool" />
+  <definition expression="def tuereSeiteRohr(part) {
+      my seitenrohr = false;
+      my scherengelenke = List();
+      my teleskopauszuege = List();
+      my distx = 0;
+      my volumes = List();
+      my seitenteile = List();
+      my vol_unten  = call posVolume(part,'unten');
+      my vol_seiteunten  = call posVolume(part,'seiteunten');
+      
+      if (vol_unten) {
+         volumes = ListAdd(volumes,vol_unten);
+      }
+      if (vol_seiteunten) {
+         volumes = ListAdd(volumes,vol_seiteunten);
+      }
+      
+      for (my vol : volumes) {
+         scherengelenke = ChildrenListOfTypeDeep(vol,'scherengelenk');
+         if (Size(scherengelenke)) {
+            seitenteile = JoinList(seitenteile,scherengelenke);
+         }
+         teleskopauszuege = ChildrenListOfTypeDeep(vol,'teleskopauszug');
+         if (Size(teleskopauszuege)) {
+            seitenteile = JoinList(seitenteile,teleskopauszuege);
+         }
+      } 
+      if (Size(seitenteile)) {
+        for (my seitenteil : seitenteile) {
+          distx = Abs(RelativePartPos(seitenteil,part)['x']);
+          if (distx lt 3) {
+            seitenrohr = true;
+            break;
+          }
+        }
+      }
+      
+      return seitenrohr;
+  }"/>
+</function>
+
+
+<function description="Haller-E">
+  <param name="part" description="e-Rohr" type="Pointer"/>
+  <param name="tuertyp" description="auszieh,klapp,einschub,schublade, registraturset, neutral" type="String"/>
+  <param name="pos" description="unten/oben bezueglich e-Rohr" type="String"/>
+  <param name="tiefe" description="vorne/hinten bezueglich e-Rohr" type="String"/>
+  <returnvalue description="Ist diese Tuere dort eingebaut, bezueglich Verbraucherrohr?" type="Bool" />
+  <definition expression="def verbraucherTuere(part,tuertyp,pos,tiefe) {
+      my eingebaut = false;
+      my ausziehtuere = false;
+      my klapptuere = false;
+      my einschubtuere = false;
+      my schubladenset = false;
+      my schublade = null;
+      my registraturset = false;
+      my rost = null;
+      my tuere = null;
+      my teleskop = null;
+      my dock = null;
+      my dof = 0;
+      my dist = 0;
+      my disty = 0;
+      my verkleidung = List();
+      my partposz = Round(PartPos(part)['z']);
+      
+      my volposz = 0;
+      my vol = call posVolume(part,pos);
+      my volposz = Round(PartPos(vol)['z']);
+      if (tuertyp eq 'auszieh' or tuertyp eq 'neutral') {
+        if (vol) {
+          tuere = ChildOfTypeDeep(vol,'ausziehtuertablarset');
+        } 
+        if (tuere) {
+           /* checks vorne oder hinten */
+           teleskop = ChildOfTypeDeep(tuere,'teleskopauszug');
+             dock = DocksOfType(teleskop, 'ct_teleskop2tablar')[0];
+             dof = GetDOFValue(dock);
+             dist = Abs(RelativePartPos(ChildOfTypeDeep(tuere,'tablarwinkel'),part)['y'] + dof);
+           if (tiefe eq 'vorne') {
+              ausziehtuere = dist lt 1;
+           } else if (tiefe eq 'hinten') {
+              ausziehtuere = dist gt 1;
+           }
+        }
+      }
+      if (tuertyp eq 'klapp' or tuertyp eq 'neutral') {
+        if (vol) {
+          tuere = ChildOfTypeDeep(vol,'klapptuerset');
+        }
+        if (tuere) {
+           /* checks vorne oder hinten */
+           dist = Abs(RelativePartPos(ChildOfTypeDeep(tuere,'scherengelenk'),part)['y']);
+           if (tiefe eq 'vorne') {
+              klapptuere = dist lt 11;
+           } else if (tiefe eq 'hinten') {
+              klapptuere = dist gt 11;
+           }
+        }
+      }
+      if (tuertyp eq 'einschub' or tuertyp eq 'neutral') {
+        if (vol) {
+          tuere = ChildOfTypeDeep(vol,'einschubtuerset');
+        } 
+        if (tuere) {
+          /* checks vorne oder hinten */
+          dist = RelativePartPos(ChildOfTypeDeep(tuere,'einschubtuergelenk'),part)['y'];
+          if (tiefe eq 'vorne') {
+             einschubtuere = dist gt 0;
+          } else if (tiefe eq 'hinten') {
+             einschubtuere = dist lt 0;
+          }
+        }
+        
+      }
+      if (tuertyp eq 'schublade' or tuertyp eq 'neutral') {
+        if (vol) {
+          tuere = ChildOfTypeDeep(vol,'schubladenauszugset');
+        } 
+        if (tuere) {
+          schublade = ChildOfType(tuere,'schubladenauszug');
+          dist = RelativePartPos(schublade, part);
+          disty = Round(dist['y']);
+          if (pos eq 'unten' and tiefe eq 'vorne' and partposz gt 4 and disty eq 25) {
+            schubladenset = true;
+          }
+        }
+      }
+      
+      if (tuertyp eq 'registraturset' or tuertyp eq 'neutral') {
+        if (vol) {
+          tuere = ChildOfTypeDeep(vol,'registraturset');
+        } 
+        if (tuere) {
+          rost = ChildOfType(tuere,'rost');
+          dist = RelativePartPos(rost, part);
+          disty = Abs(Round(dist['y']));
+          if (pos eq 'oben' and tiefe eq 'vornehinten' and disty eq 25) {
+            registraturset = true;
+          }
+          if (pos eq 'oben' and tiefe eq 'seite' and disty ne 25) {
+            registraturset = true;
+          }
+        }
+      }
+      
+      eingebaut = ausziehtuere or klapptuere or einschubtuere or schubladenset or registraturset;
+      
+      /* Check on Reflektorfolie notwendig ist */
+      if ((ausziehtuere or klapptuere) and EndsWith(pos,'folie')) {
+         eingebaut = partposz gt volposz;
+      }
+      
+      
+      return eingebaut;
+  }"/>
+</function>
+
+<function description="Haller-E, noch nicht in Gebrauch">
+  <returnvalue description="pickable" type="Bool" />
+    <definition expression="def isPickable(part) {
+      my pick = true;      
+      if (Feature(part,'f_hallerEditE'))  {
+        pick = false;
+      }  
+      return pick;
+   }"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="showVebraucher" type="Bool" />
+    <definition expression="def showVerbraucherPos(part,pos,variante) {
+      my show = false;
+      my verbraucher = 'f_verbraucher';
+      my vpos = 'f_verbraucher' ++ pos; 
+      my korrektur = PartAttr(part,'hc_length') eq 750;
+      if (Feature(part,'f_hallerEditE') or EnvValue('PDF.Print.HallerE')) {
+        if (Feature(part,'f_hallerE') and EndsWith(Feature(part,'f_rohrtyp'),'verbraucher')) {
+          if (variante eq 'basis')  {
+            show = true;
+          } else if (variante eq 'sensor') {
+             if (EndsWith(Feature(part,vpos),'usb-charger') or EndsWith(Feature(part,vpos),'sensor'))  {
+                show = true;
+             }
+          } else if (variante eq 'direction') {
+                 show = true;
+          } else if (variante eq 'laenge') {
+              show = 2;
+              if ( EndsWith(Feature(part,vpos),'usb-charger') ) {
+                 show = 8;
+             }
+          } else if (variante eq 'trans') {
+              if (pos eq 'M') {
+                 show = -7;
+                 if (korrektur) {
+                    show = 7;
+                  }
+                 if ( EndsWith(Feature(part,vpos),'usb-charger') ) {
+                   show = -4;
+                 }
+              } else if (pos eq 'L') {
+                  show = -17;
+                  if (korrektur) {
+                    show = -15;
+                  }
+                  if ( EndsWith(Feature(part,vpos),'usb-charger') ) {
+                    show = -13;
+                    if (korrektur) {
+                      show = -26;
+                    }
+                  }
+               } else if (pos eq 'R') {
+                  show = 2;
+                  if (korrektur) {
+                    show = 30;
+                  }
+                  if ( EndsWith(Feature(part,vpos),'usb-charger') ) {
+                    show = 5;
+                    if (korrektur) {
+                      show = 18;
+                    }
+                  }
+               }   
+            }
+         }
+      }        
+      return show;
+   }"/>
+</function>
+
+
+<function description="Haller-E">
+  <returnvalue description="kugel2trafoActive" type="String" />
+    <definition expression="def kugel2trafoActive(part,index) {
+      my active = false;
+      my hallerE = Bool(Feature(part,'f_kugelEinspeisung'));
+      my dock = Dock(part,'kugel2rohr', index);
+      active =  not DockGetConnectedPart(dock) and hallerE;
+      return active;
+   }
+"/>
+</function>
+
+
+<function description="Evaluation, ob ein Stift zu einer leitenden Kugel gedockt werden kann">
+  <param description="Das Element, zu welchem der Stift gedockt werden soll" name="targetpart" type="object"/>
+  <returnvalue description="true oder false" type="boolean"/>
+  <definition expression="def displayHallerE(part) {
+    my show = (Bool(Feature(part,'f_hallerEditE')) and Bool(EnvValue('CO.displayHallerE'))) or Bool(EnvValue('PDF.Print.HallerE'));
+    return show;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="transparent Elements" type="Bool" />
+    <definition expression="def transparentHallerE(part) {
+      my active = false;
+      my transparent = IsSubTypeOf(part,'verkleidung') or IsSubTypeOf(part,'zwischenwand') or IsSubTypeOf(part,'ct_tablar') or 
+                       IsSubTypeOf(part,'ct_EinsaetzeAusruestung') or IsSubTypeOf(part,'metalltuer') or 
+                       IsSubTypeOf(part,'beschlag') or IsSubTypeOf(part,'stdklemmhalter') or IsSubTypeOf(part,'ct_inosBoxKonzept') or 
+                       IsSubTypeOf(part,'ct_pflanzenAddition') or GetTypeName(part) eq 'co_schutzring'; 
+      active = call displayHallerE(part) and transparent and 
+               not IsSubTypeOf(part,'co_trafo_E') and not IsSubTypeOf(part,'rohrgriff') and 
+               GetTypeName(part) ne 'gCE_ContextZone' and not BeginsWith(GetTypeName(part), 'kugel_stift') ;
+      return active;
+   }
+  "/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="rohrMaterial" type="String" />
+    <definition expression="def stromkreisMaterial(part) {
+      my material = '-101';
+      if (IsSubTypeOf('co_trafo_E')) {
+        material = '-102';
+      }
+      my stromkreis = Feature(part,'f_stromkreis');
+      if (call displayHallerE(part))  {
+        material = stromkreis;
+      }         
+      return material;
+   }"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="rohrMaterial" type="String" />
+    <definition expression="def rohrMaterial(part) {
+      my material = '-101';
+      my leitend = not EndsWith(Feature(part,'f_rohrtyp'),'normal');
+      if (leitend) {
+        material = call stromkreisMaterial(part);
+      }         
+      return material;
+   }
+"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="verbraucherMaterial" type="String" />
+    <definition expression="def verbraucherMaterial(part,pos,variante) {
+      my material = 'rohrE1';
+      my vpos = 'f_verbraucher' ++ pos;
+      my verbraucher = Feature(part,vpos);
+      if (variante eq 'basis') {
+        if (BeginsWith(verbraucher,'dummy') or BeginsWith(verbraucher,'usb-charger')) {
+           material = '30';
+        } else if (StringContains(verbraucher,'warmweiss')) {
+           material = '32';
+        } else if (StringContains(verbraucher,'kaltweiss')) {
+           material = '24';
+        }
+      } else if (variante eq 'sensor') {
+          material = '30';
+          if (BeginsWith(verbraucher,'usb-charger')) {
+            material = '24';
+          }
+      }
+      return material;
+    }
+  "/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="interaction: no_snap" type="Bool" />
+  <definition expression="def noSnapHallerE(targetdock,moveddock) {
+     my active = false;
+     my active1 = false;
+     my moved = DockGetPart(moveddock);
+     my target = DockGetPart(targetdock);
+     my vertical = not call horizontalPart(target);
+     my verbraucher = EndsWith(Feature(DockGetPart(moveddock),'f_rohrtyp'),'verbraucher');
+     my movable = call shelfIsMovable(target);
+     
+     my nosnap = (vertical and verbraucher) or (movable and verbraucher);
+     my einschub = call verbraucherTuere(target,'einschub','unten','vorne');
+     my schublade = call verbraucherTuere(target,'schublade','unten','vorne');
+     my registraturset = call verbraucherTuere(target,'registraturset','oben','vornehinten');
+     /* schublade = false;  */
+     my schub = einschub or schublade;
+     my auszieh = call verbraucherTuere(target,'auszieh','unten','vorne');
+     my klapp = call verbraucherTuere(target,'klapp','unten','vorne');
+     my richtungwrong = Feature(target,'f_rohrRichtung') le 45;
+     my auszieh2 = call verbraucherTuere(target,'auszieh','oben','vorne');
+     my klapp2 = call verbraucherTuere(target,'klapp','oben','vorne');
+     my richtungwrong2 = Feature(target,'f_rohrRichtung') ne 270;
+     my usb = Feature(moved,'f_verbraucher') eq 'usb-charger';
+     my led = not EndsWith(Feature(moved,'f_verbraucher'),'er') and  Feature(target,'f_rohrRichtung') eq 'richtung-oben-180';
+     /* wenn Richtung 180 gesetzt, dann geht der USB bei einer Klapptuere */
+     my klappunten = (auszieh or klapp) and richtungwrong and not call tuereSeiteRohr(target) and usb and Feature(target,'f_rohrRichtung') ne 'richtung-oben-180';
+     my klappoben = (auszieh2 or klapp2) and richtungwrong2 and not call tuereSeiteRohr(target) and usb;
+     my kugelstift = call snapHallerEtoKugelStiftManuell(target);
+     /* keine Verinderung my sensor = EndsWith(Feature(moved,'f_verbraucher'),'sensor' );
+     my nosensor = sensor and not call validSensorHallerE(target); 
+     WriteInfoLog('no ' ++ nosnap ++ ',schub ' ++ schub ++ ',ku ' ++ klappunten ++ ',ko ' ++ klappoben ++ ',reg ' ++ registraturset ++ ',led ' ++ led ++ ',ks ' ++ kugelstift);
+     */
+     active = nosnap or schub or klappunten or klappoben or registraturset or led or kugelstift;
+     return active;
+   }
+  "/>
+</function>
+
+<function description="Haller-E">
+  <param name="Verbraucher-Rohr" type="Pointer"/>
+  <returnvalue description="pr_verbraucher = USB,  active?" type="Bool" />
+  <definition expression="def validUSBhallerE(part) {
+     my active = false;
+
+     my einschub = call verbraucherTuere(part,'einschub','unten','vorne');
+     my schublade = call verbraucherTuere(part,'schublade','unten','vorne');
+     my schub = einschub or schublade;
+     my auszieh = call verbraucherTuere(part,'auszieh','unten','vorne');
+     my klapp = call verbraucherTuere(part,'klapp','unten','vorne');
+     my klapp_unten = klapp and (Feature(part,'f_rohrRichtung') ne 'richtung-oben-180' or PartAttr(part, 'hc_length') eq '750');
+     my auszieh2 = call verbraucherTuere(part,'auszieh','oben','vorne');
+     my tuere = auszieh or klapp_unten or auszieh2;
+     
+     active = not tuere or call tuereSeiteRohr(part);
+     return active;
+   }
+  "/>
+</function>
+
+<function description="Haller-E, Konflikt">
+  <returnvalue description="LED  mit Sensor,  richtig Positioniert?" type="Bool" />
+  <definition expression="def validSensorHallerE() {
+    my conflicts = List(); 
+    my tuere = true;
+    my rohre = GetComponentListOfType('normalrohr');
+    my verbraucherrohre = FilterList(rohre,'element',`Feature(element,'f_rohrtyp') ne 'rohr-verbraucher';`);
+    my sensorrohre = FilterList(verbraucherrohre,'element',`not call verbraucherEinsatzTypen(element,'sensor');`);
+    for (my rohr : sensorrohre) {
+      tuere = call verbraucherTuere(rohr,'klapp','unten','vorne') or call verbraucherTuere(rohr,'auszieh','unten','vorne');
+      if ( Feature(rohr,'f_rohrRichtung') ne 'richtung-innen-25' or not tuere) {
+        conflicts = ListAdd(conflicts, rohr);
+      }
+    }
+    return conflicts;
+    }
+  "/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="lichtEinzelFarbeE" type="String" />
+    <definition expression="def lichtVerbraucherFarbeE(part,pos) {
+      my farbe = 'none';
+      my verbraucher = 'f_verbraucher';
+      my vpos = 'f_verbraucher' ++ pos; 
+      if ( EndsWith(Feature(part,'f_rohrtyp'),'verbraucher')) {
+        farbe = Feature(part,vpos);
+        if (StringContains(farbe,'kaltweiss')) {
+          farbe = 'kaltweiss';
+        } else if (StringContains(farbe,'warmweiss')) {
+          farbe = 'warmweiss';
+        } else {
+          farbe = 'none';
+        }
+      }
+      return farbe;
+   }
+"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="lichtFarbeE gemittel" type="String" />
+    <definition expression="def lichtFarbeE(part) {
+      my farbe = 'none';
+      my none = 0;
+      my kaltweiss = 0;
+      my warmweiss = 0;
+      my verbraucherL = '';
+      my verbraucherM = '';
+      my verbraucherR = '';
+      if ( EndsWith(Feature(part,'f_rohrtyp'),'verbraucher')) {
+        verbraucherL = Feature(part,'f_verbraucherL');
+        verbraucherM = Feature(part,'f_verbraucherM');
+        verbraucherR = Feature(part,'f_verbraucherR');
+        if (StringContains(verbraucherL,'kaltweiss')) {
+          kaltweiss = kaltweiss + 1;
+        } else if (StringContains(verbraucherL,'warmweiss')) {
+          warmweiss = warmweiss + 1;
+        } else {
+          none = none + 1;
+        }
+        if (StringContains(verbraucherM,'kaltweiss')) {
+          kaltweiss = kaltweiss + 1;
+        } else if (StringContains(verbraucherM,'warmweiss')) {
+          warmweiss = warmweiss + 1;
+        } else {
+          none = none + 1;
+        }       
+        if (StringContains(verbraucherR,'kaltweiss')) {
+          kaltweiss = kaltweiss + 1;
+        } else if (StringContains(verbraucherR,'warmweiss')) {
+          warmweiss = warmweiss + 1;
+        } else {
+          none = none + 1;
+        }       
+        if (none lt 3) {
+          if(warmweiss gt kaltweiss){
+           farbe = 'warmweiss';
+          }else{
+           farbe = 'kaltweiss';
+          }
+        }
+      }
+      return farbe;
+   }
+"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="ist Regal beweglich" type="Bool" />
+  <definition expression="def shelfIsMovable(part) {    
+    my active = false;
+    my insides = GetComponentListOfConnectionId(ConnectionId(part));
+    my bodenelemente = FilterList(insides,'element',`not IsSubTypeOf(element,'bodenelement');`);
+    my rollen = FilterList(bodenelemente,'element',`PartAttr(element,'usedHallerE');`);
+    if (Size(rollen)) {
+       active = true;
+    }
+    return active;
+  }
+	"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="ermittelt die Leistung der Verbraucher auf dem Rohr" type="Float" />
+  <definition expression="def verbraucherLeistung(part) {
+    my leistung = 0;
+    my properties = List('pr_verbraucherL','pr_verbraucherM','pr_verbraucherR');
+    for (my property : properties) {
+      if (PropertyActive(part, property)) {
+        if (BeginsWith(Property(part,property),'led')) {
+           leistung = leistung + 1.5;
+        } else if (BeginsWith(Property(part,property),'usb')) {
+           leistung = leistung + 6.5;
+        }
+      }
+    }
+    return leistung;
+    }
+	"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Verbraucherrohr" type="Pointer"/>
+  <param name="einsatz" description="Einsatz: usb,led" type="String"/>
+  <returnvalue description="ist dieser Einsatz-Typ verbaut auf dem Rohr" type="Bool" />
+  <definition expression="def verbraucherEinsatzTypen(part,einsatz) {
+    my verbaut = false;
+    my properties = List('pr_verbraucherL','pr_verbraucherM','pr_verbraucherR');
+    for (my property : properties) {
+      if (PropertyActive(part, property)) {
+        if (StringContains(Property(part,property),einsatz)) {
+           verbaut = true;
+        }
+      }
+    }
+    return verbaut;
+    }
+	"/>
+</function>
+
+<function description="Haller-E Konflikt">
+  <returnvalue description="gibt es Verbraucherrohre mit LEDs oberhalb Klapp- oder Ausziehtuere, die keinen einzigen Sensor haben" type="List" />
+  <definition expression="def fehlenderSensorTuere() {
+    my conflicts = List(); 
+    my rohre = GetComponentListOfType('normalrohr');
+    my verbraucherrohre = FilterList(rohre,'element',`Feature(element,'f_rohrtyp') ne 'rohr-verbraucher';`);
+    verbraucherrohre = FilterList(verbraucherrohre,'element',`Feature(element,'f_rohrRichtung') ne 'richtung-innen-25 ';`);
+    my klapprohre =  FilterList(verbraucherrohre,'element',`not call verbraucherTuere(element,'klapp','unten','vorne');`);
+    my ausziehrohre =  FilterList(verbraucherrohre,'element',`not call verbraucherTuere(element,'auszieh','unten','vorne');`);
+    my sensorrohre = JoinList(klapprohre,ausziehrohre);
+    for (my rohr : sensorrohre) {
+      if ( Bool(call amountVerbraucher(rohr,'weiss')) ) {
+        conflicts = ListAdd(conflicts, rohr);
+        break;
+      }
+    }
+    return conflicts;
+    }
+  "/>
+</function>
+
+<function description="Haller-E Konflikt">
+  <returnvalue description="gibt es normale SchlitzRohre, die an eine leitende Kugel grenzen" type="List" />
+  <definition expression="def schlitzRohrGetrenntKugelE() {
+    my conflicts = List(); 
+     return conflicts;
+    }
+  "/>
+</function>
+<function description="Haller-E Konflikt">
+  <returnvalue description="gibt es einen Stossbuehgel, der an eine leitende Kugel angebracht ist" type="List" />
+  <definition expression="def stossbuegelKugelE() {
+    my conflicts = List(); 
+    my kugel = null;
+    my dockliste = List();
+    my rohrgriffe = GetComponentListOfType('rohrgriff');
+    for (my griff : rohrgriffe) {
+      dockliste = List(Dock(griff,'rohr2kugel',1),Dock(griff,'rohr2kugel',2));
+      for (my dock : dockliste) {
+        kugel = DockGetConnectedPart(dock);
+        if (kugel) {
+          if (Feature(kugel,'f_kugelLeitend')) {
+            conflicts = ListAdd(conflicts, kugel);
+          }
+        }
+      }
+    }
+    return conflicts;
+    }
+  "/>
+</function>
+<function description="Haller-E Konflikt">
+  <returnvalue description="gibt es normale SchlitzRohre, die an eine leitende Kugel grenzen" type="List" />
+  <definition expression="def aufRollenRegalE() {
+    my conflicts = List(); 
+     return conflicts;
+    }
+  "/>
+</function>
+
+<function description="Haller-E Konflikt">
+  <returnvalue description="gibt es leitende Rohre, die an eine leitende Kugel grenzen" type="List" />
+  <definition expression="def nochmalsTrennenE() {
+    my conflicts = List(); 
+    my kugel = null;
+    my rohre = List();
+    my leitenderohre = List();
+    my leitenderohregetrennt = List();
+    my getrenntkeinschlitz = List();
+    my checklisterohre = List();
+    my getrenntverbraucher = List();
+    my dockliste = List();    
+    rohre = GetComponentListOfType('normalrohr');
+    leitenderohre = FilterList(rohre,'element',`Feature(element,'f_rohrtyp') ne 'rohr-leitend';`);
+    leitenderohregetrennt = FilterList(leitenderohre,'element',`Feature(element,'mid') ne '0';`);
+    /* 250er,395er Rohre ohne Schlitz */
+    getrenntkeinschlitz = FilterList(leitenderohregetrennt,'element',`Feature(element,'Schlitz');`);
+    /* 350er,500er,750er Rohre leitend mit Schlitz*/
+    getrenntverbraucher = FilterList(leitenderohregetrennt,'element',`my len = PartAttr(element,'hc_length'); not (len ge 350 and StringContains(len,'50'));`);
+    checklisterohre = JoinList(getrenntkeinschlitz,getrenntverbraucher);
+    for (my rohr : UniqueList(checklisterohre)) {
+      dockliste = List(Dock(rohr,'rohr2kugel',1),Dock(rohr,'rohr2kugel',2));
+      for (my dock : dockliste) {
+        kugel = DockGetConnectedPart(dock);
+        if (kugel) {
+          if (Feature(kugel,'f_kugelLeitend') AND !InList(conflicts,rohr)) {
+            conflicts = ListAdd(conflicts, rohr);
+            break;
+          }
+        }
+      }
+    }
+    return conflicts;
+    }
+  "/>
+</function>
+
+<function description="Haller-E Konflikt">
+  <returnvalue description="gibt es normale SchlitzRohre, die an eine leitende Kugel grenzen" type="List" />
+  <definition expression="def schlitzRohrKugelE() {
+    my conflicts = List(); 
+    my kugel = null;
+    my rohre = List();
+    my normalrohre = List();
+    my schlitzrohre = List();
+    my dockliste = List();    
+    rohre = GetComponentListOfType('normalrohr');
+    normalrohre = FilterList(rohre,'element',`Feature(element,'f_rohrtyp') ne 'rohr-normal';`);
+    schlitzrohre = FilterList(normalrohre,'element',`not Feature(element,'Schlitz');`);
+    for (my rohr : schlitzrohre) {
+      dockliste = List(Dock(rohr,'rohr2kugel',1),Dock(rohr,'rohr2kugel',2));
+      for (my dock : dockliste) {
+        kugel = DockGetConnectedPart(dock);
+        if (kugel) {
+          if (Feature(kugel,'f_kugelLeitend')) {
+            conflicts = ListAdd(conflicts, kugel);
+          }
+        }
+      }
+    }
+    return conflicts;
+    }
+  "/>
+</function>
+
+<function description="Haller-E Konflikt">
+  <returnvalue description="gibt es USB die unterhalb einer Tuere angeordnet sind" type="List" />
+  <definition expression="def tuereUSBchargerUntenE() {
+    my conflicts = List(); 
+    my rohre = List();
+    my verbraucherrohre = List();
+    my rohre180 = List();
+    my usbrohre = List();   
+    rohre = GetComponentListOfType('rohr');
+    verbraucherrohre = FilterList(rohre,'element',`Feature(element,'f_rohrtyp') eq 'rohr-normal';`);
+    rohre180 = FilterList(verbraucherrohre,'element',`Feature(element,'f_rohrRichtung') ne 'richtung-oben-180';`);
+    usbrohre = FilterList(rohre180,'element',`not call verbraucherEinsatzTypen(element,'usb');`);
+    for (my rohr : usbrohre) {      
+      if (call verbraucherTuere(rohr,'neutral','oben','vorne') or  call verbraucherTuere(rohr,'neutral','oben','hinten')) {
+        conflicts = ListAdd(conflicts, rohr);
+      }
+    }
+    return conflicts;
+    }
+  "/>
+</function>
+
+<function description="Haller-E Konflikt">
+  <returnvalue description="kreuzen sich an einer Kugel zwei verschienden Stromkreise?" type="Bool" />
+  <definition expression="def stromkreisKreuzKugel() {
+    my conflicts = List(); 
+    my stromkreis = '';
+    my stromkreise = List(0,0,0,0);
+    my rohre = List();
+    my size = 0;
+    my number = 0;
+    my kugelinfo = List();    
+    my kugeln = GetComponentListOfType('kugel_std');
+    my ekugeln = FilterList(kugeln,'element',`not Feature(element,'f_kugelLeitend');`);
+    for (my ekugel : ekugeln) {
+      kugelinfo = call isKugelLeitend(ekugel);
+      stromkreise = List(0,0,0,0);
+      rohre = kugelinfo[1];
+      size = Size(rohre);
+      if (size ge 4) {
+        /* stromkreis = Feature(rohre[0],'f_stromkreis'); */
+        /* die Rohre werden nun auf den Stromkreis ueberprueft */
+        for (my rohr : rohre) {
+         stromkreis = Feature(rohr,'f_stromkreis');
+         number = Number(SubStr(stromkreis,11));
+         stromkreise[number] = stromkreise[number] + 1;
+        }
+        /* wenn 2 Stromkreise zwei Rohre haben */
+        if ((stromkreise[1] ge 2 and stromkreise[2] ge 2) or (stromkreise[1] ge 2 and stromkreise[3] ge 2) or
+             (stromkreise[2] ge 2 and stromkreise[3] ge 2)   ) {
+          conflicts = ListAdd(conflicts, ekugel);
+        }
+      }
+    }
+    return conflicts;
+  }
+	"/>
+</function>
+
+<function description="Konflikt mit Haller E und Rollen">
+	<returnvalue description="Sind Rollen und Haller E miteinader verbaut" type="Bool"/>
+	<definition expression="def rollenMitHallerE(){
+	my partlist = ChildrenListOfTypeDeep(Forest('mainstructure'),'normal_volume');
+	my conflicts = List();
+		for (my p : partlist){
+		    my insides = GetComponentListOfConnectionId(ConnectionId(p));
+		    my bodenelemente = FilterList(insides,'element',`not IsSubTypeOf(element,'bodenelement');`);
+		    my rollen = FilterList(bodenelemente,'element',`PartAttr(element,'usedHallerE');`);
+		    my hallerE = FilterList(insides,'element',`not IsSubTypeOf(element,'co_trafo_E');`);
+		   if((Size(rollen) ge 1) and (Size(hallerE) ge 1)){
+		   		ListExtend(conflicts, rollen);
+		   }
+		}
+    return conflicts;
+	};
+	"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Kugel" type="Pointer"/>
+  <returnvalue description="Kugel ist leitend,leitende Rohre, Stromkreis" type="Liste" />
+  <definition expression="def isKugelLeitend(part) {
+    my leitend = List();
+    leitend[0] = false;
+    leitend[1] = List();
+    my rohr = null;
+    my leitenderohre = List();
+    my size = 0;
+    my number = 0;
+    my stromkreise = List(0,0,0,0); /* 0 = dummy, stromkreis 1,2,3 */
+    my einspeisung = Feature(part,'f_kugelEinspeisung');
+    my dock1 = Dock('kugel2rohr',1);
+    my dock2 = Dock('kugel2rohr',2);
+    my dock3 = Dock('kugel2rohr',3);
+    my dock4 = Dock('kugel2rohr',4);
+    my dock5 = Dock('kugel2rohr',5);
+    my dock6 = Dock('kugel2rohr',6);
+    my docklist = List(dock1,dock2,dock3,dock4,dock5,dock6);
+    for (my dock : docklist) {
+      rohr = DockGetConnectedPart(dock);    
+      if (rohr and IsSubTypeOf(rohr,'normalrohr')) {
+         /* Message(GetTypeName(rohr) ++ ', ' ++ GetDockType(docklist[i]) ++ DockGetIndex(docklist[i])); */
+         if (Feature(rohr,'f_rohrtyp') ne 'rohr-normal') {
+           leitenderohre = ListAdd(leitenderohre,rohr);
+        }
+      }
+    }
+    size = Size(leitenderohre);
+    if (size gt 1) {
+      for (my rohr : leitenderohre) {
+        number = SubStr(Feature(rohr,'f_stromkreis'),11);
+        stromkreise[number] = stromkreise[number] + 1;
+      }
+      leitend[0] = ListMax(stromkreise) ge 2; /* mindestens 2 leitende Rohre muessen denselben Stromkreis haben */
+      if (leitend[0]) {
+        for (my i : IndexList(stromkreise)) {
+           if (stromkreise[i] gt stromkreise[0]) {
+              stromkreise[i] = stromkreise[0];
+           }
+        }
+      }
+    }
+    leitend[0] =  leitend[0] or
+                  einspeisung or 
+                 (Feature(part,'f_hallerExtendedE') and Size(leitenderohre) ge 1);
+    leitend[1] = leitenderohre;
+    leitend[2] = 'stromkreis-' ++ stromkreise[0];
+    return leitend;
+    }
+  "/>
+</function>
+
+
+
+<function description="Haller-E">
+  <param name="part" description="Trafo" type="Pointer"/>
+  <returnvalue description="Angeschlossene Verbraucher-Rohr Liste" type="List" />
+  <definition expression="def stromkreisPartList(part) {
+	  my eparts = List();
+	  my stromkreis = Feature(part,'f_stromkreis');
+	  my parts = GetComponentListOfConnectionId(ConnectionId(part));
+	  eparts = FilterList(parts,'element',`not Feature(element,'f_hallerE');`);
+	  eparts = FilterList(eparts,'element',`Feature(element,'f_stromkreis') ne stromkreis;`);
+	  return eparts;
+	}"/>
+</function>
+
+<function description="Haller-E: Konflikte">
+  <returnvalue description="Gibt es ein irgendwo ein Stromkreis, der ohne Einspeisung/Trafo ist" type="List" />
+  <definition expression="def stromkreisMissingTrafo() {
+    my conflicts = List();
+    my kugeln = GetComponentListOfType('kugel_std');
+    my ekugeln = FilterList(kugeln,'element',`not Feature(element,'f_kugelLeitend');`);
+    my stromkreis = List();
+    my stromkreis1 = false;
+    my stromkreis2 = false;
+    my stromkreis3 = false;
+    my stromkreise = List();
+    my group = List();
+    my groups = call groupByConnectionIds(ekugeln);
+    for (my i : IndexList(Size(groups))) {
+       group = groups[i];
+       stromkreis = FilterList(group,'element',`Feature(element,'f_stromkreis') ne 'stromkreis-1';`);
+       if (Size(stromkreis)) {
+         stromkreise[i]['stromkreis1'] = false;
+         for (my ekugel : stromkreis) {
+            if (Feature(ekugel,'f_kugelEinspeisung')) {
+              stromkreise[i]['stromkreis1'] = true;
+              break;
+            }
+         }
+       } else {
+           stromkreise[i]['stromkreis1'] = true;
+       }
+       stromkreis = FilterList(group,'element',`Feature(element,'f_stromkreis') ne 'stromkreis-2';`);
+       if (Size(stromkreis)) {
+	       stromkreise[i]['stromkreis2'] = false;
+	       for (my ekugel : stromkreis) {
+	          if (Feature(ekugel,'f_kugelEinspeisung')) {
+	            stromkreise[i]['stromkreis2'] = true;
+	            break;
+	          }
+	       }
+       } else {
+           stromkreise[i]['stromkreis2'] = true;
+       }
+       stromkreis = FilterList(group,'element',`Feature(element,'f_stromkreis') ne 'stromkreis-3';`);
+       if (Size(stromkreis)) {
+	       stromkreise[i]['stromkreis3'] = false;
+	       for (my ekugel : stromkreis) {
+	          if (Feature(ekugel,'f_kugelEinspeisung')) {
+	            stromkreise[i]['stromkreis3'] = true;
+	            break;
+	          }
+	       }
+       } else {
+           stromkreise[i]['stromkreis3'] = true;
+       }
+       if (not stromkreise[i]['stromkreis1'] or not stromkreise[i]['stromkreis2'] or not stromkreise[i]['stromkreis3'] ) {
+         conflicts = ListAdd(conflicts,group[0]);
+       }
+    }
+  return conflicts;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Trafo" type="Pointer"/>
+  <returnvalue description="Angeschlossene Verbraucher-Rohr Liste" type="List" />
+  <definition expression="def groupByConnectionIds(elements) {
+     my list = List();
+     my subList = List();
+     elements = Sort(elements,`my c1 = ConnectionId(element1); my c2 = ConnectionId(element2); c1 gt c2 ? 1 : (c1 lt c2 ? -1 : 0);`);
+     my lastId = -1;
+     my connectionId = '0';
+     for (my element : elements) {
+       connectionId = ConnectionId(element);
+       if (connectionId ne lastId) {
+         lastId = connectionId;
+         subList = List();
+         ListAdd(list, subList);
+       }
+       ListAdd(subList, element);
+     }
+     return list;
+   }"/>
+</function>
+
+
+<function description="Haller-E">
+  <param name="part" description="Trafo" type="Pointer"/>
+  <returnvalue description="Angeschlossene Verbraucher-Rohr Liste" type="List" />
+  <definition expression="def stromkreisKugelList(part) {
+	  my kugeln = List();
+	  my parts = call stromkreisPartList(part);
+	  kugeln = FilterList(parts,'element',`not IsSubTypeOf(element,'kugel');`);
+    kugeln = FilterList(kugeln,'element',` not Feature(element,'f_kugelLeitend');`);
+	  return kugeln;
+	}"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Trafo" type="Pointer"/>
+  <returnvalue description="Angeschlossene Verbraucher-Rohr Liste" type="List" />
+  <definition expression="def stromkreisRohrList(part) {
+	  my stromkreisrohre = List();
+    my parts = call stromkreisPartList(part);
+	  stromkreisrohre = FilterList(parts,'element',`not IsSubTypeOf(element,'normalrohr');`);
+	  stromkreisrohre = FilterList(stromkreisrohre,'element',`PartAttr(element,'hc_length') lt 175;`);
+    stromkreisrohre = FilterList(stromkreisrohre,'element',`Feature(element,'f_rohrtyp') eq 'rohr-normal';`);
+	  return stromkreisrohre;
+	}"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Trafo" type="Pointer"/>
+  <returnvalue description="Angeschlossene Verbraucher-Rohr Liste" type="List" />
+  <definition expression="def verbraucherList(part) {
+	  my parts = call stromkreisRohrList(part);
+    my verbraucherlist = FilterList(parts,'element',`Feature(element,'f_rohrtyp') ne 'rohr-verbraucher';`);
+	  return verbraucherlist;
+	}"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="Trafo" type="Pointer"/>
+  <returnvalue description="Stromkreis erforderliche Leistung in Watt" type="Float" />
+  <definition expression="def powerReCalculation(part) {
+    my power = 0;
+    my verbraucherlist = call verbraucherList(part);
+    for (my rohr : verbraucherlist) {
+      power = power + Feature(rohr,'f_verbraucherLeistung');
+    }
+    return power;
+  }"/>
+</function>
+
+<function description="Haller-E: Artiklierung" >
+  <param name="part" description="Rohr" type="Pointer"/>
+  <param name="einsatz" description="led-warmweiss,led-warmweiss-sensor,etc" type="String"/>
+  <returnvalue description="Endrohr oder isoliertes Rohr" type="Liste(Bool) oder Integer" />
+  <definition expression="def stromSpannungEU(part) {
+    my spannung = true;
+    part = ChildWithId(part,'10');
+    my featurelist = List();
+    my value = '';
+    my amount = '';
+    if (part) {
+      featurelist = List('f_verbraucherL','f_verbraucherM','f_verbraucherR');
+      for (my feature : featurelist) {
+        if (HasFeature(part, feature)) {
+          value = Feature(part,feature);
+          if (value eq einsatz) {
+            amount = amount + 1;
+          }
+        }
+      } 
+    }
+    return amount;
+  }"/>
+</function>
+
+<function description="Haller-E: Artiklierung" >
+  <param name="part" description="Rohr" type="Pointer"/>
+  <param name="einsatz" description="komplette value: led-warmweiss,led-kaltweiss-sensor oder auch nur sensor (EndsWith)" type="String"/>
+  <returnvalue description="Anzahl der Verbraucher von einem Typ" type="Integer" />
+  <definition expression="def amountVerbraucher(part,einsatz) {
+    my amount = 0;
+    my featurelist = List();
+    my value = '';
+    my child = null;
+    if (part) {
+      child = ChildWithId(part,'10');
+      if (child) {
+        /* Artikel Structure */
+        part = child;
+      }
+      featurelist = List('f_verbraucherL','f_verbraucherM','f_verbraucherR');
+      for (my feature : featurelist) {
+        if (HasFeature(part, feature)) {
+          value = Feature(part,feature);
+          if (EndsWith(value,einsatz)) {
+            amount = amount + 1;
+          }
+        }
+      } 
+    }
+    return amount;
+  }"/>
+</function>
+
+
+<function description="Haller-E: Artiklierung" >
+  <param name="stromkreis" description="Rohr Feature" type="String"/>
+  <param name="einsatz" description="Liste von leitenden Rohren die an den zwei Kugeln eines Rohres weitergehen" type="List"/>
+  <returnvalue description="Leitender Connector" type="Bool" />
+  <definition expression="  
+  def leitendeConnectorKreuz(stromkreis,rohre) {
+      my leitend = false;
+      for (my rohr : rohre) {
+         if (stromkreis eq Feature(rohr,'f_stromkreis')) { 
+          leitend = true;
+          break;
+        }
+      }
+      return leitend;
+  }"/>
+</function>
+
+<function description="Haller-E: Artiklierung">
+  <param name="part" description="Rohr" type="Pointer"/>
+  <param name="mode" description="connector,connectorArtikel" type="String"/>
+  <returnvalue description="Endrohr oder isoliertes Rohr" type="Liste(Bool) oder Integer" />
+  <definition expression="def stromkreisEnde(part,mode) {
+    
+    my connectors = 0;
+    my endecheck = List();
+    my seiten = List();
+    my kugel = null;
+    my kugelleitend = false;
+    my rohrtype = '';
+    my gewrohr = false;
+    my normalrohr = false;
+    my nextrohr = null;
+    my hilfsrohrliste = List();
+    my dockliste = List();
+    my hilfsdockliste = List();
+    my leitenderohre = List();
+    my connectorsNormal = List();
+    my connectorsLeitend = List();
+    my connectorsIsolierend = List();
+    my stromkreis = '';
+    my stromkreise = List();
+    if ( EndsWith(mode,'Artikel')) {
+     part = ChildWithId(part,'10');
+    }
+    if (part) {
+    
+      rohrtype = GetTypeName(part);
+      gewrohr = BeginsWith(rohrtype,'gewrohr');
+      stromkreis = Feature(part,'f_stromkreis');
+      normalrohr = Feature(part,'f_rohrtyp') eq 'rohr-normal' or gewrohr;
+      dockliste = List(
+      		Dock(part,'rohr2kugel',1),
+      		Dock(part,'rohr2kugel',2),
+      		Dock(part,'rohr2gewinde_90',1),
+      		Dock(part,'rohr2gewinde_90',2),
+      		Dock(part,'rohr2gewinde_180',1),
+      		Dock(part,'rohr2gewinde_180',2)
+      		);
+      if (gewrohr) {
+         hilfsrohrliste = List(DockGetConnectedPart(Dock(part,'kugel2rohr',1)),DockGetConnectedPart(Dock(part,'kugel2rohr',2)));
+         for (my hilfsrohr : hilfsrohrliste) {
+            hilfsdockliste = ListAdd(hilfsdockliste,Dock(hilfsrohr,'rohr2kugel',1));
+            hilfsdockliste = ListAdd(hilfsdockliste,Dock(hilfsrohr,'rohr2kugel',2));
+         }
+         dockliste = FilterList(hilfsdockliste,'element',`not IsSubTypeOf(DockGetConnectedPart(element),'kugel_std');`);
+      }   
+      for (my rohrdock : dockliste) {
+        leitenderohre = List();
+        stromkreise = List();
+        kugel = DockGetConnectedPart(rohrdock);
+        if (kugel) {
+          kugelleitend = Feature(kugel,'f_kugelLeitend');
+          if (kugelleitend) {
+            if (normalrohr) {
+              connectorsIsolierend = ListAdd(connectorsIsolierend, kugel);
+            } else {
+              if (not Feature(kugel,'f_kugelEinspeisung')) {
+                for (my index : List(1,2,3,4,5,6)) {
+                  nextrohr = DockGetConnectedPart(Dock(kugel,'kugel2rohr',index));
+                  if (nextrohr and nextrohr ne part) {
+                    if (Feature(nextrohr,'f_rohrtyp') ne 'rohr-normal') {
+                      leitenderohre = ListAdd(leitenderohre,nextrohr);
+                      stromkreise = ListAdd(stromkreise,Feature(nextrohr,'f_stromkreis'));
+                    }
+                  }
+                }
+                if (Size(leitenderohre)) {
+                  stromkreis = Feature(part,'f_stromkreis');
+                  /* hat 1 Leitendes Rohr VisVis */
+                  if (Size(leitenderohre) eq 1) {
+                    if (stromkreise[0] eq stromkreis) {
+                      /* Stromkreis geht weiter */
+                      connectorsLeitend = ListAdd(connectorsLeitend, kugel);
+                    } else {
+                      /* Stromkreis geht nicht weiter, sondern ein anderer beginnt */
+                      /* sollte eigentlich schon abgefangen sein das normale Kugel */
+                      /* im Extende Modus jedoch ist diese Kugel leitend */
+                      if (Feature(part,'f_stromkreis') eq Feature(kugel,'f_stromkreis')) {
+                         /* im Extende Modus, wenn Rohr gleicher Stromkreis wie Kugel */
+                        connectorsLeitend = ListAdd(connectorsLeitend,kugel);
+                      } else {
+                        /* im Extende Modus, wenn Rohr anderer Stromkreis wie Kugel */
+                        connectorsIsolierend = ListAdd(connectorsIsolierend,kugel);
+                      }
+                    }
+                  } else if (Size(leitenderohre) eq 2) {
+                    if ( InList(stromkreise,stromkreis ) ) {
+                      connectorsLeitend = ListAdd(connectorsLeitend,kugel);
+                    } else {
+                      connectorsIsolierend = ListAdd(connectorsIsolierend, kugel);
+                    }  
+                  } else if (Size(leitenderohre) gt 2) { 
+                    if (call leitendeConnectorKreuz(stromkreis,leitenderohre)) {
+                      connectorsLeitend = ListAdd(connectorsLeitend,kugel);
+                    } else {
+                      connectorsIsolierend = ListAdd(connectorsIsolierend, kugel);
+                    }
+                  } 
+                } else {
+                  /* Kugel ist leitend,aber kein anderes Rohr, zB im extend mod */
+                    connectorsLeitend = ListAdd(connectorsLeitend,kugel);
+                }
+              } else {
+                /* Kugel ist Einspeisekugel */
+                connectorsLeitend = ListAdd(connectorsLeitend, kugel);
+              } 
+            }       
+          } else {
+            /* Kugel ist Normale Kugel */
+            connectorsNormal = ListAdd(connectorsNormal,kugel);
+          }
+        }
+      }
+    }
+    if ( BeginsWith(mode,'Normal')) {
+      connectors = Size(connectorsNormal); /* anzahl Normal Connectors */
+    } else if ( BeginsWith(mode,'Leitend')) {
+      connectors = Size(connectorsLeitend); 
+    } else if ( BeginsWith(mode,'Isolierend')) {
+      connectors = Size(connectorsIsolierend); 
+    } 
+    return connectors;
+  }
+"/>
+</function>
+
+<function description="Haller-E">
+	<param name="part" description="Trafo" type="Pointer" />
+	<returnvalue description="Ist Stromkreis unterbrochen?" type="Bool" />
+	<definition
+		expression="def connectionReCalculation(part) {
+    my valid = List();
+    my shortestpath = List();
+    my connected = true;
+    my unterbruch = List();
+    my kugelL = null;
+    my kugelR = null;
+    my tube = null;
+    my nextkugel = null;
+    my valid = true;
+    my leitendL = false;
+    my leitendR = false;
+    my connection = List();
+    my connections= List();
+    my rohre = call stromkreisRohrList(part);
+    my kugeln = call stromkreisKugelList(part);
+    my count = 0;
+    my start = '';
+    my weight = 0;
+    my stromkreis = Feature(part,'f_stromkreis');
+    my stromkreisL = false;
+    my stromkreisR = false;
+    my einspeisung = FindPart(part,'kugel_std');
+    if (einspeisung) {
+      einspeisung = PartUniqueId(einspeisung);
+      for (my rohr : rohre) {
+        /* generieren der Verbindungspaare (connections) */
+        kugelL = DockGetConnectedPart(Dock(rohr,'rohr2kugel',1));
+        kugelR = DockGetConnectedPart(Dock(rohr,'rohr2kugel',2));
+        weight = PartAttr(rohr,'hc_length');
+        if (kugelL and kugelR) {
+          stromkreisL = Feature(kugelL,'f_stromkreis') eq stromkreis;
+          stromkreisR = Feature(kugelR,'f_stromkreis') eq stromkreis;
+          leitendL = Feature(kugelL,'f_kugelLeitend');
+          leitendR = Feature(kugelR,'f_kugelLeitend');          
+          /* mindestens eine Kugel muss leitend sein und den richtigen Stromkreis besitzen */
+          /* sonst ist das Rohr nicht verbunden und kommt somit nicht in die Berechnung des shortestPath mit rein*/   
+          if ((leitendL and stromkreisL) or (leitendR and stromkreisR)) {
+           /* von links nach rechts */
+           connection = List(PartUniqueId(kugelL),PartUniqueId(kugelR),weight);
+           connections[count] = connection;
+           count = count + 1;
+           /* von rechts nach links */
+           connection = List(PartUniqueId(kugelR),PartUniqueId(kugelL),weight);
+           connections[count] = connection;
+           count = count + 1;
+          } else {
+             /* es gibt ein Rohr, das keine leitende Kugel angeschlossen hat */
+             connected = false;
+             unterbruch = ListAdd(unterbruch,rohr);
+             break;
+             
+          }
+        }
+      }
+      /* Falls Rohr ohne leitende Kugeln Shortest Path muss gar nicht gerechnet werden */
+      if (connected) {    
+        for (my kugel : kugeln) {
+          /* es muss von jeder Kugel aus einen path geben, sonst ist der Stromkreis unterbrochen */
+          start = PartUniqueId(kugel);
+          shortestpath = ShortestPath(connections, start, einspeisung);
+          if (Size(shortestpath[0][1]) eq 0) {
+             connected = false;
+             unterbruch = ListAdd(unterbruch,kugel);
+             for (my index : List('1','2','3','4','5','6')){
+               tube = DockGetConnectedPart(Dock(kugel,'kugel2rohr',index));
+               if (tube) {
+                 if (Feature(tube,'f_rohrtyp') ne 'rohr-normal'){
+                   for (my i : List('1','2')) {
+                     nextkugel = DockGetConnectedPart(Dock(tube,'rohr2kugel',i)); 
+                     if (nextkugel) {    
+                       if (not Feature(nextkugel,'f_kugelLeitend')){
+                         unterbruch = ListAdd(unterbruch,tube);
+                         break;
+                       }
+                     }
+                   }
+                 }
+               }
+             }
+          }
+        }
+      }
+    } else {
+      connected = false;
+      unterbruch = ListAdd(unterbruch,part);
+    }
+    valid[0] = connected;
+    valid[1] = unterbruch;
+   return valid;  
+  }" />
+</function>
+
+<function description="Haller-E">
+	<param name="part" description="rohr" type="Pointer" />
+	<param name="part" description="rohr" type="Pointer" />
+	<returnvalue description="Wieviele E-Kugel hat das Rohr: 0,1 oder 2" type="INteger" />
+	<definition
+		expression="def rohrEndeKugelE(part,artikel) {
+    my count = 0;
+    my kugel = null;
+    if (artikel eq 'connectorArtikel') {
+      part = ChildWithId(part,'10');
+    }
+    for (my i : List(1,2)) {
+       kugel = DockGetConnectedPart(Dock(part,'rohr2kugel',i));
+       if (Feature(kugel,'f_kugelLeitend')) {
+         count = count + 1;
+       }
+    }
+   return count;
+  }" />
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="ermittelt die Rohre welche auf leitend gesetzt werden muessen im extended Mode" type="List" />
+  <definition expression="def extendedModeHallerE(rohreE) {
+    my extendedrohre = List();
+    my rohre = FilterList(rohreE,'element',`Feature(element,'f_rohrtyp') ne 'rohr-verbraucher';`);
+    my normalrohre = FilterList(rohreE,'element',`Feature(element,'f_rohrtyp') ne 'rohr-normal';`);
+    my reldist = Vector();
+    my position_z = List();
+    my posz = List();
+    for (my rohr : rohre) {
+     for (my normal : normalrohre) {
+       reldist = RelativePartPos(rohr, normal);
+       if ( Round(reldist['x']) eq 0 and Round(reldist['z']) eq 0) {
+         extendedrohre = ListAdd(extendedrohre,normal);
+       }
+     }
+   }
+   return extendedrohre;
+   }
+	"/>
+</function>
+
+<function description="Haller-E">
+  <param name="Horizontal-Rohr" description="meist ein Vebraucherrohr" type="Pointer"/>
+  <param name="Alle Regal Teile" description="Alle Regal Teile, die zum E Haller Moebel gehoeren" type="List"/>
+  <returnvalue description="ermittelt die Einspeisekugel" type="Pointer" />
+    <definition expression="def defaultEinspeisung(fixedpart,eparts) {
+    my einspeisung = null;
+    my found = false;
+    my rohr = null;
+    my visavi = null;
+    my foundedlist = List();
+    my connectedparts = List();
+    my connectedrohre = List();
+    my rohre = FilterList(eparts,'element',`not IsSubTypeOf(element,'normalrohr');`);
+    rohre = FilterList(rohre,'element',`not call horizontalPart(element);`);
+    visavi = call visaviRohr(fixedpart,rohre);
+    /* Position visavi markiere */
+    my x = Round(PartPos(visavi)['x']);
+    my y = Round(PartPos(visavi)['y']);
+    /* alle Horizotal-Rohre unten */
+    rohre = FilterList(rohre,'element',`Round(PartPos(element)['z']) ge 3.5;`);
+    /* das Rohr unten suchen mit der gleichen Position */
+    foundedlist = FilterList(rohre,'element',`Round(PartPos(element)['x']) ne x or Round(PartPos(element)['y']) ne y;`);
+    rohr = foundedlist[0];
+    
+    if (rohr) {
+      einspeisung = DockGetConnectedPart(Dock(rohr,'rohr2kugel',1));
+      if (einspeisung) {
+        if (ConnectedDockCount(einspeisung,'kugel2rohr') ge 5) {
+          x = Round(PartPos(fixedpart)['x']);
+          y = Round(PartPos(fixedpart)['y']);
+          foundedlist = FilterList(rohre,'element',`Round(PartPos(element)['x']) ne x or Round(PartPos(element)['y']) ne y;`);
+          rohr = foundedlist[0];
+          if (rohr) {
+            einspeisung = DockGetConnectedPart(Dock(rohr,'rohr2kugel',1));
+           connectedparts = call connectedPartsByDockType(einspeisung,'kugel2rohr');
+           connectedrohre = FilterList(connectedparts,'element',`not IsSubTypeOf(element,'rohr');`);
+            if (Size(connectedrohre) ge 5) {
+              einspeisung = null;
+            }
+          }
+        }
+      }
+    }
+    return einspeisung;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="rohr" description="gefundenes Rohr fuer Einspeise-Kugel" type="Objectpointer"/>
+  <param name="kugel" description="gefundene Kugel fuer Einspeisung" type="Objectpointer"/>
+  <param name="found" description="Kugel korrekt" type="Bool"/>
+  <returnvalue description="korrekte Kugel fuer Einspeisung" type="Objectpointer" />
+  <definition expression="def nextKugel(rohr,kugel,found,count) {
+    my newkugel = null;
+    my newrohr = null;
+    my dock = null;
+    if (count lt 3) {
+	    if (not found) {
+	      for (my index : List(1,2,3,4,5,6)) {
+	        dock = Dock(kugel,'kugel2rohr',index);
+	        newrohr = DockGetConnectedPart(dock);
+	        if (newrohr and (newrohr ne rohr)) {
+	          newkugel = DockGetConnectedPart(Dock(newrohr,'rohr2kugel',1));
+	          if (newkugel) {
+	            if (newkugel ne kugel) {
+	              if (ConnectedDockCount(kugel,'kugel2rohr') lt 4) {
+	                found = true;
+	              } 
+	            } else {
+	              newkugel = DockGetConnectedPart(Dock(newrohr,'rohr2kugel',2));
+	              if (newkugel ne kugel) {
+	                if (ConnectedDockCount(kugel,'kugel2rohr') lt 4) {
+	                  found = true;
+	                } 
+	              }
+	            }
+	          } 
+	        }
+	        if (found) {
+	         break;
+	        }
+	      }   
+	      
+	    } 
+	    if (not found) {
+	      rohr = newrohr;
+	      count = count + 1;
+	      kugel = call nextKugel(rohr,newkugel,found,count);
+	    }
+    }
+    
+  return newkugel;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="part" description="aktuelles Vertikal-Rohr" type="Pointer"/>
+  <param name="Vertikal-Rohre" description="Alle vertikal Rohre eines Regals" type="List"/>
+  <returnvalue description="ermittelt das Rohr, welches auf gleicher Höhe und parallel zum aktuellen ist" type="Pointer" />
+    <definition expression="def visaviRohrVertikal(part,vertikalrohre) {
+    my visavi = false;
+    my visavix = null;
+    my visaviz = null;
+    my distx = 0;
+    my pos = Vector();
+    my partners = List();
+     /* 1/4 der Rohrlaenge + 1 wegen 350er Rohr und visavi 2x175 Rohre */
+    my offset = (PartAttr(part,'hc_length')/10/4) +1;
+    
+    
+    
+    vertikalrohre = FilterList(vertikalrohre,'element',`my rel = RelativePartPos(part, element);Round(Abs(rel['y']) gt offset);`);
+    partners = FilterList(vertikalrohre,'element',`part eq element;`);
+    my distz = 0;
+    my distmin = 99999;
+    for (my partner : partners) {
+       pos = RelativePartPos(part, partner);
+       distx = Round(pos['x']);
+       distz = Round(pos['z']);
+       if (distz lt distmin and distz and not distx) {
+           distmin = distz;
+           visaviz = partner;
+       }
+    }
+    
+    distx = 0;
+    distmin = 99999;
+    for (my partner : partners) {
+       pos = RelativePartPos(part, partner);
+       distx = Round(pos['x']);
+       distz = Round(pos['z']);
+       if (distx lt distmin and distx and not distz) {
+           distmin = distx;
+           visavix = partner;
+       }
+    }
+    visavi = Bool(visavix) and Bool(visaviz);
+    return visavi;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="Horizontal-Rohr" description="meist ein Vebraucherrohr" type="Pointer"/>
+  <param name="horizontalerohre" description="Alle horizontale Rohre eines Regals" type="List"/>
+  <returnvalue description="ermittelt das Rohr, welches auf gleicher Höhe und parallel zum aktuellen ist" type="Pointer" />
+    <definition expression="def visaviRohr(part,horizontalerohre) {
+	my visavi = null;
+	my partners = List();
+	/* 1/4 der Rohrlaenge + 1 wegen 350er Rohr und visavi 2x175 Rohre */
+	my offset = (PartAttr(part,'hc_length')/10/4) +1; 
+	my basicOffset = 75;
+	my boundingBoxOffset = 3;
+	my finalOffset = basicOffset + boundingBoxOffset;
+	horizontalerohre = FilterList(horizontalerohre,'element',`my dist = call rohreAreParallelAndDistance(part, element); not (dist gt 0 and dist lt finalOffset);`);
+	partners = FilterList(horizontalerohre,'element',`Round(PartPos(element)['z']) ne Round(PartPos(part)['z']);`);
+	partners = FilterList(partners,'element',`part eq element;`);
+	my dist = 0;
+	my distmin = 99999;
+	
+	my seg1 = Segment(GlobalDockPos(Dock(part, 'rohr2kugel',1),Vector()),GlobalDockPos(Dock(part, 'rohr2kugel',2),Vector()));
+	for (my partner : partners) {
+		dist = Round(SegmentPointDistance(seg1, PartPos(partner)), 0.001);
+		if (Round(dist, 0.1) eq dist) {
+			visavi = partner;
+		}
+	}
+	return visavi;
+  }
+  "/>
+</function>
+<function description="Rohr are parallel">
+  <param name="rohr" />
+  <param name="otherrohr" />
+  <returnvalue description="sind zwei rohre parallel" />
+    <definition expression="def rohreAreParallel(rohr, otherrohr) {
+    my result = false;
+    if (rohr and otherrohr) {
+	    my rohr_d1 = Dock(rohr, 'dt_rohrKugelGewinde', 1);
+	    my rohr_d2 = Dock(rohr, 'dt_rohrKugelGewinde', 2);
+	    my otherrohr_d1 = Dock(otherrohr, 'dt_rohrKugelGewinde', 1);
+	    my otherrohr_d2 = Dock(otherrohr, 'dt_rohrKugelGewinde', 2);
+	    
+	    my line1 = Line(GlobalDockPos(rohr_d1, Vector()), VectorSub(GlobalDockPos(rohr_d2, Vector()), GlobalDockPos(rohr_d1, Vector()))); 	
+	    my line2 = Line(GlobalDockPos(otherrohr_d1, Vector()), VectorSub(GlobalDockPos(otherrohr_d2, Vector()), GlobalDockPos(otherrohr_d1, Vector()))); 	
+	    
+	    result = LinesAreParallel(line1, line2);
+	    
+    };
+    
+    return result;
+  }
+  "/>
+</function>
+<function description="Rohr are parallel">
+  <param name="rohr" />
+  <param name="otherrohr" />
+  <returnvalue description="returns distance for rohr visavis or 0, if not parallel or not direct visavi" />
+    <definition expression="def rohreAreParallelAndDistance(rohr, otherrohr) {
+	my result = 0;
+	my maxExtendedRohrLength = 84; //rohr max: 75 + bounding box rotated max: 9
+	if (rohr and otherrohr) {
+		my rohr_d1 = Dock(rohr, 'dt_rohrKugelGewinde', 1);
+		my rohr_d2 = Dock(rohr, 'dt_rohrKugelGewinde', 2);
+		my otherrohr_d1 = Dock(otherrohr, 'dt_rohrKugelGewinde', 1);
+		my otherrohr_d2 = Dock(otherrohr, 'dt_rohrKugelGewinde', 2);
+		
+		my line1 = Line(GlobalDockPos(rohr_d1, Vector()), VectorSub(GlobalDockPos(rohr_d2, Vector()), GlobalDockPos(rohr_d1, Vector()))); 	
+		my line2 = Line(GlobalDockPos(otherrohr_d1, Vector()), VectorSub(GlobalDockPos(otherrohr_d2, Vector()), GlobalDockPos(otherrohr_d1, Vector()))); 	
+		
+		if (LinesAreParallel(line1, line2)) {
+			/* check x and y extent within max rohr 75 */
+			my extent = GlobalBoundingBox(List(rohr, otherrohr), 1000)['extent'];
+			if (Round(extent['x'] LT maxExtendedRohrLength and Round(extent['y'] LT maxExtendedRohrLength))) {
+				result = Round(LineDistance(line1, line2));
+			}
+		}
+	}
+	return result;
+  }
+  "/>
+</function>
+
+<function description="Haller-E">
+  <param name="Start-Kugel" description="rechts des Vebraucherrohres" type="Pointer"/>
+  <param name="Alle Regal Teile" description="Alle Regal Teile, die zum E Haller Moebel gehoeren" type="List"/>
+  <param name="Modus" description="set oder reset" type="String"/>
+  <returnvalue description="ermittelt kuerzester Pfad oder Rohrliste zum Zuruecksetzen auf rohr-normal" type="[0] Liste von Rohren,  [1] Kugeln, [2] Rohre + Kugeln" />
+  <definition expression="def leitendeRohre(startpart,einspeisung,eparts) {
+    my path = List();
+    my leistung = Feature(startpart,'f_verbraucherLeistung');
+    my stromkreis = Feature(startpart,'f_stromkreis');
+    my verbraucherrohre = List();
+    my shortestpath = List();
+    einspeisung = PartUniqueId(einspeisung);
+    my start = DockGetConnectedPart(Dock(startpart,'rohr2kugel',2));
+    start = PartUniqueId(start);
+    my kugeln = FilterList(eparts,'element',`not IsSubTypeOf(element,'kugel');`);
+    my rohre = FilterList(eparts,'element',`not IsSubTypeOf(element,'normalrohr');`);
+    my kugel = null;
+    my endkugel = null;
+    my kugelpath = List();
+    my nodepath = List();
+    my rohr = null;
+    my weight = 0;
+    my connection = List();
+    my connections= List();
+    my link = List();
+    my links = List();
+    my count = 0;
+    for (my kugel : kugeln) {
+        connection = List();
+        for (my j : IndexList(7)) {
+          rohr = DockGetConnectedPart(Dock(kugel,'kugel2rohr',j));
+          if (Bool(rohr)) {
+             /* Rohrlaenge + je hoeher desto schwerer, d.h. d.h. rohre unten sind kuerzer/schneller */
+             weight = PartAttr(rohr,'hc_length') + PartPos(rohr)['z'];
+             if (weight le 150) {
+               weight = 99999; /* 100/150er Rohre */
+             }
+             if (call snapHallerEtoKugelStift(rohr)) {
+                weight = 99999;
+             }
+             if (Feature(rohr,'f_rohrtyp') ne 'rohr-normal') {
+                weight = 0;
+             }
+             if (Feature(rohr,'f_rohrtyp') ne 'rohr-normal' and Feature(rohr,'f_stromkreis') ne stromkreis) {
+                /* damit bestehende andere Stromkreise nicht ueberschrieben werden */
+                weight = 99999;
+             }
+             endkugel = DockGetConnectedPart(Dock(rohr,'rohr2kugel',1));
+             if (endkugel eq kugel) {
+                endkugel = DockGetConnectedPart(Dock(rohr,'rohr2kugel',2));
+             }
+             if (Bool(endkugel)) {
+              if (Feature(kugel,'f_stromkreis') ne stromkreis and Bool(Feature(kugel,'f_kugelLeitend')) or 
+                  Feature(endkugel,'f_stromkreis') ne stromkreis and Bool(Feature(endkugel,'f_kugelLeitend'))) {
+                  weight = 99999;
+              }
+              connection = List(PartUniqueId(kugel),PartUniqueId(endkugel),weight);
+              connections[count] = connection;
+              count = count + 1;
+              rohr = null;
+              endkugel = null;
+             }
+          }
+        }
+    }  
+    shortestpath = ShortestPath(connections, start, einspeisung);
+    nodepath = shortestpath[0][1];
+    /* shortest Path Kugel componentlist */
+    for (my i = 0; i lt Size(nodepath); i = i + 1) {
+       kugelpath[i] = FindComponentById(nodepath[i]);
+    }
+    path[0] = kugelpath; /* alle Kugeln */
+    path[1] = call rohrpath(kugelpath); /* alle Rohre */
+    /* es werden nur Rohre neu gesetzt, die keine verbraucher sind */
+    path[2] = FilterList(path[1],'element',`Feature(element,'f_rohrtyp') eq 'rohr-verbraucher';`);
+    /* nur leitende im getrennten Bereich */
+    path[3] = FilterList(path[2],'element',`Feature(element,'f_rohrtyp') ne 'rohr-normal' and Feature(element,'mid' ne '0');`); 
+    path[3] = FilterList(path[3],'element',`my len = PartAttr(element,'hc_length'); not (len ge 350 and StringContains(len,'50'));`); 
+    
+     /* nur normal Rohre */
+    path[4] = FilterList(path[2],'element',`Feature(element,'f_rohrtyp') eq 'rohr-leitend';`);
+    /* Stromkreis setzen*/
+    path[5] = JoinList(path[0],path[1]);
+    return path;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <param name="kueglpath" description="die Kugelliste des ShortestPath" type="Pointer"/>
+  <returnvalue description="ermittelt daraus die betroffenen Rohre" type="Liste" />
+  <definition expression="def rohrpath(kugelpath) {
+    my path = List();
+    my nextrohr = null;
+    my dock = null;
+    my nextdock = null;
+    my dockindex = 1;
+    my kugel = null;
+    my searchkugel = null;
+    my nextkugel = null;
+    my found = false;
+    for (my i : IndexList(Size(kugelpath)-1)) {
+    kugel = kugelpath[i];
+    searchkugel = kugelpath[i+1];
+    found = false;
+    for (my index : List(1,2,3,4,5,6)) {
+      dock = Dock(kugel,'kugel2rohr',index);
+       nextdock = DockGetConnectedDock(dock);
+       if (nextdock) {
+         nextrohr = DockGetConnectedPart(dock);
+         dockindex = DockGetIndex(nextdock);
+         if (dockindex eq 1) {
+           dockindex = 2;
+         } else {
+           dockindex = 1;
+         } 
+         nextkugel = DockGetConnectedPart(Dock(nextrohr,'rohr2kugel',dockindex));
+         if (nextkugel eq searchkugel) {
+           path = ListAdd(path,nextrohr);
+           found = true;
+           break;
+         }
+       }
+      }
+      if (found) {
+        i = i +1;
+      }
+    }
+    return path;
+    }
+  "/>
+</function>
+
+<function description="Haller-E Lieferstatus">
+  <returnvalue description="Liste der Rohre die bei der Trennung angepasst werden muessen" type="List" />
+  <definition expression="def separateHallerE(mode) {
+    my setlist = List();
+    my list = List();
+    my list2 = List();
+    my kugel = null;
+    if (mode eq 'verbraucher') {
+      list = GetSelectedComponentList('mainstructure');
+      list = FilterList(list,'element',`not Feature(element,'f_hallerE');`);
+      /* 350/500/750er Rohre */
+      list = FilterList(list,'element',`not IsSubTypeOf(element,'ct_verbraucherRohrE');`);
+      /* nur leitende Rohre */
+      setlist = FilterList(list,'element',`Feature(element,'f_rohrtyp') ne 'rohr-leitend';`);
+      /* nur leitende Rohre im Trennbereich*/
+      setlist = FilterList(setlist,'element',`Feature(element,'mid') ne '0';`);
+      /* normale Rohre */
+      list2 = FilterList(list,'element',`Feature(element,'f_rohrtyp') ne 'rohr-normal';`);
+      list2 = FilterList(list2,'element',`Bool(ParentOfType(element, 'mainstructure', 'garderobenstange'));`);
+       /* nur normale Rohre im Trennbereich*/
+      list2 = FilterList(list2,'element',`Feature(element,'mid') ne '0';`);
+      /* normale Rohre angrenzend an e-Kugel */
+      for (my rohr : list2) {
+        for (my i : List(1,2)) {
+          kugel = DockGetConnectedPart(Dock(rohr,'rohr2kugel',i));
+            if (kugel) {
+            if (Feature(kugel,'f_kugelLeitend')) {
+              /* wird zur setlist der durchgehenden leitenden Rohre addiert */
+              setlist = ListAdd(setlist, rohr);
+              break;
+            }
+          }
+        }
+      }
+      /* Message(list); */
+    } else if (mode eq 'leitend') {
+      list = GetSelectedComponentList('mainstructure');
+      list = FilterList(list,'element',`not IsSubTypeOf(element,'normalrohr');`);
+      list = FilterList(list,'element',`Feature(element,'mid') ne '0';`);
+      list = FilterList(list,'element',`Feature(element,'f_rohrtyp') ne 'rohr-normal';`);
+      list = FilterList(list,'element',`Bool(ParentOfType(element, 'mainstructure', 'garderobenstange'));`);
+      list = FilterList(list,'element',`not (PartAttr(element,'hc_length') eq '395' or PartAttr(element,'hc_length') eq '250');`);
+      for (my rohr : list) {
+        for (my i : List(1,2)) {
+          kugel = DockGetConnectedPart(Dock(rohr,'rohr2kugel',i));
+          if (kugel) {
+            if (Feature(kugel,'f_kugelLeitend')) {
+              setlist = ListAdd(setlist, rohr);
+              break;
+            }
+          }
+        }
+      }
+    }
+    return setlist;
+    }                             
+  "/>
+</function>
+
+<function description="Haller-E Lieferstatus">
+  <returnvalue description="Liste der Rohre die beim Rueckgaengigmachung der Trennung angepasst werden muessen" type="List" />
+  <definition expression="def joinHallerE(mode) {
+    my setlist = List();
+    my leitendlist = List();
+    my list = GetSelectedComponentList('mainstructure');
+    list = FilterList(list,'element',`not Feature(element,'f_hallerE');`);
+    /* list = FilterList(list,'element',`Feature(element,'_PXi_permanent_group_id') ne groupid;`); */
+    if (mode eq 'verbraucher') {
+	    /* 350/500/750er Rohre */
+	    setlist = FilterList(list,'element',`not IsSubTypeOf(element,'ct_verbraucherRohrE');`);
+	    /* nur verbraucher Rohre */
+	    setlist = FilterList(setlist,'element',`Feature(element,'f_rohrtyp') ne 'rohr-verbraucher';`);
+	    /* nur Rohre im Trennbereich*/
+	    setlist = FilterList(setlist,'element',`Feature(element,'mid') ne '0';`);
+	    /* nur Rohre mit ausschliesslich dummy_verbraucher*/
+	    setlist = FilterList(setlist,'element',`call verbraucherEinsatzTypen(element,'usb') gt 0;`);
+	    setlist = FilterList(setlist,'element',`call verbraucherEinsatzTypen(element,'led') gt 0;`);
+    } else if (mode eq 'leitend') {
+	    /* leitende Rohre */
+	    leitendlist = FilterList(list,'element',`Feature(element,'f_rohrtyp') ne 'rohr-leitend';`);
+	    /* nur Rohre im Trennbereich*/
+	    leitendlist = FilterList(leitendlist,'element',`Feature(element,'mid') ne '0';`);
+	    for (my rohr : leitendlist) {
+	      if (call rohrEndeKugelE(rohr,'component') eq 1) {
+	        setlist = ListAdd(setlist, rohr);
+	      }
+	    }
+    }
+    
+    return setlist; 
+    }                              
+  "/>
+</function>
+
+<function description="Haller-E Lieferstatus">
+  <returnvalue description="Liste der Rohre die beim Rueckgaengigmachung der Trennung angepasst werden muessen" type="List" />
+  <definition expression="def trafoTypeE(part) {
+    my type = 'CH/EU'; 
+    my model = Feature(part,'f_trafoModell'); 
+    
+    if (not EndsWith(model,'eu')) {
+      if (EndsWith(model,'au_nz')) {
+        my temp = StringToList(UpperCase(SubStr(model,7,5)),'_');
+        type = temp[0]++'/'++temp[1];
+      } else {
+        type = UpperCase(SubStr(model,7,2));
+      }
+    }    
+    return type; 
+    }                              
+  "/>
+</function>
+
+<function description="Haller-E Artiklierung">
+  <param name="e-rohr" description="wichtig fuer Artiklierung" type="Pointer"/>
+  <returnvalue description="Defaultwert fuer pr_rohrBefestigung und damit auch den Rohr-Artikel eines 750er Rohres" type="Pointer" />
+  <definition expression="def rohrBefestigung(part) {
+    my default = 'rohr-ohne-Loch';
+    if (PartAttr(part,'hc_length') eq '750') {
+	    my loch = Feature(part,'Loch');
+	    my glas = call verbraucherHorizontalVerkleidung(part,'glas');
+	    my richtung = Feature(part,'f_rohrRichtung');
+	    if (loch and not glas) {
+	      default = 'rohr-mit-Loch';
+	      if (richtung eq 'richtung-oben-180' or richtung eq 'richtung-aussen-270') {
+	        default = 'rohr-mit-sicherungswinkel';
+	      }
+	    }
+    }
+    return default; 
+    }                                
+  "/>
+</function>
+
+<function description="Haller-E">
+  <param name="Verbraucher Rohr" description="Winkelberechnung" type="Pointer"/>
+  <param name="Position bezueglich Rohr" description="unten, oben, seiteunten, seiteoben" type="Pointer"/>
+  <returnvalue description="Volumen an der gefragten Position, wenn nich vorhanden Null Pointer" type="Pointer" />
+  <definition expression="def posVolume(part,pos) {
+    my vol = null;
+    my volumes = GetRefVolumes(part, 'mainstructure');
+    my partpos = PartPos(part);
+    my boden = partpos['z'] lt 4;
+    my posx = 0;
+    my posy = 0;
+    my posz = 0;
+    my posx1 = 0;
+    my posx2 = 0;
+    my posx3 = 0;
+    my posy1 = 0;
+    my posy2 = 0;
+    my posy3 = 0;
+    my posz1 = 0;
+    my posz2 = 0;
+    my posz3 = 0;
+    if (volumes[0]) {
+      posx = Round(PartPos(volumes[0])['x']);
+      posy = Round(PartPos(volumes[0])['y']);
+      posz = Round(PartPos(volumes[0])['z']);
+    }
+    if (volumes[1]) {
+      posx1 = Round(PartPos(volumes[1])['x']);
+      posy1 = Round(PartPos(volumes[1])['y']);
+      posz1 = Round(PartPos(volumes[1])['z']);
+    }
+     if (volumes[2]) {
+      posx2 = Round(PartPos(volumes[2])['x']);
+      posy2 = Round(PartPos(volumes[2])['y']);
+      posz2 = Round(PartPos(volumes[2])['z']);
+    }
+     if (volumes[3]) {
+      posx3 = Round(PartPos(volumes[3])['x']);
+      posy3 = Round(PartPos(volumes[3])['y']);
+      posz3 = Round(PartPos(volumes[3])['z']);
+    }
+        
+    if (BeginsWith(pos,'unten')) {
+      pos = Bool(volumes[0]);
+      vol = volumes[0];
+      
+    } else if (BeginsWith(pos,'oben') and not boden) { 
+      pos = Bool(volumes[1]) and posz1 gt posz;
+      if (pos) {
+        vol = volumes[1];
+      } else {
+         pos = Bool(volumes[2]) and posz2 gt posz;
+         if (pos) {
+           vol = volumes[2];
+         }
+      }
+      
+    } else if (BeginsWith(pos,'oben') and boden) { 
+      vol = volumes[0];
+    } else if (BeginsWith(pos,'seiteunten')) {
+       pos = Bool(volumes[2]);
+       if (pos) {
+         vol = volumes[2];
+       } else if (Bool(volumes[1]) and InRange(posz - 2, posz  + 2, posz1)) {
+         vol = volumes[1];
+       }
+    } else if (BeginsWith(pos,'seiteoben')) {
+      pos = Bool(volumes[3]);
+      if (pos) {
+        vol = volumes[1];
+      }  
+    }     
+    return vol;
+    }                     
+  "/>
+</function>
+
+<function description="Haller-E anbau eines Trafos, gebraucht in der connection-rep">
+  <param name="fixedpart" description="Kugel an einem Haller-E Regal" type="Pointer"/>
+  <returnvalue description="result[0]: neuer Stromkreis ja/nein,
+                            result[1]: neuer stromkreis-1, stromkreis-2, stromkreis-3
+                            result[2]: 3 oder weniger Trafos ja/nein" 
+               type="List" />
+  <definition expression="def neuerStromKreis(fixedpart,movedpart) {
+    my result = List();
+    my new = true;
+    my stromkreis_exist = Feature(fixedpart,'f_stromkreis');
+    my stromkreis_next = stromkreis_exist;
+    my stromkreis = stromkreis_exist;
+    my eparts =GetComponentListOfConnectionId(ConnectionId(fixedpart));
+    my rohre = FilterList(eparts,'element',`not IsSubTypeOf(element,'normalrohr');`);
+    rohre = FilterList(rohre,'element',`Feature(element,'f_rohrtyp') eq 'rohr-nornal';`);
+    my trafos = FilterList(eparts,'element',`not IsSubTypeOf(element,'co_trafo_E');`);
+    my count_trafos = Size(trafos);
+    my stromkreise_rohre = List();
+    my stromkreise_trafos = List(); 
+    my count_stromkreise_trafos = 0;
+    for (my rohr : rohre) {
+       my kreis = Feature(rohr,'f_stromkreis');
+       if (not InList(stromkreise_rohre, kreis) and BeginsWith(kreis,'stromkreis-')) {
+          stromkreise_rohre = ListAdd(stromkreise_rohre,kreis);
+       }
+    }
+    for (my trafo : trafos) {
+       my kreis = Feature(trafo,'f_stromkreis');
+       if (not InList(stromkreise_trafos, kreis) and BeginsWith(kreis,'stromkreis-') and trafo ne movedpart) {
+          stromkreise_trafos = ListAdd(stromkreise_trafos,kreis);
+       }
+    }
+    stromkreise_rohre = Sort(stromkreise_rohre, 'StrAlphabeticalCompare(element1,element2);');
+    stromkreise_trafos = Sort(stromkreise_trafos, 'StrAlphabeticalCompare(element1,element2);');
+    count_stromkreise_trafos = Size(stromkreise_trafos);
+    /* haben alle Rohr Stromkreise einen Trafo */
+    for (my kreis : stromkreise_rohre) {
+      if (not InList(stromkreise_trafos,kreis)) {
+        /* wenn nicht, dann braucht es keinen neuen Stromkreis, sonder der Fehlende wird genommen */
+        new = false;
+        stromkreis = kreis;
+        break;
+      }
+    }
+    if (new and count_stromkreise_trafos lt 3 ) {
+       /* alle Rohre haben Ihren Trafo, aber gibt es noch einen freien Stromkreis */
+        for (my i : List(1,2,3)) {
+          stromkreis_next = 'stromkreis-' ++ i;
+          if (not InList(stromkreise_trafos,stromkreis_next)) {
+            /* wenn nicht, dann ist das der naechste Stromkreis */
+            stromkreis = stromkreis_next;
+            break;
+          }
+        }
+    } else {
+       /* braucht eine neuen Stromkreis , es aber schon 3 */
+       new = false;
+    }
+    result[0] = new;
+    result[1] = stromkreis;
+    result[2] = count_trafos le 3;
+    return result;    
+    }                          
+  "/>
+</function>
+
+<function description="Haller-E Artiklierung">
+  <param name="mode" description="von cleanup Operator 3D" type="String"/>
+  <param name="handlename" description="von cleanup Operator 3D" type="String"/>
+  <returnvalue description="gibt ein eListe der Rohre, die auch das Feature f_hallerE krirgen muessen, hc-handle resize" type="List" />
+  <definition expression="def checkCleanUpHallerE(partE) {
+    my changelist = List();
+    my eparts = GetComponentListOfConnectionId(ConnectionId(partE));
+    my rohre = FilterList(eparts,'element',`not IsSubTypeOf(element,'normalrohr');`);
+    my leitenderohre = Bool(Size(FilterList(rohre,'element',`Feature(element,'f_rohrtyp') ne 'rohr-leitend';`)));
+    my kugeln = FilterList(eparts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+    my leitendekugeln = Bool(Size(FilterList(kugeln,'element',`not Feature(element,'f_kugelLeitend');`)));
+    if (not leitendekugeln and not leitenderohre) { 
+       changelist = eparts;
+    }
+  
+    return changelist; 
+    }                                
+  "/>
+</function>
+
+<function description="Haller-E Artiklierung">
+  <param name="mode" description="von cleanup Operator 3D" type="String"/>
+  <param name="handlename" description="von cleanup Operator 3D" type="String"/>
+  <returnvalue description="gibt ein eListe der Rohre, die auch das Feature f_hallerE krirgen muessen, hc-handle resize" type="List" />
+  <definition expression="def setHallerRohrEditE(mode,handlename) {
+    my setlist = List();
+    my list = List(); 
+    my kugel = null;
+    if (mode eq 'handle' and StringContains(handlename,'resize')) {
+      list = GetComponentListOfType('normalrohr');
+      list = FilterList(list,'element',`Feature(element,'f_hallerE');`);
+      for (my rohr : list) {
+        for (my index : List(1,2)){
+          kugel = DockGetConnectedPart(Dock(rohr,'rohr2kugel',index));
+          if (kugel) {
+            if (Feature(kugel,'f_hallerE')) {
+              setlist = ListAdd(setlist,rohr);
+              break;
+            }
+          }
+        }
+      }
+    }
+    return setlist; 
+    }                                
+  "/>
+</function>
+
+<function description="creates a list that is derived from the movedparts in order to set the HallerE transparency">
+	<param name="movedparts" description="List of the movedparts" type="list"/>
+	<returnvalue description="List of objects" />
+	<definition expression="def movedPartsHallerE(movedparts) {
+    my list = List(); 
+    my volumes = List();
+    my movedpart = movedparts[0];
+    my vol = null;
+    my additional = null;
+    my bleche = List();
+    my auszuege = List();
+    
+    if (movedpart) {
+      vol = ParentOfType(movedpart, 'mainstructure', 'normal_volume');
+    
+      if (vol) {
+        if (Feature(vol,'f_volume_hallerE')) {
+          list = movedparts;
+          
+          if (IsSubTypeOf(movedpart, 'schublade')) {
+            additional = FindPart(movedpart,'schublade_l2schubladenauszug_l','1');
+            if (additional) {
+              list = ListAdd(list,additional);
+            }
+          }
+          
+          if (IsSubTypeOf(movedpart, 'einsatz')) {
+            auszuege = ChildrenListOfTypeDeep(vol,'auszug500');
+            if (Bool(Size(auszuege))) {
+              list = JoinList(list,auszuege);
+                additional = FindPart(auszuege[0],'auszug2rost');
+            }
+            
+            if (additional) {
+              list = ListAdd(list,additional);
+              additional = FindPart(additional,'rost2regauszug');
+            }
+            
+            if (additional) {
+              list = ListAdd(list,additional);
+            }
+            
+            bleche = GetVolumeRefParts(vol);
+            bleche = FilterList(bleche, 'element',`not IsSubTypeOf(element, 'halbesblech395_500');`);
+            additional = bleche[0];
+            if (additional) {
+              list = ListAdd(list,additional);
+            }
+          }
+        }
+      } else {
+        volumes = GetRefVolumes(movedpart, 'mainstructure');
+        if (Size(volumes)) {
+          for (my vol : volumes) {
+          
+            if (Feature(vol,'f_volume_hallerE')) {
+              list = movedparts;
+              break;
+            }
+          }
+        }
+      }
+    
+    }
+    return list;
+  }"/>
+</function>
+
+<function description="Haller-E Artiklierung">
+  <param name="mode" description="von cleanup Operator 3D" type="String"/>
+  <param name="handlename" description="von cleanup Operator 3D" type="String"/>
+  <returnvalue description="gibt ein eListe der Rohre, die auch das Feature f_hallerE krirgen muessen, hc-handle resize" type="List" />
+  <definition expression="def verbraucherSituationT(part,typ) {
+		my match = false;
+		my dock = null;
+		my localpos = Vector();
+		my docktpos = Vector();
+		my partvector_z = Vector();
+		my dockvector_z = Vector();
+		my part_z = '';
+		my dock_z = '';
+		my docktype = 'rohr2blech';
+		my docks = List();
+		my indexes = List();
+		docks = FreeDocksOfType(part,docktype);
+		
+		if (typ eq 'blech') {
+		if (Size(docks) eq 1) {
+		  dock = docks[0];
+		  localpos = Vector(0,0,-1);
+		  docktpos = GlobalDockPos(dock,localpos);
+		  partvector_z = LocalPos(part, VectorAdd(localpos, PartPos(part)));
+		  dockvector_z = LocalDockPos(dock,docktpos);
+		}
+		part_z = partvector_z['z'];;
+		dock_z = dockvector_z['z'];
+		
+		if (dock_z eq -1) {
+		 match = true;
+		}
+		} else if (typ eq 'glas') {
+		  /* es duerfen kein blechdocks besetzt sein */
+		  if (Size(docks) eq 4 )  {
+		   docktype = 'rohr2glashalter';
+		   docks = FreeDocksOfType(part,docktype);
+		   if (Size(docks) eq 2 )  {
+		     indexes = ListAdd(indexes, DockGetIndex(docks[0]));
+		     indexes = ListAdd(indexes, DockGetIndex(docks[1]));
+		     if (InList(indexes,2) and InList(indexes,12)) {
+		       match = true;
+		     }
+		   }
+		  }
+		}
+		
+		return match;
+		}                                
+  "/>
+</function>
+
+<function description="Evaluation, ob ein Stift zu einer leitenden Kugel gedockt werden kann">
+	<param description="Das Element, zu welchem der Stift gedockt werden soll" name="targetpart" type="object"/>
+	<returnvalue description="true oder false" type="boolean"/>
+	<definition expression="def snapToKugelStift(targetpart) {
+		my snap = false;
+		my targetpart_leitend = Feature(targetpart,'f_kugelLeitend');
+		if (targetpart_leitend) {
+			snap = true;
+		}
+		return snap;
+	}"/>
+</function>
+
+
+<!-- neue verbessert Funktion, Bugzilla 17531 -->
+<function description="Kann ein Trafo angedockt werden, sollte nicht, wenn Kugel in der Mitte von Regal mit dopplter Tiefe">
+	<param description="Kugel an die angedockt werden soll" name="targetpart" type="object"/>
+	<returnvalue description="true oder false" type="boolean"/>
+	<definition expression="def snapTrafoZuKugelMit4Rohren(targetpart) {
+    my nosnap = false;
+    my rohre = List();
+    my rohrdocks = ConnectedDocksOfType(targetpart,'kugel2rohr');
+    my posz = Round(PartPos(targetpart)['z']);
+    if (Size(rohrdocks) gt 4) {
+       for (my rohrdock : rohrdocks) {
+       rohre = ListAdd(rohre,DockGetConnectedPart(rohrdock));
+       }
+       rohre = FilterList(rohre,'element',`Round(PartPos(element)['z']) ne posz;`);
+       if (Size(rohre) ge 4) {
+        nosnap = true;
+       }
+    }
+    return nosnap;
+  }"/>
+</function>
+
+<function description="Evaluation ob ein Haller E Rohr mit einer Kugel mit Stift gedockt werden kann">
+	<param description="the targetpart: rohr" name="target" type="object"/>
+	<returnvalue description="Rohr ist mit einer Kugel mit Stift verbunden --> true/false" type="boolean"/>
+	<definition expression="def snapHallerEtoKugelStift(target) {
+		my kugel_stift = false;
+		my list = List();
+		my kugeldocks = ConnectedDocksOfType(target,'rohr2kugel');
+		my kugel = null;
+		my kugel2rohr = null;
+		my kugel_connected = null;
+		my kugel2rohr_docks = null;
+		for (my kugeldock : kugeldocks) {
+			kugel = DockGetConnectedPart(kugeldock);
+			kugel2rohr_docks = ConnectedDocksOfType(kugel,'kugel2rohr');
+			for (my dock : kugel2rohr_docks) {
+				kugel_connected = DockGetConnectedPart(dock);
+				if (IsSubTypeOf(kugel_connected,'kugel_stift')) {
+					kugel_stift = true;
+				}
+			}
+		}
+		return kugel_stift;
+	}"/>
+</function>
+
+<function description="Evaluation ob ein Haller E Rohr mit einer Kugel mit Stift gedockt werden kann">
+	<param description="the targetpart: rohr" name="target" type="object"/>
+	<returnvalue description="Rohr ist mit einer Kugel mit Stift verbunden --> true/false" type="boolean"/>
+	<definition expression="def snapHallerEtoKugelStiftManuell(target) {
+    my kugel_stift = false;
+    my stiftconnections = List();
+    my hallerEconnections = List();
+    my list = List();
+    my kugeldocks = ConnectedDocksOfType(target,'rohr2kugel');
+    my kugel = null;
+    my kugel2rohr = null;
+    my kugel_connected = null;
+    my kugel2rohr_docks = null;
+    if (Feature(target,'f_rohrtyp') eq 'rohr-normal') {
+      for (my kugeldock : kugeldocks) {
+        kugel = DockGetConnectedPart(kugeldock);
+        kugel2rohr_docks = ConnectedDocksOfType(kugel,'kugel2rohr');
+        for (my dock : kugel2rohr_docks) {
+          kugel_connected = DockGetConnectedPart(dock);
+          if (IsSubTypeOf(kugel_connected,'kugel_stift')) {
+            stiftconnections = ListAdd(stiftconnections, kugel_connected);
+          }
+          if (Feature(kugel_connected,'f_rohrtyp') eq 'rohr-leitend' or Feature(kugel_connected,'f_rohrtyp') eq 'rohr-verbraucher') {
+            hallerEconnections = ListAdd(hallerEconnections, kugel_connected);
+          }
+        }     
+        if (Size(stiftconnections) gt 0 and Size(hallerEconnections) gt 0) {
+          kugel_stift = true;
+        }
+      /* zuruecksetzen für naechste Kugel */
+      stiftconnections = List();
+      hallerEconnections = List();
+      }
+    }
+    return kugel_stift;
+  }"/>
+</function>
+
+<function description="Konflikt, wenn HallerE Kugel an ein FReas">
+	<returnvalue description="Rohr ist mit einer Kugel mit Stift verbunden --> true/false" type="boolean"/>
+	<definition expression="def schlitzFraesrohrKugelE() {
+    my conflicts = List();
+    my kugeln = List();
+    my docks = List();
+    my rohr = null;
+    kugeln = GetComponentListOfType('kugel_std');
+    kugeln = FilterList(kugeln,'element',`not Feature(element,'f_kugelLeitend');`);
+    for (my kugel : kugeln) {      
+      docks = ConnectedDocksOfType(kugel,'kugel2rohr');
+      for (my dock : docks) {
+        rohr = DockGetConnectedPart(dock);
+        if (rohr) {
+          if (IsSubTypeOf(rohr,'nktrohr') and Bool(Feature(rohr,'Schlitz')) AND  not IsSubTypeOf(rohr, 'ct_fake_fraesrohr')) {
+            conflicts = ListAdd(conflicts,rohr);
+          }
+        }
+      }
+    }
+    return conflicts;
+  }"/>
+</function>
+
+<function description="Konflikt, wenn HallerE Kugel einen Gewindestift hat">
+	<returnvalue description="Rohr ist mit einer Kugel mit Stift verbunden --> true/false" type="boolean"/>
+	<definition expression="def gewindeStiftInKugelE() {
+	  my conflicts = List();
+	  my kugel = null;
+	  my docks = List();
+	  my stifte = GetComponentListOfType('kugel_stift');
+	  for (my stift : stifte) {      
+	    docks = ConnectedDocksOfType(stift,'rohr2kugel');
+	    for (my dock : docks) {
+	      kugel = DockGetConnectedPart(dock);
+        if (kugel) {
+          if (Bool(Feature(kugel,'f_kugelLeitend'))) {
+            conflicts = ListAdd(conflicts,kugel);
+          }
+        }
+      }
+    }
+		return conflicts;
+	}"/>
+</function>
+
+<function description="Check if there is a einschbtuerset (door) and if the normal volume has a glass in the bottom">
+	<returnvalue description="List of not allowed glass" />
+	<definition expression="def checkEinschubtuereHasGlasTop() {
+	my klap = ChildrenListOfTypeDeep(Forest('mainstructure'), 'einschubtuerset');
+	my normvol_list = List();
+	my glass_list_bottom = List();
+			
+	if (Size(klap) gt 0 ){
+		for (my k : klap) {
+			my volcontent = Parent('mainstructure', k);
+			if (volcontent){
+				my normal_volumcont = Parent('mainstructure',volcontent);
+				ListAdd(normvol_list, normal_volumcont);
+			}
+		};
+		for (my v : normvol_list) {
+			my related_to_volume = GetVolumeRefParts(v);
+			my glass_list = FilterList(related_to_volume,'element',`not IsSubTypeOf(element,'normalglas');`);
+			my glass_bottom = FilterList(glass_list,'element',`Round(PartRot(element)['z']) ne '-180' and Round(PartRot(element)['x']) ne '-180' ;`)[0];
+			my glass_top = FilterList(glass_list,'element',`Round(PartRot(element)['z']) eq '-180' and Round(PartRot(element)['x']) eq '-180' ;`)[0];
+			my distancetotop = Number(PartPos(glass_top)['z'] - PartPos(v)['z']);
+			my distancetobottom = Number(PartPos(v)['z'] - PartPos(glass_bottom)['z']);
+			if ( glass_top ne null and distancetotop lt '20' and distancetotop gt '0'){
+				glass_list_bottom = ListAdd(glass_list_bottom,glass_top);
+				}
+			if ( glass_bottom ne null and distancetobottom lt '20' and distancetobottom gt '0'  ){
+				glass_list_bottom = ListAdd(glass_list_bottom,glass_bottom);
+				}
+		};
+	};
+	return glass_list_bottom ;
+}"/>
+</function>
+
+
+<function description="Check if there is a einschbtuerset (door) and if the normal volume has a trafoE (light) in collision with the door">
+	<returnvalue description="List of not allowed rohr in he wrong position" />
+	<definition expression="def checkEinschubtuereWithTrafoE(){
+my doors = ChildrenListOfTypeDeep(Forest('mainstructure'), 'einschubtuerset');
+my conflict = List();
+
+if (Size(doors) gt 0){
+	for (my d : doors){
+		my door_vol = ParentOfType(d, 'mainstructure','normal_volume');
+		if (door_vol) {
+			my vol_pos = PartPos(door_vol);
+			my related_to_volume = GetVolumeRefParts(door_vol);
+			my special_roh = List();
+			for(my c : related_to_volume){
+				if (Feature(c,'f_rohrtyp') eq 'rohr-verbraucher' and 
+					Feature(c,'f_direction') eq 'Horizontal'){
+					special_roh = ListAdd(special_roh, c);
+				};
+			};
+			for (my rohr : special_roh){
+				my rohr_pos = PartPos(rohr);
+				if (Round(rohr_pos['z']) gt Round(vol_pos['z']) and Round(rohr_pos['x']) eq Round(vol_pos['x']) and Round(rohr_pos['y']) lt Round(vol_pos['y']) 
+					and Feature(rohr,'f_verbraucherL') ne 'dummy_verbraucher' and Feature(rohr,'f_verbraucherM') ne 'dummy_verbraucher' and Feature(rohr,'f_verbraucherR') ne 'dummy_verbraucher')
+					{
+						ListAdd(conflict, rohr);
+					};
+				};
+			}
+		}
+	}
+	conflict;
+};"/>
+
+</function>
+
+<function description="Check if there is a normal light or usb inside a shelf with a door to set the correct light with sensor">
+	<returnvalue description="List of not rohr with wrong light thet are exactly at the top of the shelf" />
+	<definition expression="def checkLightTypeWithDoor(){
+	
+my tuere = ChildrenListOfTypeDeep(Forest('mainstructure'), 'tuerelementset');
+my klap = ChildrenListOfTypeDeep(Forest('mainstructure'), 'klapptuerset');
+
+my nv_list = List();
+my result = List();
+
+if(Size(tuere) gt 0 ){
+	for (my t : tuere){
+		my volume =  ParentOfType(t, 'mainstructure', 'normal_volume');
+		if (volume){
+			ListAdd(nv_list, volume);
+		} 
+	}
+};
+if(Size(klap) gt 0 ){
+	for (my k : klap){
+		my volume =  ParentOfType(k, 'mainstructure', 'normal_volume');
+		if (volume){
+			ListAdd(nv_list, volume);
+		} 
+	}
+};
+
+for (my v : nv_list) {
+	my related_to_volume = GetVolumeRefParts(v);
+	my rohr_list = FilterList(related_to_volume,'element',`not IsSubTypeOf(element,'rohr');`);
+	my vol_pos = PartPos(v);
+	my rohr_leds = FilterList(rohr_list,'element',`not (Feature(element,'f_verbraucherL') eq 'led-warmweiss' 
+	or Feature(element,'f_verbraucherM') eq 'led-warmweiss' 
+	or Feature(element,'f_verbraucherR') eq 'led-warmweiss' 
+	or Feature(element,'f_verbraucherL') eq 'led-kaltweiss' 
+	or Feature(element,'f_verbraucherM') eq 'led-kaltweiss' 
+	or Feature(element,'f_verbraucherR') eq 'led-kaltweiss');`);
+	my rohr_leds = FilterList(rohr_leds,'element',`not (Feature(element,'f_direction') eq 'Horizontal');`);
+	
+	for (my rohr : rohr_leds){
+		my rohr_pos = PartPos(rohr);
+		if (Round(rohr_pos['z']) gt Round(vol_pos['z']) and Round(rohr_pos['x']) eq Round(vol_pos['x']) and Round(rohr_pos['y']) lt Round(vol_pos['y'])){
+			ListAdd(result, rohr);
+		}
+	;}
+};
+result;
+};"/>
+
+</function>
+
+<function description="Check USB-Charger built in">
+  <returnvalue description="Rohr-Liste" type="List"/>
+  <definition  expression="def checkUSBhallerE(list) {
+    my usb_rohre = List();
+    my featurelist = List('f_verbraucherL','f_verbraucherM','f_verbraucherR');
+    for (my rohr : list) {
+      for (my feature : featurelist) {
+        if (HasFeature(rohr, feature)) {
+          if (Feature(rohr,feature) eq 'usb-charger') {
+          	usb_rohre = ListAdd(usb_rohre,rohr);
+          }
+        }
+      }
+    } 
+   	return usb_rohre;
+   }"/>
+</function>
+
+<function description="Check Verbraucher-Tuer Konflikt">
+  <returnvalue description="Verbraucher-Tuer Konflikt" type="List"/>
+  <definition  expression="def wrongUSBhallerE() {
+    my conflicts = List();
+    my rohre = GetComponentListOfType('normalrohr');
+    my verbraucherrohre = FilterList(rohre,'element',`Feature(element,'f_rohrtyp') ne 'rohr-verbraucher';`);
+    my checklist = FilterList(verbraucherrohre,'element',`not call horizontalPart(element);`);
+    checklist = FilterList(checklist,'element',`call validUSBhallerE(element);`); /* here is door check but not a length check */
+    conflicts = call checkUSBhallerE(checklist);
+   	return conflicts;
+   }"/>
+</function>
+
+
+</code>

@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression="
+ 
+ global QS_TOPFFARBE_BASALT = List();
+ListAdd(QS_TOPFFARBE_BASALT, '23');
+ListAdd(QS_TOPFFARBE_BASALT, '25');
+ListAdd(QS_TOPFFARBE_BASALT, '26');
+ListAdd(QS_TOPFFARBE_BASALT, '29');
+ListAdd(QS_TOPFFARBE_BASALT, '32');
+ListAdd(QS_TOPFFARBE_BASALT, '34'); 
+  
+  "
+>
+
+  
+<function description="Selektion darf nur eine Wandkombination enthalten">
+	<returnvalue description="wenn mehr als eine Wandkombination dann false" type="BOOL"/>
+ <definition expression="def dummyTischNeeded(part) {
+		my dummy = true;
+		return dummy;
+		}"/>
+</function>
+
+<function description="Findet die Liste aller Toepfe, die zuwenig PLatz haben">
+	<returnvalue description="Liste dieser Toepfe" type="List"/>
+	<definition expression="def collisionPflanzentopf() {
+		my collisions = List();
+		my elements = List();
+		my element = null;
+		my tablare =  List();
+		my bleche = List();
+		my height = 0;
+		my checklist = List();
+		my toepfe = GetComponentListOfType('co_pflanzentopf');
+		for (my topf : toepfe) {
+			elements = GetComponentListOfConnectionId(ConnectionId(topf));
+			tablare = FilterList(elements,'element',`not IsSubTypeOf(element,'ct_tablar');`);
+			bleche = FilterList(elements,'element',`not IsSubTypeOf(element,'metallverkleidung');`);
+			bleche = FilterList(bleche,'element',`call vertikalBlech(element);`);
+			elements = JoinList(tablare,bleche);
+			my topfblech = DockGetConnectedPart(Dock(topf,'topf2blech','1'));
+			my pos = PartPos(topfblech);
+			my filter = `Round(pos['x'],1) ne Round(PartPos(element)['x'],1) or Round(pos['y'],1) ne Round(PartPos(element)['y'],1);`;
+			checklist = FilterList(elements,'element',filter);
+			checklist = FilterList(checklist,'element',`element eq topfblech;`);
+			height = PartPos(topf)['z'];
+			for (my check : checklist) {	
+				my check_z = PartPos(check)['z'];
+			   my topf_z = PartPos(topf)['z'];
+				if ( InRange((topf_z - 0.2), (topf_z + 25.5),check_z ) )  {
+						collisions = ListAdd(collisions, topf);
+				}
+			}
+			collisions = UniqueList(collisions);
+			
+		}
+		return collisions;
+	}
+	"/>
+</function>
+		
+<function description="gueltigen Bleche-Groesse, um als Pflanzenbleche einzubauen">
+	<param name="blech" description="Selektiertes Blech " type="part"/>
+	<returnvalue description="gueltiges Pflanzenbleche ja/nein" type="Bool"/>
+	<definition expression="def sizePflanzenblech(blech) {
+			my valid = false;
+			my length = PartAttr(blech,'length');
+			my width = PartAttr(blech,'width');
+			my length_list = List('350','500','750');
+			my width_list = List('350','500','750');
+			if ( InList(length_list,length) and InList(width_list,width)) {
+				valid = true;
+			}
+			return valid;
+		}
+	"/>
+</function>
+
+<function description="Bestimmt die gueltigen Bleche, um Pflanzenbleche einzubauen">
+	<param name="selectedlist" description="Selektierte Komponenten " type="part list"/>
+	<returnvalue description="gueltigen Bleche, um Pflanzenbleche einzubauen" type="componentlist"/>
+	<definition expression="def validPflanzenbleche(selectedlist) {
+		my validbleche = List();
+		my bleche = List();
+		my bodenelement = null;
+		my id = ConnectionId(selectedlist[0]);
+		/* all group components are needed, otherwise Pflanzenrules cannot applied */
+		my grouplist = GetComponentListOfConnectionId(id);
+		bodenelement = FilterList(grouplist,'element',`not IsSubTypeOf(element,'bodenelement');`)[0];
+		bleche = FilterList(grouplist,'element',`not call sizePflanzenblech(element);`);
+		
+		bleche = FilterList(bleche,'element',`call vertikalBlech(element);`);
+		bleche = Sort(bleche, 'PartPos(element1)[`z`] lt PartPos(element2)[`z`];');
+		bleche = JoinList(bleche,List(bodenelement));
+		my size = Size(bleche);
+		for ( my i : IndexList(size)) {
+			if ( i lt size) {
+				/* min. Distanz unterhalb */
+			  if ( PartPos(bleche[i])['z'] - PartPos(bleche[i+1])['z'] gt 15.0) {
+			  	if (i eq 0) {
+			  		/* oberste Blech */
+			  		validbleche = ListAdd(validbleche, bleche[i]);
+			  	} else {
+			  		/* min. Distanz oberhalb */
+			  		if ( PartPos(bleche[i-1])['z'] - PartPos(bleche[i])['z'] gt 24.0){
+			  			validbleche = ListAdd(validbleche, bleche[i]);
+			  		}
+			  	}
+			  }
+			}
+		}
+		return validbleche;
+		}
+	"/>
+</function>
+
+<function description="Check if the Verkleidung part can change to Biblio-Element">
+	<definition  expression="def canChangeToBiblio(part) {
+	  my valid = false;
+	  /* VerkleidungContentChecker is a hardcoded function, please dont change anything */
+	  my size = call panelSizes(part,'biblio'); 
+	  my horizontal = not call vertikalBlech(part);
+	  my paneltype = not IsSubTypeOf(part,'ct_sperrblech');
+	  
+	  if (size and horizontal and paneltype){
+	    my A = VerkleidungContentChecker(part, 'bottom', 'klapptuerset');
+	    my B = VerkleidungContentChecker(part, 'bottom', 'tuerelementset');
+	    my C = VerkleidungContentChecker(part, 'bottom', 'einschubtuerset');
+	    my D = VerkleidungContentChecker(part, 'bottom', 'glastuerset');
+	    my E = VerkleidungContentChecker(part, 'bottom', 'kastenset');
+	    valid = not (A or B or C or D or E);
+	  }
+	  return valid;
+	  }"/>
+</function>
+
+<function description="Check if at least one panel that can change to type einsatz ">
+	<definition  expression="def canChangeToEinsatz(part) {
+	  my valid = false;
+	  my size = call panelSizes(part,'einsatz');
+	  my horizontal = not call vertikalBlech(part);
+	  
+	  if (size and horizontal) {
+	     my einschubtuere = VerkleidungContentChecker(part, 'top', 'einschubtuerset');
+	     my offsetx = PartAttr(part,'width')* 0.1 / 2 - 2.5;
+	     my offsety = PartAttr(part,'length')* 0.1 / 2 -2.5;
+	     /* nur zuoberst */
+	     my top = not call getPartTypeOben(part, 'verkleidung', Vector(offsety,offsetx,-0.5), 55.0, true);
+	     valid = not einschubtuere and top;
+	  }
+	  return valid;
+	}"/>
+</function>
+
+<!-- <function description="Check if at least one panelthat can change to type ct_Pflanzenblech ">
+	<definition  expression="def containsValidBibliobleche() {
+	  my contains = false;
+	  my bleche = GetSelectedComponentListOfType('mainstructure', 'metallverkleidung');
+	  
+	  for (my blech : bleche) {
+	  	contains = call canChangeToBiblio(blech);
+	  	if (contains) {
+	  	  break;
+	  	}
+	  }
+	  return contains;
+	}"/>
+</function> -->
+
+<function description="Check if the Verkleidung part can change to Standard-Panel">
+	<definition  expression="def canChangeToNormal(part) {
+	  my valid = false;
+	  /*
+	  my A = not IsSubTypeOf(part,'kurzblech') and not IsSubTypeOf(part,'ct_sperrblech') and not IsSubTypeOf(part,'biblioseitenblech') ;
+	  my B = not IsSubTypeOf(part,'blech250_750') and not IsSubTypeOf(part,'blech500_750') and not IsSubTypeOf(part,'einsatz500_750') ;
+	  my C = not IsSubTypeOf(part,'perfblech250_750') and not IsSubTypeOf(part,'perfblech500_750');
+	  */
+	  my size = call panelSizes(part,'normal');
+	  /* my paneltype = not IsSubTypeOf(part,'ct_sperrblech'); */
+	  my paneltype = true;
+	  valid = size and paneltype;
+	  return valid;
+	}"/>
+</function>
+
+<function description="Check if the Verkleidung part can change to Biblio-Element">
+	<definition  expression="def canChangeToLochBlech(part) {
+	  my valid = false;
+	  /* my A = IsSubTypeOf(part,'blech250_250') or IsSubTypeOf(part,'blech350_100') and IsSubTypeOf(part,'blech350_175') ;
+	  my B = not IsSubTypeOf(part,'blech395_175') and not IsSubTypeOf(part,'blech750_175');
+	  my C = not IsSubTypeOf(part,'blech500_175') and not IsSubTypeOf(part,'blech500_395'); */
+	  my size = call panelSizes(part,'gelocht');
+	  my vertical = call vertikalBlech(part);
+	  valid = size and vertical;
+	  return valid;
+	}"/>
+</function>
+
+<function description="Check if the Verkleidung part can change to Biblio-Element">
+	<definition  expression="def canChangeToPerfBlech(part) {
+	  my valid = false;
+	  my size = call panelSizes(part,'perforiert');
+	  /* my paneltype = not IsSubTypeOf(part,'ct_sperrblech'); */
+	  my paneltype = true;
+	  my AZTabove = call hasAZTabove(part);
+	  valid = size and paneltype and not AZTabove;
+	  return valid;
+	}"/>
+</function>
+
+<function description="Check if the Verkleidung part can change to Biblio-Element">
+	<definition  expression="def canChangeToVerkuerztBlech(part) {
+	  my valid = false;
+	  my size = call panelSizes(part,'verkuerzt');
+	  /* my paneltype = not IsSubTypeOf(part,'ct_sperrblech'); */
+	  my paneltype = true;
+	  if (size and paneltype) {
+			my vertical = call vertikalBlech(part);  
+			my top = not call getPartTypeOben(part, 'verkleidung', Vector(0,0,-0.5), 55.0, true);	
+	  	valid = (size and vertical) or (size and not vertical and top);
+	  }
+	  return valid;
+	}"/>
+</function>
+
+<function description="Check if the Verkleidung part can change to Sperrblech">
+	<definition  expression="def canChangeToAusgeschnitten(part) {
+	  my valid = false;
+	  /* Sperrbleche */
+    my size = call panelSizes(part,'ausgeschnitten');
+    my vertical = call vertikalBlech(part);
+		my top = not call getPartTypeOben(part, 'verkleidung', Vector(0,0,-0.5), 55.0, true);	
+		valid = size and not vertical and top;
+	  return valid;
+	}"/>
+</function>
+
+<function description="Check if the Verkleidung part can change to type ct_Pflanzenblech">
+	<definition  expression="def canChangeToPflanzenblech(part) {
+	  my valid = false;  
+	  my size = call panelSizes(part,'pflanzen');
+  	/* more than 15cm down */
+	  my higher = PartPos(part)['z'] gt 15.0;
+	  my horizontal = not call vertikalBlech(part);
+	  /* my paneltype = not IsSubTypeOf(part,'ct_sperrblech'); */
+	  my paneltype = true;
+	  
+	  /* Check if AZT is at pos 2 above*/
+	  my D = call hasAZTabove(part);
+	  
+	   if (size and higher and horizontal and paneltype){
+	    my A = VerkleidungContentChecker(part, 'top', 'schubladenauszugset');
+	    my B = VerkleidungContentChecker(part, 'top', 'schraegtablarset');
+	    my C = VerkleidungContentChecker(part, 'top', 'einschubtuerset');
+	    valid = not (A or B or C or D);
+	  }
+	  /*
+	  my offset = PartAttr(part,'length')* 0.1 / 2 - 1.25;
+	  my distanceDown = call getPartTypeOben(part, 'verkleidung', Vector(0,0,-0.5), -15.0, true);	 
+	  my schraegtablar = call getPartTypeOben(part, 'schraegtablar', Vector(0,-15.0,-0.5), -33.5, true);
+	  my einschubtuere = call getPartTypeOben(part, 'einschubtuergelenk_r', Vector(offset,0,-0.5), -15.5, true);
+	  my schublade = call getPartTypeOben(part, 'schubladenauszug750', Vector(3.0,0,-0.5), -13.5, true);
+	  valid = size and higher and not vertical and not distanceDown and not schraegtablar and not einschubtuere and not schublade;
+	  */
+	  return valid;
+	}"/>
+</function>
+
+<function description="Check if the Verkleidung part can change to type ct_Pflanzenblech">
+	<definition  expression="def panelSizes(part,class) {
+	  my valid = false;
+	  my width = PartAttr(part,'width');
+	  my length = PartAttr(part,'length');
+	  
+	  if (class eq 'normal') {
+	  	valid = InList(List('100','150','175','250','350','395','500'),width) and InList(List('250','350','395','500','750'),length);
+	  } else	
+	  if (class eq 'gelocht') {
+	  	if (length eq 750 and (width eq 250 or width eq 500)) {
+	  		return false;
+	  	}
+	  	valid = InList(List('100','150','175','250','350','395','500'),width) and InList(List('250','350','395','500','750'),length);
+	  	
+	  } else if (class eq 'perforiert') {
+	  	valid = InList(List('100','175','250','350','395','500'),width) and InList(List('250','350','395','500','750'),length);
+	  	
+	  } else if (class eq 'verkuerzt' or class eq 'ausgeschnitten') {
+	  	valid = InList(List('350','395'),width) and InList(List('395','500','750'),length);
+	  	
+	  } else if (class eq 'einsatz') {
+	  	valid = InList(List('250','350','500'),width) and InList(List('350','500','750'),length);
+	  	
+	  	} else if (class eq 'biblio') {
+	  	valid = InList(List('250','350'),width) and InList(List('750'),length);
+	  	
+	  } else if (class eq 'pflanzen') {
+	  	valid = InList(List('350','500'),width) and InList(List('350','500','750'),length);
+  	}
+	  return valid;
+	}"/>
+</function>
+
+<function description="Check if at least one panelthat can change to type ct_Pflanzenblech ">
+	<definition  expression="def containsValidPflanzenbleche() {
+	  my contains = false;
+	  my bleche = GetSelectedComponentListOfType('mainstructure', 'metallverkleidung');
+	  for (my blech : bleche) {
+	  	contains = call canChangeToPflanzenblech(blech);
+	  	if (contains) {
+	  	  break;
+	  	}
+	  }
+	  return contains;
+	}"/>
+</function>
+
+<function description="Conflict check, right place of Pflanzenblech? if manual added">
+	<definition  expression="def wrongPflanzenbleche() {
+	  my wrongbleche = List();
+	 	my bleche = GetComponentListOfType('ct_pflanzenblech');
+	  for (my blech : bleche) {
+	  	my valid = call canChangeToPflanzenblech(blech);
+	  	if (not valid) {
+	  	  wrongbleche = ListAdd(wrongbleche,blech);
+	  	}
+	  }
+	  return wrongbleche;
+	};"/>
+</function>
+
+
+<function description="Check if panels of type ct_pflanzenblech inside selection">
+	<definition  expression="def containsPflanzenbleche() {
+	  my contains = true;
+	 	my pflanzenbleche = GetSelectedComponentListOfType('mainstructure', 'ct_pflanzenblech');
+	  contains = Bool(Size(pflanzenbleche));
+	  return contains;
+	};"/>
+</function>
+
+<function>
+	<param name="part" type="part" description="part to check if AZT is mounted above"/>	
+	<definition expression="def hasAZTabove(part) {
+	/*Checks if part has AZT at pos 2 above*/
+	my aztlist = GetComponentListOfType('AZT');
+	my list = List();
+	
+	for (my azt: aztlist){
+		my fixedpart = DockGetConnectedPart(ConnectedDocksOfType(azt, 'tablar2teleskop'))[1];
+		my max_x = StringToList(call blechDimension(part), 'x')[0]/20;
+		my rp = RelativePartPos(part, fixedpart);
+		if (Round(rp['x']) le max_x and Round(rp['x']) ge 0 and Round(rp['y']) eq 0 and Round(rp['z']) eq 3)
+			{return true;}
+	}
+	return false;
+	}	
+	"/>
+</function>
+
+<function>
+	<param name="part" type="part" description="ausgansspart"/>
+	<param name="parttype" type="string" description="compontenttype"/>
+	<param name="p_offset" type="vector" description="offset als Punkt"/>
+	<param name="length" type="number" description="length"/>
+	<param name="onlypart" type="boolean" description="true/false then return part or info of intersection"/>
+	<definition expression="def getPartTypeOben(part, parttype, p_offset, length, onlypart) {
+		my p1 = p_offset;
+		my p2 = Vector(p1['x'], p1['y'], p1['z'] + length);
+		
+		/*p1 and p2 define the intersection ray in the local coordinate
+		system of the part*/
+		
+		my center= GlobalPos(part,p1);
+		my direction= VectorSub(GlobalPos(part,p2), center);
+		/* center and direction are now in the global coordinate system */
+		
+		my info= GetIntersectionInfo('1000', Line(center, direction),parttype, part);
+
+		if (info['part']) {
+			if (onlypart) { 
+				return info['part'];
+			} else {
+				return info;
+			};
+		};
+		return null;
+	};"/>
+</function>
+<function>
+	<definition expression="
+def getTopffarbe(part) {
+	my global_material = call globalMaterial('usm_haller', 'surface');
+	return InList(QS_TOPFFARBE_BASALT, global_material) ? 'basalt' : 'terracotta';
+};	
+	"/>
+</function>
+<function name="def currentTopfFarbe">
+			<param name="topffarbe"  description="basalt,terracotta"/>
+			<definition expression="
+	def currentTopfFarbe(topffarbe) {
+		my result = false;
+		
+		my topf = GetComponentListOfType('co_pflanzentopf')[0];
+		if (topf) {
+			result = Feature(topf, 'f_topffarbe') eq topffarbe;
+		};
+		
+		result;
+	};"/>
+	</function>
+	<function name="def currentSoftPanelType">
+			<param name="color"  description="rund,diagonal,vertikal"/>
+			<definition expression="
+	def currentSoftPanelType(type) {
+		my result = false;
+		
+		my panel = GetSelectedComponentListOfType('mainstructure', 'co_soft_panel')[0];
+		if (not panel) {
+			panel = GetComponentListOfType('co_soft_panel')[0];
+		};
+		if (panel) {
+			result = Feature(panel, 'f_soft_panel_type') eq type;
+		};
+		
+		result;
+	};"/>
+	</function>
+	<function name="def currentSoftPanelColor">
+			<param name="color"  description="91,92,93,94,95,96"/>
+			<definition expression="
+	def currentSoftPanelColor(color) {
+		my result = false;
+		
+		my panel = GetSelectedComponentListOfType('mainstructure', 'co_soft_panel')[0];
+		if (not panel) {
+			panel = GetComponentListOfType('co_soft_panel')[0];
+		};
+		if (panel) {
+			result = Feature(panel, 'f_soft_panel_color') eq color;
+		};
+		
+		result;
+	};"/>
+	</function>
+	<function>
+		<definition expression="def getAllPflanzenOfVolume(volume) {
+			my parts = List();
+			if (volume) {
+				my refparts = GetVolumeRefParts(volume);
+				parts = refparts;
+				parts = FilterList(refparts, 'p', `not (IsSubTypeOf(p, 'co_pflanzentopf'));`);
+				ListExtend(parts, FilterList(refparts, 'p', `not (IsSubTypeOf(p, 'co_schutzring'));`));
+				ListExtend(parts, FilterList(refparts, 'p', `not (IsSubTypeOf(p, 'ct_pflanzen'));`));
+			};
+			parts;
+		}"/>
+	</function>
+	<function>
+		<definition expression="def getAllSoftPanelsOfVolume(volume) {
+			my parts = List();
+			if (volume) {
+				my refparts = GetVolumeRefParts(volume);
+				refparts = FilterList(refparts, TypeFilter('ct_verbraucherRohrE'));
+				ListExtend(refparts, FilterList(GetVolumeRefParts(volume), TypeFilter('rohr395')));
+				refparts = FilterList(refparts, 'c', `not (ConnectedDockCount(c, 'rohr_2_magnet') gt 0);`);
+				for (my p: refparts) {
+					if (PartPos(volume)['z'] gt PartPos(p)['z']) {
+						ListAdd(parts, GetPositionController(FindPart(p, 'rohr_2_magnet',1)));
+						if (ConnectedDockCount(p, 'rohr_2_magnet') gt 1) {
+							ListAdd(parts, GetPositionController(FindPart(p, 'rohr_2_magnet',2)));
+						}
+					}
+				};
+			};
+			parts;
+		}"/>
+	</function>
+</code>

@@ -1,9 +1,13 @@
 node_modules/
-out/
+
+# generated outputs — keep only the imported model (needed to run the engine on the host)
+out/*
+!out/model.json
 
 # oracle project data (user's P'X5 export; regenerable by extracting the .pxpz)
 *.pxpz
 oracle/test_project/
 
-# proprietary USM article catalog (prices/weights/names) — local only, do not publish
+# proprietary USM article catalog (prices/article numbers) — kept OUT of the repo even though the
+# structural cartridge (data/) is baked in; the one52 app payload never needs prices.
 database.xml

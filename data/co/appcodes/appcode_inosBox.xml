@@ -1,0 +1,627 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression=""
+>
+
+  <function name="Ermittelt InosBox Set-Code">
+    <param name="inosBox" type="Pointer" description="InosBox, die gestappelt werden"/>
+    <returnvalue description="Set-Code" type="Bool" />
+    <definition expression="def inosBoxSet(part) { 
+       my setcode = 0;
+       my code = 0;
+       my base = 10; /* klein + niedrig */
+       my set = Feature(part,'f_inosBoxSet');
+       my klein = Feature(part,'f_inosBoxGroesse') eq 'inosBox-klein';
+       my gross = Feature(part,'f_inosBoxGroesse') eq 'inosBox-gross';
+       my niedrig = Feature(part,'f_inosBoxHoehe') eq 'inosBox-niedrig';
+       my hoch = Feature(part,'f_inosBoxHoehe') eq 'inosBox-hoch';
+       if (klein and hoch) {
+         base = 20;
+       }else if (gross and niedrig) {
+         base = 30;
+       } else if (gross and hoch) {
+         base = 40;
+       }
+       my sets = List();
+       my headings = List('set','code');
+       my values = List('inosBoxLeer','0','inosBoxQuer','1','inosBoxLaengs','2','inosBoxKreuz','3','inosBoxQuer3','4','inosBoxQuer3Kreuz','5'); 
+       my values1 = List();
+       my values2 = List();
+       if (gross) {
+	       values1 = List('inosBoxLeer','0','inosBoxLaengs','1','inosBoxQuer','2','inosBoxKreuz','3','inosBoxLaengs3','4','inosBoxQuer3','5'); 
+	       values2 = List('inosBoxQuer3Kreuz','6','inosBoxLaengs3Kreuz','7','inosBoxQuer3Laengs3','8'); 
+	       values = JoinList(values1,values2);
+       }
+       sets = CreateTable(headings, values);
+       code =   sets['set',set]['code'];
+       setcode = base + code;  
+       return setcode;
+    }"/>
+  </function>
+  
+  <function name="InosBox SymbolText">
+    <param name="inosBox" type="Pointer" description="InosBox, die gestappelt werden"/>
+    <returnvalue description="SymbolText" type="String" />
+    <definition expression="def inosBoxSymbolText(part) { 
+       my text = call inosBoxSet(part) ++ '.' ++ Feature(part,'f_inosBoxMaterial');
+       my box = MainRoot(part);
+       if (box) {
+	       if (ChildOfTypeDeep(box,'at_unterteilungset')) {
+	         text = text ++ '.' ++ Feature(part,'f_inosBoxUnterteilungMaterial');
+	       }
+       }
+       return text;
+    }"/>
+  </function>
+  
+  <function name="InosBox Hoehen-Typ">
+    <param name="inosBox" type="Pointer" description="InosBox, die gestappelt werden"/>
+    <returnvalue description="Niedere Box ja/nein" type="Bool" />
+    <definition expression="def inosBoxNiedrig(part) { 
+       my niedrig = false; 
+       niedrig = Feature('f_inosBoxHoehe') eq 'inosBox-niedrig';
+       return niedrig;
+    }"/>
+  </function>
+  
+  <function name="InosBox Hoehen-Typ">
+    <param name="inosBox" type="Pointer" description="InosBox, die gestappelt werden"/>
+    <returnvalue description="Niedere Box ja/nein" type="Bool" />
+    <definition expression="def inosBoxHoch(part) { 
+       my hoch = false; 
+       hoch = Feature('f_inosBoxHoehe') eq 'inosBox-hoch';
+       return hoch;
+    }"/>
+  </function>
+  
+  <function name="Blech vertikal">
+    <param name="Blech" type="Pointer" description="Blech, Glas, Tablar"/>
+    <returnvalue description="vertikal ja/nein" type="Bool" />
+    <definition expression="def vertikalVerkleidung(part) { 
+       my active = false;
+       my rot = PartRot(part);
+       my rotx = Abs(rot['x']);
+       my roty = Abs(rot['y']); 
+       my rotz = Abs(rot['z']); 
+       my active_xz = Bool(rotx) and Bool(rotz);
+       active = (Bool(rotx) or Bool(roty)) and not active_xz;
+       return active;
+    }"/>
+  </function>
+  
+  <function name="Blech vertikal, Vertikal, vertical, Vertical">
+	<param name="Blech" type="Pointer" description="Blech, Tablar"/>
+	<returnvalue description="vertikal ja/nein" type="Bool" />
+	<definition expression="def vertikalBlech(fixedpart) { 
+		my active = false;
+		my rohrdocks = null;
+		/*
+		my fixedparttype = GetTypeName(fixedpart);
+		if (StringContains(fixedparttype,'blech')) {
+			rohrdocks = DocksOfType(fixedpart,'blech2rohr');
+		} else if (StringContains(fixedparttype,'glas')) {
+			rohrdocks = DocksOfType(fixedpart, 'glas2glashalter');
+		}
+		*/
+		if (IsSubTypeOf(fixedpart,'metallverkleidung')) {
+			rohrdocks = DocksOfType(fixedpart,'blech2rohr');
+		} else if (IsSubTypeOf(fixedpart,'glasverkleidung')) {
+			rohrdocks = DocksOfType(fixedpart,'glas2glashalter');
+		}
+		
+		my localpoint = Vector(0,0,0);
+		my zposlist = List();
+		for (my rohrdock : rohrdocks) {
+			zposlist = ListAdd(zposlist,Round(GlobalDockPos(rohrdock, localpoint)['z']));
+		}
+		if (Size(UniqueList(zposlist)) gt 1) {
+			active = true;
+		}
+		return active;
+	}"/>
+  </function>
+  
+  
+  <function name="Blech vertikal">
+    <param name="Blech" type="Pointer" description="Glas"/>
+    <returnvalue description="vertikal ja/nein" type="Bool" />
+    <definition expression="def vertikalGlas(part) { 
+       my active = false;
+       my halterdocks = ConnectedDocksOfType(part, 'glas2glashalter');
+       my localpoint = Vector(0,0,0);
+       my zposlist = List();
+       for (my halterdock : halterdocks) {
+         zposlist = ListAdd(zposlist,Round(GlobalDockPos(halterdock, localpoint)['z']));
+       }
+       if (Size(UniqueList(zposlist)) gt 1) {
+         active = true;
+       }
+       return active;
+    }"/>
+  </function>
+  
+  <function name="Blech vertikal">
+    <param name="Blech" type="Pointer" description="Glas"/>
+    <returnvalue description="vertikal ja/nein" type="Bool" />
+    <definition expression="def vertikalVerkleidung(part) { 
+      my vertical = false;
+			vertical = call vertikalGlas(part) or call vertikalBlech(part);
+      return vertical;
+    }"/>
+  </function>
+
+  <function name="Finde die InosBox Unterlage (Blech oder Tablar)">
+	<param name="inosBox" type="Pointer" description="InosBox, die gestappelt werden, Docking component" />
+	<returnvalue description="Gibt Blech, Glas, Tablar oder Null zurück" type="Pointer" />
+	<definition expression="def inosBoxSupport(fixedpart,movedpart) {
+		my bottombox = null;
+		my support = null;
+		my box = movedpart;
+		my boxbelow = null;
+		
+		if (IsSubTypeOf(box,'ct_inosBox')) {
+			for (my d : ConnectedDocks(box)) {
+				my dockstring = GetDockType(d);
+				if (StringContains(dockstring,'2_top')) {
+					box = bottombox;
+					boxbelow = true;
+				}
+			}
+			if (boxbelow) {
+				support =  FindPart(box,'dt_inosBox_2_tablar',1);
+			} else {
+				support = movedpart;
+			}
+		}
+       /*
+       if (IsSubTypeOf(box,'ct_inosBox')) {
+         for (my i = 0; i lt 999; i = i + 1) {
+           bottombox = FindPart(box,'dt_inosBoxBottom_top','1');
+           if (bottombox) {
+             box = bottombox;
+             bottombox = null;
+           } else {
+             break;
+           }
+         } 
+         // unterste Box erreicht, suche Unterlage
+         support =  FindPart(box,'dt_inosBox_2_tablar',1);
+         if (not support) {
+         // wenn keine Box, dann steht die Box ohne Unterlage
+         support = movedpart;
+         }
+       }*/
+		return support;
+	}" />
+  </function>
+
+  <function name="InosBox Deckelhoehe">
+    <param name="inosBox" type="Pointer" description="InosBox, die gestappelt werden, Docking component"/>
+    <returnvalue description="Gibt Hoehe Oberkant zurueck bzgl. Boden, Blech oder Tablar" type="String" />
+    <definition expression="def inosBoxRelHeight(fixedpart,movedpart) { 
+       my height = PartPos(fixedpart)['z'];
+       my support = call inosBoxSupport(fixedpart,movedpart);
+       my boxheight = 0;
+       if (EndsWith(Feature(movedpart,'f_inosBoxHoehe'), 'hoch')) {
+          boxheight = 19.5;
+       } else if (EndsWith(Feature(movedpart,'f_inosBoxHoehe'), 'niedrig')) {
+          boxheight = 9.5;
+       }
+       height = height + boxheight;
+       if (support) {
+          height = height - PartPos(support)['z']; 
+       }
+       return Round(height,0.1);
+    }" />
+  </function>
+  
+  <function name="Ermittelt die Montage-Hoehe des Tablar">
+    <param name="support" type="Pointer" description="Tablar"/>
+    <returnvalue description="Montage-Hoehe " type="FLOAT" />
+    <definition expression="def mountingHeight(part) {
+       my height = 0;
+       my teleskop = null;
+       my azt = IsSubTypeOf(part,'AZT');
+         if (azt) {
+           teleskop = DockGetConnectedPart(Dock(part,'tablar2teleskop','1'));
+           if (teleskop) {
+             height = Number(Feature(teleskop,'mountingheight'));
+           }
+         }else{
+          height = Number(Feature(part,'mountingheight'));
+        }
+       return height;
+    }"/>
+  </function>
+  
+  <function name="InosBox maximaler Abstand zu oberen Blech oder Tablar">
+    <param name="support" type="Pointer" description="Unterlage, wo die insoBoxe drauf stehen"/>
+    <returnvalue description="maximaler Abstand zu oberen Blech oder Tablar" type="FLOAT" />
+    <definition expression="def inosBoxUpperMaxGap(part) {
+       my maxgap = 999;
+       my tablar = IsSubTypeOf(part,'ct_tablar');
+       my azt = IsSubTypeOf(part,'AZT');
+       my verkleidung = IsSubTypeOf(part,'verkleidung');
+       my bottomheight = PartPos(part)['z'];
+       my uppperheight = 0;
+       my gap = 0;
+       my list = List();
+       my size = 0;
+       my volheight = 0;
+       my mountingheight = 0;
+       my mountingheightemp = 0;
+       my mountinglist = List();
+       my mountings = 0;
+       my bottom = false;
+       my vol = null;
+       my teleskop = null;
+       if (tablar) {
+         vol = MainRoot(part);
+         mountingheight = call mountingHeight(part);
+       } else if (verkleidung) {
+           /* GetRefVolumes gibt eine Liste, wenn sich Element zwischen zwei Volumen befindet */ 
+           /* unteres Volumen */
+           vol = GetRefVolumes(part, 'mainstructure')[0];
+         if (PartPos(vol)['z'] lt PartPos(part)['z']) {
+           /* oberes Volumen */
+           vol = GetRefVolumes(part, 'mainstructure')[1];
+         }
+           bottom = VerkleidungContentChecker(part, 'bottom');
+         mountingheight = 0;
+       }
+       if (vol) {
+         volheight = Feature(vol,'zlength');
+         list = ChildrenListOfTypeDeep(vol,'ct_tablar');
+         size = Size(list);
+         for (my i = 0; i lt size; i = i +1) {
+           mountingheightemp = call mountingHeight(list[i]);
+           if (mountingheightemp gt mountingheight) {
+             mountinglist = ListAdd(mountinglist,mountingheightemp);
+           }
+         } 
+         mountings = Size(mountinglist);
+         
+         if (verkleidung and bottom) {
+            if (Bool(mountings)) {
+              /* zwischen Bodenblech und Tablar */
+              maxgap = ListMin(mountinglist);
+            } else {
+              /* zwischen Bodenblech und Deckblech */
+              maxgap = volheight;
+            }
+         } else if (tablar) {
+            if (not Bool(mountings)) {
+              /* Zwischen oberstem Tablaren und Deckenblech */  
+              maxgap = volheight - mountingheight -2;
+            } else {
+              /* Zwischen den Tablaren */
+              maxgap = ListMin(mountinglist) - mountingheight;
+            }
+         }
+       }
+       return maxgap;
+    }"/>
+  </function>
+  
+  <function name="InosBox genung Platz fuer Connection-Representation">
+	<param name="co_inosBox_docking" type="Pointer" description="Oberste InosBox mit freiem Dock, die gestappelt werden, Docking Element"/>
+	<returnvalue description="Zeigt an, ob es in einem Regal noch genuegend Platz hat in der Hoehe " type="Bool" />
+	<definition expression="
+	def inosBoxGenugPlatz(fixedpart,movedpart) {
+		my ref_volumes = GetRefVolumes(fixedpart, 'mainstructure');
+		my parent = ParentOfType(movedpart, 'mainstructure', 'as_inosBoxStappel');
+		if (!parent AND Size(ref_volumes) le 1) {
+			return true;
+		}
+		my vol = SortByValue(ref_volumes,`not PartPos(element)['z'];`)[0];
+		PartPos(vol);
+		my vol_height = Feature(vol, 'zlength');
+		my hoehe = 0; 
+		my boxlist = List();
+		if (parent) {
+			boxlist = ChildrenListOfTypeDeep(parent, 'at_inosBox');
+		} else {
+			boxlist = List(ParentOfType(movedpart, 'mainstructure', 'at_inosBox'));	
+		}		
+		for (my box: boxlist) {
+			hoehe = hoehe + (Round(Feature(box,'height')));
+		}
+		return (hoehe lt vol_height);
+	}
+    " />
+  </function>
+  <function name="InosBox genung Platz fuer Connection-Representation">
+	<param name="co_inosBox_docking" type="Pointer" description="Oberste InosBox mit freiem Dock, die gestappelt werden, Docking Element"/>
+	<returnvalue description="Zeigt an, ob es in einem Regal noch genuegend Platz hat in der Hoehe " type="Bool" />
+	<definition expression="
+		def old_inosBoxGenugPlatz(fixedpart,movedpart) {
+		my gap = true;
+		my upperMaxGap = 999;
+		my gapHeight = null;
+		my boxheight = EndsWith(Feature(movedpart,'f_inosBoxHoehe'), 'hoch') ? 19.5 : 9.5;
+		my support = call inosBoxSupport(fixedpart,movedpart);
+		my relHeight = call inosBoxRelHeight(fixedpart,movedpart);
+		if (support) {
+			upperMaxGap = call inosBoxUpperMaxGap(support);
+		}
+		if (upperMaxGap LT boxheight) {
+			gap = false;
+		} else {
+			gapHeight = upperMaxGap - relHeight;
+			StringContains(GetTypeName(support),'auszieh') ? gap = !(gapHeight LT 3) : gap = !(gapHeight LT 5);
+		}
+		return gap;
+	}
+    " />
+  </function>
+  
+  <function name="InosBox genung Platz um eine niedrige Box in eine hoehere zu tauschen">
+    <param name="inosBox assembly" type="Pointer" description="InosBox innerhalb eines Stappels"/>
+    <returnvalue description="Zeigt an, ob es in einem Regal noch genuegend Platz hat in der Hoehe " type="Bool" />
+    <definition expression="def inosBoxAllowHoch(part) {
+       my gap = true;
+       if (part) {
+          if (IsSubTypeOf(part,'at_inosBoxKonzept')) {
+             my gapsize = 0;
+             my niedrig = 9.5;
+             my hoch = 19.5;
+             my upperMaxGap = 999;
+             my support = null;
+             my docking = null;
+             my delta = hoch -niedrig;
+             my stappelheight = Feature(part,'f_maxHeight');
+             my alreadyheight = Feature(part,'f_inosBoxHoehe_top') eq 'inosBox-hoch';
+             if (not alreadyheight) {
+               docking = ChildWithId(ChildOfTypeDeep(part, 'at_inosBox'),'docking');
+               support = call inosBoxSupport(part,docking);
+               if (support) {
+                  upperMaxGap = call inosBoxUpperMaxGap(support);
+               }
+               gapsize = upperMaxGap - stappelheight;
+               if (gapsize le delta) {
+                  gap = false;
+               }
+             }
+           }
+         }  
+         /* WriteInfoLog('ggg: ' ++ upperMaxGap ++ ', ' ++ gap ); */
+         return gap;
+      }
+    " />
+  </function>
+  
+  <function name="InosBox genung Platz fuer Connection-Representation">
+    <param name="as_inosBox" type="Pointer" description="jede InosBox weiss wie hoch der Stappel ist bzgl. Tablar/Boden/Blech"/>
+    <returnvalue description="Max Hoehe des Stappels" type="FLOAT" />
+    <definition expression="def inosBoxMaxHeight(part) {
+       my max = 0;
+       my parent = Parent('mainstructure',part);
+       my stappel = parent ? Parent('mainstructure',parent) : null;      
+       if (stappel) {
+	       my dockinglist = List();
+	       my klein = ChildrenListOfTypeDeep(stappel, 'co_inosBox_klein_docking');
+	       my gross = ChildrenListOfTypeDeep(stappel, 'co_inosBox_gross_docking');
+	       my list = JoinList(klein,gross);
+	       my heightlist = List();
+	       my relheight = 0;
+	       my size = Size(list);
+	       if (Bool(size)) {
+		       for (my i = 0; i lt size; i = i +1) {
+		             relheight = Feature(list[i],'f_relHeight');
+		             heightlist = ListAdd(heightlist,relheight);
+		       } 
+		       max = ListMax(heightlist);
+		     }
+       }
+       return max;
+    }" />
+  </function>
+  
+  <function name="Kann InosBox manuell rotiert werden">
+    <param name="as_inosBox/Stappel" type="Pointer" description="InosBox welche rotiert werden soll"/>
+    <returnvalue description="manuell rotierbar" type="Bool" />
+    <definition expression="def inosBoxRotable(part) {
+       my selection = false; 
+       my parent = MainRoot(part);
+       my box = null;
+       my docking = null;
+       /* my list =  ChildrenListOfTypeDeep(parent, 'as_inosBox');*/
+       if (IsSubTypeOf(part,'as_inosBox')) {
+          /* darf kein ganzer Stappel sein */
+          box = ChildOfType(part,'at_inosBox');
+          docking =  ChildWithId(box,'docking');
+          /* darf nicht auf Unterlage stehen */
+          selection = not ConnectedDockCount(docking, 'dt_inosBox_2_tablar');
+       } 
+       return selection;
+    }" />
+  </function>
+  
+  <function name="Muss InosBox Deckel haben">
+    <param name="as_inosBox_gross" type="Pointer" description="InosBox wo der Decke drauf kommen soll"/>
+    <returnvalue description="mit Deckel" type="Bool" />
+    <definition expression="def inosBoxDeckelGross(part) {
+       my deckel = false; 
+       my dockmitte = Dock(ChildWithId('docking'),'inosBoxTop_2_bottom',1);
+       my docklinks = Dock(ChildWithId('docking'),'inosBoxTopGr_2_bottom',1);
+       my dockrechts = Dock(ChildWithId('docking'),'inosBoxTopGr_2_bottom',2);
+       my mitte = Bool(DockGetConnectedPart(dockmitte));                         
+       my links = Bool(DockGetConnectedPart(docklinks));
+       my rechts = Bool(DockGetConnectedPart(dockrechts)); 
+       deckel = mitte or links or rechts;
+       return deckel;
+    }" />
+  </function>
+  
+  <function name="Muss InosBox Deckel haben">
+    <param name="as_inosBox_klein" type="Pointer" description="InosBox wo der Decke drauf kommen soll"/>
+    <returnvalue description="mit Deckel" type="Bool" />
+    <definition expression="def inosBoxDeckelklein(part) {
+       my deckel = false; 
+       my dockmitte = Dock(ChildWithId('docking'),'inosBoxTop_2_bottom',1);
+       deckel = Bool(DockGetConnectedPart(dockmitte));                         
+       return deckel;
+    }" />
+  </function>
+  
+  <function name="Muss InosBox Deckel haben">
+    <param name="selectedparts" type="List" description="Selektierte Regal-Teile"/>
+    <returnvalue description="List of Boxes or tabletts" type="List" />
+    <definition expression="def connectedInosParts(selectedparts,mode) {
+			my inosparts = List();
+			my verkleidung = FilterList(selectedparts,'element',`not IsSubTypeOf(element,'verkleidung');`);
+			my tablare = FilterList(selectedparts,'element',`not IsSubTypeOf(element,'ct_tablar');`);
+			my elements = JoinList(verkleidung,tablare);
+			my docks = List();
+			for (my element : elements) {
+			   docks = ConnectedDocksOfType(element, 'dt_tablar_2_inosBox');
+			   for (my dock : docks) {
+			     inosparts = ListAdd(inosparts,DockGetConnectedPart(dock));
+			   }
+			 }
+			 if (mode  eq 'tablett') {
+			   inosparts  = FilterList(inosparts,'element',`not EndsWith(GetTypeName(element),'tablett');`);
+			 } else {
+			   inosparts  = FilterList(inosparts,'element',`EndsWith(GetTypeName(element),'tablett');`);
+			 }
+			 return inosparts;
+			}" />
+  </function>
+  
+<!--   <function name="Ist die Regalverkleidung gedreht eingebaut">
+    <param name="part" type="Pointer" description="Regalverkleidung"/>
+    <returnvalue description="ist Verkleidung gedreht?" type="Bool" />
+    <definition expression="def blechTurn(part) {
+			my turn = false;
+			my rot = Abs(PartRot(part)['z']);
+			if (rot gt 0) {
+			   turn = true;
+			}
+			return turn; 
+			}" />
+  </function> -->
+  
+ <function name="Ist die Regalverkleidung gedreht eingebaut">
+    <param name="part" type="Pointer" description="Regalverkleidung"/>
+    <returnvalue description="ist Verkleidung gedreht?" type="Bool" />
+    <definition expression="def blechTurn(part) {
+			my turn = false;
+			my vol = GetRefVolumes(part, 'mainstructure')[0];
+			my tiefe = 0;
+			my regaltiefe = 0;
+			if (vol) {
+			   tiefe = PartAttr(part,'tiefe');
+			   regaltiefe = Feature(vol,'ylength')*10;
+			   if (tiefe ne regaltiefe) {
+			     turn = true;
+			   }
+			}
+			return turn; 
+			}" />
+  </function>
+  
+
+  
+<!--   <function description="check alle Komponenten montiert sind und es kein Zubehoer dran hat ">
+  <param name="part" description="part" type="Pointer"/>
+  <returnvalue description="ja/nein" type="BOOL"/>
+   <definition expression="def equalConnectionId(part) {
+      my partlist = GetSelectedComponentList('mainstructure');
+      my connectionid = ConnectionId(partlist[0]);
+      my equal = true;
+      for (my i = 1; i lt Size(partlist); i = i +1) {
+           if ( connectionid ne ConnectionId(partlist[i]) {
+             equal = false;
+             break;
+           }
+      }  
+      return equal;
+      }
+    "/>
+  </function> -->
+
+	<function name="getTopInosBox" description="Gibt das oberste Boxelement eines InosBox Stapels zurück">
+		<param name="stapel" type="Pointer" description="Boxstapel"/>
+		<returnvalue type="Pointer" description="Oberstes Boxelement des Stapels"/>
+		<definition expression="
+			def getTopInosBox(stapel){
+				my children = ChildrenListOfTypeDeep(stapel, 'as_inosBox');
+				my top = false;
+				for(my child: children){
+					if(!top){
+						top = child;
+					}else{
+						if(Height(child) gt Height(top)){
+							top = child;
+						}
+					}
+				}
+				return top;
+			}
+		"/>
+	</function>
+	
+	<function name="isTopBox" description="Gibt zurück, ob ein Element zuoberst auf einem InosBox stapel liegt">
+		<param name="part" type="pointer" description="InosBox"/>
+		<returnvalue description="true/false"/>
+		<definition expression="
+			def isTopBox(part){
+				my ret = true;
+				my connecteddock = null;
+				my smallPartsAboveDocks = null;
+				my partAboveDock = ChildOfTypeDeep(part, 'co_inosBox_gross_docking');
+				if(!partAboveDock){
+					partAboveDock = ChildOfTypeDeep(part, 'co_inosBox_klein_docking');
+				}
+				if(Size(partAboveDock)){
+					connecteddock = DockGetConnectedDock(Dock(partAboveDock, 'inosBoxTop_2_bottom', '1'));
+					if(!connecteddock){
+						connecteddock = DockGetConnectedDock(Dock(partAboveDock, 'inosBoxTop_2_bottom', '1'));
+						if(!connecteddock){
+							smallPartsAboveDocks = DocksOfType(partAboveDock, 'inosBoxTopGr_2_bottom');
+							for(my partdock: smallPartsAboveDocks){
+								if(DockGetConnectedDock(partdock)){
+									connecteddock = DockGetConnectedDock(partdock);
+								}
+							}
+						}
+					}
+				}
+				if(connecteddock){
+					ret = false;
+				}
+				return ret;
+			}
+		"/>
+	</function>
+	
+	<function name="isTopBox" description="Gibt zurück, ob ein Element zuoberst auf einem InosBox stapel liegt">
+		<param name="part" type="pointer" description="InosBox"/>
+		<param name="case" type="Integer" description="3 oder 4 Boxen platzieren auf 500x750 Blech/Glas"/>
+		<returnvalue description="true/false"/>
+		<definition expression="
+			def boxDockActive(part,case) {
+				my active = true;
+				my con_docks =ConnectedDocksOfType(part,'tablar_2_inosBoxKlein',true);
+				if (case eq 4) {
+				 for (my dock : con_docks) {
+				 	if ( InList(List(1,2,3),DockGetIndex(dock))) {
+				 		active = false;
+				 		break;
+				 	}
+				 }
+				}
+				if (case eq 3) {
+				 for (my dock : con_docks) {
+				 	if ( InList(List(4,5,6,7),DockGetIndex(dock))) {
+				 		active = false;
+				 		break;
+				 	}
+				 }
+				}
+				return active;
+			}
+		"/>
+	</function>
+
+</code>

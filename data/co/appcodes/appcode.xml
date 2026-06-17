@@ -1,0 +1,5014 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression="global _localCustomerDataDir = ConcatPath(EnvValue('DYNAMIC.CustomDir'),'../data/CustomerData');
+  						global changedmasterdata = List(); /* because of the leaf expression in changed catalog */
+							global defaultparams = Load(EnvValue('DYNAMIC.CustomDir') ++ '/../data/ApplicationData/defaults.xml'); 
+							global installationType = defaultparams['defaults']['installation_type'];
+							global customAppDataDir = ConcatPath(EnvValue('PXAPPDATA'),'USM_Virtualusm-4_' ++ installationType);
+							global customSystemfileDir = ConcatPath(customAppDataDir, 'systemfiles');
+							global BASE = List();
+							global CHANGED = List();
+							global _pos = 0;
+							global CO_GLOBAL= List();
+							global KELCO = List('02','51','52','53');
+							global _message = '';
+							global _warning = '';
+							
+							
+							global METALLFARBE = List();
+							ListAdd(METALLFARBE, 'globaldef');
+							ListAdd(METALLFARBE, '__');
+							ListAdd(METALLFARBE, '24');
+							ListAdd(METALLFARBE, '29');
+							ListAdd(METALLFARBE, '35');
+							ListAdd(METALLFARBE, '32');
+							ListAdd(METALLFARBE, '33');
+							ListAdd(METALLFARBE, '30');
+							ListAdd(METALLFARBE, '34');
+							ListAdd(METALLFARBE, '27');
+							ListAdd(METALLFARBE, '28');
+							ListAdd(METALLFARBE, '25');
+							ListAdd(METALLFARBE, '26');
+							ListAdd(METALLFARBE, '23');
+							ListAdd(METALLFARBE, '22');
+							ListAdd(METALLFARBE, '31');
+							ListAdd(METALLFARBE, '36');
+							ListAdd(METALLFARBE, '99');
+
+							global KASTENFARBE = List();
+							ListAdd(KASTENFARBE, 'globaldef');
+							ListAdd(KASTENFARBE, '22');
+							ListAdd(KASTENFARBE, '23');
+							ListAdd(KASTENFARBE, '24');
+							ListAdd(KASTENFARBE, '25');
+							ListAdd(KASTENFARBE, '26');
+							ListAdd(KASTENFARBE, '27');
+							ListAdd(KASTENFARBE, '28');
+							ListAdd(KASTENFARBE, '29');
+							ListAdd(KASTENFARBE, '30');
+							ListAdd(KASTENFARBE, '31');
+							ListAdd(KASTENFARBE, '32');
+							ListAdd(KASTENFARBE, '33');
+							ListAdd(KASTENFARBE, '34');
+							ListAdd(KASTENFARBE, '35');
+							ListAdd(KASTENFARBE, '36');	
+							
+							global FILTER_AUSLAUF_USM = List();
+							ListAdd(FILTER_AUSLAUF_USM, '13124');
+							ListAdd(FILTER_AUSLAUF_USM, '13160');
+							ListAdd(FILTER_AUSLAUF_USM, '13161');
+							ListAdd(FILTER_AUSLAUF_USM, '13162');
+							ListAdd(FILTER_AUSLAUF_USM, '13163');
+							ListAdd(FILTER_AUSLAUF_USM, '13645');
+							ListAdd(FILTER_AUSLAUF_USM, '13125');
+							ListAdd(FILTER_AUSLAUF_USM, '13164');
+							ListAdd(FILTER_AUSLAUF_USM, '13165');
+							ListAdd(FILTER_AUSLAUF_USM, '13166');
+							ListAdd(FILTER_AUSLAUF_USM, '13167');
+							ListAdd(FILTER_AUSLAUF_USM, '13646');
+							ListAdd(FILTER_AUSLAUF_USM, '13081');
+							ListAdd(FILTER_AUSLAUF_USM, '13086');
+							ListAdd(FILTER_AUSLAUF_USM, '13351');
+							ListAdd(FILTER_AUSLAUF_USM, '15556');
+							ListAdd(FILTER_AUSLAUF_USM, '15557');
+							ListAdd(FILTER_AUSLAUF_USM, '16485');
+							
+							global SOFTPANEL_COLORS = List();
+							my entry = List();
+							entry['volume'] = '22';
+							entry['panel'] = '95';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '23';
+							entry['panel'] = '96';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '24';
+							entry['panel'] = '92';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '25';
+							entry['panel'] = '95';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '26';
+							entry['panel'] = '92';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '27';
+							entry['panel'] = '95';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '28';
+							entry['panel'] = '93';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '29';
+							entry['panel'] = '94';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '30';
+							entry['panel'] = '91';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '31';
+							entry['panel'] = '94';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '32';
+							entry['panel'] = '93';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '33';
+							entry['panel'] = '96';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '34';
+							entry['panel'] = '92';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '35'; /* Auslauf */
+							entry['panel'] = '91';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '36';
+							entry['panel'] = '91';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							my entry = List();
+							entry['volume'] = '99';
+							entry['panel'] = '91';
+							ListAdd(SOFTPANEL_COLORS, entry);
+							
+							
+							"
+>
+<!-- Overwrites -->
+
+   <function description="Formats a length displayed inside the configurator. changed 2018-04, damit HallerTisch und Kitos indetisch sind" >
+     <param name="distance" type="Double" description="The distance in the internal units, typically mm."/>
+     <param name="metric" type="Boolean" description="Defines if the distance should be displayed in metric or imperial units."/>
+     <definition expression="
+				def overwrites formatDistance(distance, metric) {
+          distance = distance *10;
+          if (not metric) {
+            return FormatImperialLength(distance, false, 2);
+          }
+          return Round(distance, 1);
+        }
+		 "/>
+   </function>
+   <function>
+   		<definition expression="def checkRevitSupport() {
+   			 return CheckBIMIntegrationSupport() and DirectoryExists(Expand(`${DYNAMIC.CustomDir}/../bin/bimtool`));
+   		};"/>
+   </function>
+  <function>
+  	<definition expression="def loadMasterData(type) {
+  		if (not call isUSM()) {
+	  		if (type eq 'no_delivery') {
+	  			if (not VarDefined('CHANGED_NO_DELIVERY')) {
+        			global CHANGED_NO_DELIVERY =  TableRows(Load(ConcatPath(customSystemfileDir, 'pcm_changeddata.xml'), 'table', 'row'), 'Lieferstatus', 'nicht_mehr_lieferbar', false);
+        		};
+        	} else
+        	if (type eq 'base') {
+	        	global BASE = Load(ConcatPath(customSystemfileDir, 'pcm_masterdata.xml'), 'table', 'row');
+        	} else
+        	if (type eq 'changed') {
+        		global CHANGED = TableRows(Load(ConcatPath(customSystemfileDir, 'pcm_changeddata.xml'), 'table', 'row'), 'Lieferstatus', 'auslauf', false);
+	        };
+       
+	  	} else {
+	  		if (type eq 'no_delivery') {
+	  			if (not VarDefined('CHANGED_NO_DELIVERY')) {
+        			global CHANGED_NO_DELIVERY =  TableRows(AsList(Load('crdf://pcm_changed','table','row')), 'Lieferstatus', 'nicht_mehr_lieferbar', false);
+        		};
+        	} else
+        	if (type eq 'base') {
+	        	global BASE = AsList(Load('crdf://pcm_masterdata','table','row'));
+        	} else
+        	if (type eq 'changed') {
+        		global CHANGED = TableRows(AsList(Load('crdf://pcm_changed','table','row')), 'Lieferstatus', 'auslauf', false);
+	        };
+	  	
+	  	};
+  	};"/>
+  </function> 
+  <function name="getRootOfType">
+  	<param name="part"/>
+  	<param name="structure"/>
+  	<param name="type" description="assemblytype"/>
+  	<definition expression="def getRootParentOfType(part, structure, type) {
+  		my parent = null;
+		my p = part;
+  		my finished = false;
+  		while (not finished) {
+  			
+  			p = ParentOfType(p, structure, type);
+  			if (p) { 
+  				parent = p;
+  			} else {
+  				finished = true;
+  			};
+  		}
+  		
+  		return parent;
+  	}
+  	"/>
+  </function>
+  <function name="moveTablarHandleActive">
+  	<param name="part"/>
+  	<param name="dir" description="up/down"/>
+  	<definition expression="def moveTablarHandleActive(part, dir) {
+  		my ok = true;
+  		if (dir eq 'up') {
+	  		ok = not call getPartTypeOben(part, 'ct_haller_shelf_component', Vector(), 5, true);
+			if (ok) {
+				my volume = ParentOfType(part, 'mainstructure', 'normal_volume');
+				my pflanzen = call getAllPflanzenOfVolume(volume);
+				my pos = Feature('mountingheight');
+				my height = volume ? Feature(volume, 'zlength') : 75;
+				my max = 4;
+				if (Size(pflanzen)) {
+					max = 20;
+					
+				}
+				ok = (height - pos) gt max;
+			}
+		} else
+		if (dir eq 'down') {
+			ok = Feature('mountingheight') gt 2 and Feature('mountingheight') lt 5;
+			if (ok) {
+				return ok;
+			} else {
+				return not call getPartTypeOben(part, 'ct_haller_shelf_component', Vector(), -5.1, true);
+			};
+		}
+		return ok;
+  	
+  	};"/>
+  </function>
+  <function>
+    <definition
+      expression="def dock_to_cpuhalter_active(part)
+{
+/**
+  check whether the dock to the cpu-halter on the traegerrohr should be active or not
+  @param Part the current part
+  @retval Boolean activate or deactivate the dock
+*/
+
+	
+  my is_auflagerrohr = ParentOfType(part, 'mainstructure', 'auflagerrohrgarnitur');
+  my is_neigetisch = FindPart('keilverbinder', 'spannring', 'ct_neigkopfelemente');
+  my neigteleskop = FindPart('neigschelle_unten', 'neigteleskopunten');
+  my dockindex_on_neigeteleskopachse = (neigteleskop) ? DockGetIndex(DockGetConnectedDock(Dock(neigteleskop, 'teleskop2achse', 0))) : 0;
+  my neigeteleksopachse = (neigteleskop) ? DockGetConnectedPart(Dock(neigteleskop, 'teleskop2achse', 0)) : NULL;
+  my on_opposite_site_of_neigehebel = (NOT StringContains(GetTypeName(neigeteleksopachse), 'left') AND dockindex_on_neigeteleskopachse EQ 1) OR (StringContains(GetTypeName(neigeteleksopachse), 'left') AND dockindex_on_neigeteleskopachse EQ 2);
+  (is_auflagerrohr AND NOT is_neigetisch) OR (NOT is_auflagerrohr AND is_neigetisch AND on_opposite_site_of_neigehebel);
+};" />
+  </function>
+
+<function description="It checks if USM.Mode is usm">
+    <returnvalue description="TRUE/FALSE" type="boolean" />
+    <definition expression="def isUSM() {
+    return Bool(EnvValue('USM.Mode'));
+  }"/>
+</function>
+
+  <function>
+    <definition
+      expression="def MyBrokenConnection(trafo) {
+/**
+  Checkt, ob Leitgestaenge unterbochen sind
+  @param long trafo
+  @retval List list der nicht verbundenen Leitgestaenge
+*/
+  my stromkreis= Feature(trafo, 'Stromkreis');
+  my forestname= 'mainstructure';
+  my forest= Forest(forestname);
+  my lg_list_all= ChildrenListOfTypeDeep(forest, 'leitgestaenge');
+  lg_list_all= FilterList(lg_list_all, `child`,`Number(Feature(child, 'f_trafo')) EQ trafo;`);
+  my lg_list= FilterList(lg_list_all, `child`,`Feature(child, 'Stromkreis') NE stromkreis;`);
+  my should= Size(lg_list);
+
+  my d1= Dock(trafo, 'verbinder2lgestaenge', 1);
+  my d2= Dock(trafo, 'verbinder2lgestaenge', 2);
+  my d3= Dock(trafo, 'verbinder2lgestaenge', 3);
+  
+  my lg1= DockGetConnectedPart(d1);
+  my lg2= DockGetConnectedPart(d2);
+  my lg3= DockGetConnectedPart(d3);
+  
+  my con_lg_list= List();
+  
+  con_lg_list= call collectLeitgestaenge(con_lg_list, lg1);
+  con_lg_list= call collectLeitgestaenge(con_lg_list, lg2);
+  con_lg_list= call collectLeitgestaenge(con_lg_list, lg3);
+  
+  my has= Size(con_lg_list);
+  
+  my fail_list= FilterList(lg_list, `lg`, `InList(con_lg_list, lg);`);
+  if (!Defined(fail_list)) {
+    fail_list= List();
+  };
+  
+  /*retval now the failing list*/
+  
+  fail_list;
+    
+};" />
+  </function>
+
+
+
+
+  <function>
+    <definition
+      expression="def collectLeitgestaenge(lg_list, lg) {
+/**
+  recursive subroutine to get the failing leitgestaenge
+  @param list lg_list the List to be filled
+  @param long lg the actual leitgestaenge
+  @retval lg_list list the filled lg_list.
+*/
+
+  if ( lg AND not InList(lg_list, lg) ) {
+    lg_list= JoinList(lg_list, List(lg));
+    
+    for(my refnr= 1; refnr LT 3; refnr= refnr +1){
+      my lg2v= Dock(lg, 'lgestaenge2verbinder', refnr);
+      if (lg2v) {
+        my verbinder= DockGetConnectedPart(lg2v);
+        if (verbinder AND IsSubTypeOf(verbinder, 'verbinder')) {
+          my ver_list= DocksOfType(verbinder, 'verbinder2lgestaenge');
+          my size= Size(ver_list);
+          for (my i= 0; i LT size; i=i+1) {
+            my lgg= DockGetConnectedPart(ver_list[i]);
+            if (lgg AND lgg NE lg) {
+              lg_list= call collectLeitgestaenge(lg_list, lgg);
+            };
+          };
+        
+        };
+      };
+    };
+  
+  };  
+  lg_list;
+};" />
+  </function>
+
+
+
+  <function>
+    <definition
+      expression="def findTrafoFeature(lg) {
+/**
+  Sucht das Leitgestaenge, das den Trafo als Feature gesetzt hat oder den Trafo
+  selber. Wenn nichts gefunden wird, 0.
+  @param long lg das Leitgestaenge
+  @retval long den Feature Wert oder 0
+
+*/
+  my trafo= FindPart('trafo');
+/*  my verbinder= trafo ? 0 : FindPart('verbinder','leitgestaenge');*/
+  my v_list= trafo ? 0 : ConnectedDocksOfType(lg, 'lgestaenge2verbinder');
+  my f_trafo= 0;
+  
+  if (not trafo) {
+    my size= Size(v_list);
+    for (my i= 0; i LT size; i= i+1) {
+      my verbinder= DockGetConnectedPart(v_list[i]);
+      my lg_list= verbinder ? ConnectedDocksOfType(verbinder, 'verbinder2lgestaenge') : List();
+      my lg_size= Size(lg_list);
+    
+      for(my j= 0; j LT lg_size; j= j+1) {
+        my lg= DockGetConnectedPart(lg_list[j]);
+        f_trafo= Feature(lg, 'f_trafo') +0;
+        j= f_trafo GT 0 ? lg_size - 1 : j;
+      };
+      i= f_trafo GT 0 ? size -1 : i;
+    };
+      
+  };
+  trafo ? trafo : f_trafo;
+};" />
+  </function>
+
+  <function>
+    <definition
+      expression="def lateral_sheet_between() {
+
+/**
+  Sucht ueber Docks ob eine Zwischenwand/Rueckwand beim Lateralset eingbaut ist,
+  Wenn ja dann 1.
+  @param long
+  @retval long 1 oder 0
+
+*/
+DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(
+Dock('anything2klemmhalter', '11')),'klemmhalter2blech','1')),'blech2rohr','2')),'rohr2blech','3')) 
+OR
+DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(
+Dock('anything2klemmhalter', '11')),'klemmhalter2blech','1')),'blech2rohr','4')),'rohr2blech','3')) 
+OR
+DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(
+Dock('anything2klemmhalter', '1')),'klemmhalter2blech','1')),'blech2rohr','4')),'rohr2blech','1'))
+OR
+DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(Dock(DockGetConnectedPart(
+Dock('anything2klemmhalter', '1')),'klemmhalter2blech','1')),'blech2rohr','2')),'rohr2blech','1'));
+};" />
+  </function>
+
+
+
+  <function>
+    <definition
+      expression="def getNKTcomponents() {
+    my pt= GetPartType(part);
+    my p = GetPartTypeName(pt);
+    my hallertueren1 = p eq 'tuerelement500_500' or p eq 'tuerelement500_500' or p eq 'tuerelement750_500';
+    my hallertueren2 = p eq 'einschubtuer_b500_h395' or p eq 'einschubtuer_b750_h395';
+    my hallertueren = hallertueren1 or hallertueren2;
+    my found = hallertueren;
+};" />
+  </function>
+
+
+  <function>
+    <definition
+      expression="def checkAkustikAssignment() {
+    my schloss = FindPart(part,'tuer2schlossgriff');
+  if (schloss) {!StringContains(Feature(schloss,'Schliessung'),'elektronisch');};
+};" />
+  </function>
+
+
+ <function description="Returns true if a deprecatedArticle article was found">
+   <definition expression="
+   def checkDeprecatedArticles(part) {
+      my answer = FALSE;
+      my mypart = '';
+      /* For assemblies */
+      my list1 = List('quertraeger400','quertraeger750','quertraeger775','quertraeger900','quertraeger925','quertraeger1000');
+      my list2 = List('bildschirmschwenkarm420x50','bildschirmplattenset360x330niv','bildschirmplattenset440x420niv','telefonschwenkarm186x580','telefonschwenkarm220x580','telefonschwenkarm220x580','telefonschwenkarm186x420','telefonschwenkarm220x420');
+      /* my list3 = List('basistraeger400','basistraeger750','basistraeger775','basistraeger900','basistraeger925','basistraeger1000'); */
+      my list3 = List('tischanbau');
+      my list = JoinList(list1,list2);
+      list = JoinList(list,list3);
+      mypart = GetPartTypeName(GetPartType(part));
+      if (not InList(list,mypart)) {
+       /* For components */
+       mypart = '';
+       mypart = PartAttr(part,'deprecated');
+      }
+      if (StrLen(mypart)GT 0) {
+         answer = TRUE;
+      }
+      return answer;
+   }" />
+</function>
+  
+<function description="Find changed masterdata information">
+  <definition
+    expression="def findComponentData(artno,attribute,fieldname) {
+		  my data = '';
+		  if (attribute eq 'weight') {
+		    data = BASE['Anr', artno]['Gewicht'];
+		    if (not Bool(StrLen(data))) {
+		      data = CHANGED['Anr', artno]['Gewicht'];
+		    }
+		  }
+		return data;
+  }" />
+</function>
+
+<function description="Find changed masterdata information">
+  <definition
+    expression="def volumeWeight(part) {
+		  my weight = 0;  
+      my parts = List();
+     return weight;
+  }" />
+</function>
+  
+<function description="Calculating weight of all parts of a shelf">
+  <definition expression="def connectedShelfWeight(part) {
+    my weight = 0;  
+    my parts = GetComponentListOfConnectionId(ConnectionId(part));
+    my weights = FeatureValuesFromPartList(parts, 'f_weight');
+    weight = ListSum(weights);
+    return weight;
+  }" />
+</function>
+  
+<function description="Calculating weight of all selcted parts">
+  <definition expression="def selectedShelfWeight() {
+     my weight = 0;  
+     my parts = GetSelectedComponentList('mainstructure');
+     my weights = FeatureValuesFromPartList(parts, 'f_weight');
+       weight = ListSum(weights);
+     return weight;
+  }" />
+</function>
+  
+<function description="Find changed masterdata information">
+  <definition
+      expression="def findChangedMasterdata(artno,attribute,fieldname) {
+      my answer = '';
+      my name = '';
+      my state = '';
+      if (InTable(CHANGED, 'Anr', artno)) {
+      	state = CHANGED['Anr', artno]['Lieferstatus'];
+      };
+      if (state eq 'auslauf') {
+      	if (attribute eq 'name') {
+           name = CHANGED['Anr', artno][fieldname];
+           answer = Localize('Auslaufartikel') ++ ': ' ++ name;
+         }else{
+            answer = CHANGED['Anr', artno][fieldname];
+         }
+       } else {
+        if (not VarDefined('CHANGED_NO_DELIVERY')) {
+        	call loadMasterData('no_delivery');
+        };
+        if (attribute eq 'name') {
+          name = CHANGED_NO_DELIVERY['Anr', artno]['Bezeichnung_'++UpperCase(EnvValue('DYNAMIC.Language'))];
+          answer = Localize('Nicht mehr im Sortiment:') ++ ' ' ++ name;
+        }else{
+          if (attribute eq 'weight') {
+            answer = CHANGED_NO_DELIVERY['Anr', artno]['Gewicht'];
+          }else{
+            answer = 99999.99;
+          }
+        }
+       
+         
+       }
+    return answer;
+  }" />
+</function>
+
+<function>
+  <definition
+      expression="def isIntCurrency(code) {
+      my list = List('7','8');
+      my answer = InList(list,code);
+  };" />
+</function>
+
+<function>
+  <definition
+    expression="def getDoorLength(part,doorlength) {
+      my sub1 = ChildOfType(part,'volumecontent');
+      my sub2 = ChildOfType(sub1,'ausziehtablarset');
+      my sub3 = ChildOfType(sub2,'ausziehtablar');
+      my length = PartAttr(sub3,'length');
+      my retval = if (doorlength eq length){true;}else{false;};
+  };" />
+</function>
+
+<function description="Check if the Verkleidung part can change to Biblio-Element">
+  <param  name="type" description="article-type" type="string"/>
+  <returnvalue description="Artikel-Nummer" type="string"/>
+  <definition  expression="def trimArtikelNummmer(commercial,type) {
+    my artno = '99999.99';
+    my tmp ='';
+    type = Trim(type);  
+    /* Wenn Artikel-Type vorhanden ist */
+    if ( InTable(commercial, 'type', type) ) {
+      /* Artikelnummer definieren */
+      artno = Trim(commercial['type', type]['value']);
+      if ( EndsWith(artno, ';') ) {
+        artno = Eval(artno);
+      }
+      if (EndsWith(artno,'_xxx')) {
+        /* methode with separated date */
+        tmp = commercial['type', type]['deprecated'];
+        if (StrLen(tmp) gt 4) {
+          artno = commercial['type', type]['deprecated'];
+        }else{
+          /* methode without separated date */
+          artno = SubStr(artno,0,8);
+        }
+        artno;
+      }
+    } else 
+    if (part and type eq 'Gewichtsplatte_Set') {
+    	if ((my artnr = call getSafetySet(ChildWithId(part,10)))) {
+    		artno = StrLen(artnr) ? artnr : artno;
+    	}
+    }
+    return artno;
+  }"/>
+</function>
+
+<function description="Gibt die ArtikelInfos aus den Stammdaten-Tabellen zurück">
+  <param name="commercial" description="commercialtable e.g. HALLERARTICLE"/>
+  <param name="info" description="price, name or weight"/>
+  <param name="variant" description="EUR,CHF,USD,JPY,GBP oder DE,EN,FR,IT,ES, alt_DE, etc."/>
+  <param name="type" description="article type"/>
+  <param name="part" description="PartPointer"/>
+  <definition  expression="def artikelListInfo(commercial,info,variant,type,part) {
+    my retval = '';
+    my fieldname = '';
+    my artno = call trimArtikelNummmer(commercial,type);
+    /* fieldname Abfrage definieren */
+    if (info eq 'price') {
+      fieldname = call artikelCurrency(variant);     
+    }else if (info eq 'name') {
+      fieldname = call artikelName(variant);
+    }else if (info eq 'weight') {
+      fieldname = 'Gewicht';
+    }else if (info eq 'pcf_amount') {
+      fieldname = 'pcf_amount';
+    }
+    /* Checken ob Changed-Artikel */
+    if (InTable(CHANGED,'Anr',artno)) {   
+         retval = call findChangedMasterdata(artno,info,fieldname);
+         if (info eq 'weight') {
+	        retval = Number(retval);
+	     }
+    }else 
+    if (InTable(BASE,'Anr',artno)) { 
+	     /* Infos holen aus masterdata */
+	       retval = Trim(BASE['Anr', artno][fieldname]);
+	      /* Korrekturen */
+	      if (info eq 'name' and StrLen(retval) lt 2) {  
+	        retval = Trim(BASE['Anr', artno]['Kurzbezeichnung']);
+	      }  
+	      if (info eq 'weight') {
+	        retval = Number(retval);
+	      }
+      }else {
+     	if (not VarDefined('CHANGED_NO_DELIVERY')) {
+        	call loadMasterData('no_delivery');
+        };
+         if (InTable(CHANGED_NO_DELIVERY,'Anr',artno)) {   
+	         retval = call findChangedMasterdata(artno,info,fieldname);
+	         if (info eq 'weight' or info eq 'pcf_amount') {
+		        retval = Number(retval);
+		     }
+    	} else {
+	       /* Wenn Artikel-Type nicht vorhanden ist */
+	       if (info eq 'price' or info eq 'weight') {
+	          retval = Number(99999.99);
+	       }else if (info eq 'name') {
+	          retval = type;
+	       }
+	     }
+     }
+    return retval;
+ }"/>
+</function>   
+
+<function description="Check if the Verkleidung part can change to Biblio-Element">
+  <param  name="type" description="article-type" type="string"/>
+  <returnvalue description="AuslaufArtikel oder nicht" type="string"/>
+  <definition  expression="def checkAuslaufArtikel(commercial,type) {
+    my conflict = false;
+    my artname = GetTypeName(type);
+    my artno = call trimArtikelNummmer(commercial,artname);
+    my state = CHANGED['Anr',artno]['Lieferstatus'];
+    if ( InTable(CHANGED,'Anr',artno) ) {
+      conflict = state eq 'auslauf' or (state eq 'parallel' and not EnvValue('Tab.Use.vitrinehaller'));
+      if (conflict) {
+      	 if ((artno ~ '.35' or InList(FILTER_AUSLAUF_USM, artno)) and call isUSM()) {
+      	 	conflict = false;
+      	 };
+      };
+      /* WriteInfoLog('Auslaufartikel: ' ++ artno ++ ': ' ++ artname); */
+    }
+    return conflict;
+  }"/>
+</function>
+
+<function description="Findet die richtige Bezeichnungskolonne">
+<param name="variant" description="1-5" type="String"/>
+<returnvalue description="Bezeichnung" type="String"/>
+ <definition expression="def artikelName(variant) {
+	   if (variant eq '1') {
+	     variant = 'DE';
+	   }else if (variant eq '2') {
+	     variant = 'FR';
+	   }else if (variant eq '3') {
+	     variant = 'EN';
+	   }else if (variant eq '4') {
+	     variant = 'IT';
+	   }else if (variant eq '5') {
+	     variant = 'ES';
+	   } else{
+	     variant = 'DE';
+	   }
+	   my bezeichnung = 'Bezeichnung_' ++ variant;
+	   return bezeichnung;
+  }"/>
+</function>
+
+<function description="Findet die richtige Preiskolonne">
+<param name="variant" description="1-12" type="String"/>
+<returnvalue description="preis" type="String"/>
+ <definition expression="def artikelCurrency(variant) {
+     if (variant eq '1') {
+       variant = 'CHF';
+     }else if (variant eq '2') {
+       variant = 'EUR';
+     }else if (variant eq '3') {
+       variant = 'USD';
+     }else if (variant eq '4') {
+       variant = 'alt_CHF';
+     }else if (variant eq '5') {
+       variant = 'alt_EUR';
+     }else if (variant eq '6') {
+       variant = 'alt_USD';
+     }else if (variant eq '7') {
+       variant = 'JPY';
+     }else if (variant eq '8') {
+       variant = 'alt_JPY';
+     }else if (variant eq '9') {
+       variant = 'GBP';
+     }else if (variant eq '10') {
+       variant = 'alt_GBP';
+     }else if (variant eq '11') {
+       variant = 'CNY';
+     }else if (variant eq '12') {
+       variant = 'alt_CNY';
+     } else{
+       variant = 'CHF';
+     }
+     my preis = 'Preis_' ++ variant;
+     return preis;
+  }"/>
+</function>
+
+<function description="">
+<param description="current part" type="pointer"/>
+<returnvalue description="active state of the part depending on the TDA size" type="Boolean"/>
+<definition expression="def tisch_i_match(tda,laenge,breite){
+  my match = false;
+  my plaenge = Number(Feature(tda,'f_laenge'));
+  my pbreite = Number(Feature(tda,'f_breite'));
+  if (laenge eq plaenge and breite eq pbreite) {
+   match = true;
+  }else if (breite eq 'all' and laenge eq plaenge) {
+   match = true;
+  }else if (laenge eq 'all' and breite eq pbreite) {
+   match = true;
+  };  
+  match;
+};
+
+"/>
+</function>
+
+
+<function description="creates a List with Numbers, which can be used for Loops like:
+     call indexList(3,1,4) = List(3,4,5,6) or call indexList(5,2,3) = List(5,7,9)">
+    <param description="Start Integer" name="start"/>
+    <param description="Step size (any Number)" name="step"/>
+    <param description="Size of List" name="size"/>
+    <returnvalue description="List with start, size and index" type="List"/>
+    <definition expression="def indexList(start,step,size) {
+      my list = List();
+      for ( my i = 0; i lt size; i=i+1) {
+       list = ListAdd(list, start);
+       start = start + step;
+      }
+      list;
+    };"/>
+  </function>
+  
+<function>
+  <param name="property" description="Gibt den Defaultwert des aktuellen Property zurueck"/>
+  <definition expression="def getDefaultValue(property) {
+    my retval ='';
+    my existing = '';
+    my countrylist = List('CH','IT','GB','US','JP','CN','AU','NZ');
+    my eulist = List('IT','ES','AT');
+    my country = NodeValue(NamedNode('documentsettings'),'country');
+    if (StrLen(country) lt 2) {
+       country = NodeValue(NamedNode('DocumentSettings_USM'),'country');
+    }
+    if (StrLen(country) lt 2) {
+       country = partnertable['country'];
+    }
+    
+    if (property eq 'stromspannung') {
+      if (NOT InList(countrylist, country)) {
+          retval = '230_Volt';
+      } else if (country eq 'CH') { 
+        retval = '230CH_Volt';
+      } else if (country eq 'IT') { 
+        retval = '230IT_Volt';
+      } else if (country eq 'GB') { 
+        retval = '230UK_Volt';
+      } else if (country eq 'US') { 
+        retval = '120_Volt';
+      } else if (country eq 'JP') { 
+        retval = '100_Volt';
+      } else if (InList(List('CN','AU','NZ'), country)) { 
+        retval = '230_Volt';
+      }
+      retval;
+    }
+    
+    if (property eq 'trafo') {
+      if (NOT InList(countrylist, country)) {
+          retval = 'ch_eu_2008';
+      } else if (country eq 'CH') { 
+        retval = 'ch_eu_2008';
+      } else if (country eq 'IT') { 
+        retval = 'ch_eu_2008';
+      } else if (country eq 'GB') { 
+        retval = 'uk_2008';
+      } else if (country eq 'US') { 
+        retval = 'us_2008';
+      } else if (country eq 'JP') { 
+        retval = 'jp_2008';
+      } else if (InList(eulist, country)) { 
+        retval = 'ch_eu_2008';
+      }
+      retval;
+    }
+    if (property eq 'trafoModell'){
+    	if (NOT InList(countrylist, country)) {
+          retval = 'trafoE-eu';
+      } else if (country eq 'CH') { 
+        retval = 'trafoE-eu';
+      } else if (country eq 'CN') { 
+        retval = 'trafoE-cn';
+      } else if (country eq 'AU') { 
+        retval = 'trafoE-au';
+      } else if (country eq 'NZ') { 
+        retval = 'trafoE-au';
+      } else if (country eq 'GB') { 
+        retval = 'trafoE-uk';
+      } else if (country eq 'HK') { 
+        retval = 'trafoE-uk';
+      } else if (country eq 'SG') { 
+        retval = 'trafoE-uk';
+      } else if (country eq 'AE') { 
+        retval = 'trafoE-uk';
+      } else if (country eq 'QA') { 
+        retval = 'trafoE-uk';
+      } else if (country eq 'US') { 
+        retval = 'trafoE-us';
+      } else if (country eq 'CA') { 
+        retval = 'trafoE-us';
+      } else if (country eq 'MX') { 
+        retval = 'trafoE-us';
+      } else if (country eq 'JP') { 
+        retval = 'trafoE-jp';
+      } else if (country eq 'TW') { 
+        retval = 'trafoE-tw';
+      } else if (country eq 'KR') { 
+        retval = 'trafoE-kr';
+      } else if (InList(eulist, country)) { 
+        retval = 'trafoE-eu';
+      }
+      retval;
+    }
+    
+    if (property eq 'griffArt') {
+      existing = Property('griffArt');
+      if (country eq 'JP' and existing ne 'schnapp_griff_normal') {
+        retval = 'schnapp_griff_normal';
+      } else {
+        retval = existing;
+     }
+      retval;
+    }
+    
+    if (property eq 'schlossgriffArt') {   
+      existing = Property('griffArt');
+      /* Message(GetTypeName(part) ++ ', ' ++ existing);  */
+      if (country eq 'JP' and existing ne 'schnapp_griff_m_nummer') {
+        retval = 'schnapp_griff_m_nummer';
+     } else {
+        retval = existing;
+      }
+      retval;
+    }
+    
+    if (property eq 'pr_stromspannungstyp') {
+      if (StringContains(Feature('f_stromspannung'),'230')) {
+        retval = 'hoch';
+      } else { 
+        retval = 'niedrig';
+      }
+      retval;
+     }  
+     
+     retval;
+  }" />
+</function> 
+
+<function description="For Glasgriff-Schloss Feature to get the kind of Befestigungsset">
+  <param name="part" description="glasgriff_schloss_m" type="Pointer"/>
+  <returnvalue description="Die Art des Befestigungsset: glas-glas, glas-metall" type="BOOL"/>
+  <definition expression="def befestigungsSetGlasSchloss(part) {
+    my befset = 'glas-glas';
+    my setpart = null;
+    my verkleidung = null;
+    my scharnier = null;
+    my dist = 0;
+    my distmin = 999;
+    my restlist = List();
+    my setpartline = List();
+    my line = List();
+    scharnier = FindPart(part,'glastuer','scharnier');
+    my volume = MainRoot(part);
+    my list = GetVolumeRefParts(volume);
+    /* Filtert die Verkleidungskandidaten raus*/
+    list = FilterList(list,'element',`not IsSubTypeOf(element,'verkleidung');`);
+    list = FilterList(list,'element',`not call vertikalVerkleidung(element);`);
+    /* welcher ist am naechsten zum Scharnier */
+    for (my verkleidung : list ) {
+     my relpos = RelativePartPos(scharnier, verkleidung);
+     dist = VectorLength(relpos);
+     if (dist lt distmin and dist gt 0) {
+       distmin = dist;
+       setpart = verkleidung;
+     }
+    }
+    /* Message(GetTypeName(setpart)); */
+    /* welcher ist am naechsten zum Schloss, parallele Verkleidung */
+    restlist = FilterList(list,'element',`element eq setpart;`);
+    setpartline = call globalNormal(setpart);
+    for (my verkleidung : restlist) {
+     line = call globalNormal(verkleidung);
+     if (LinesAreParallel(setpartline, line)) {
+       setpart = verkleidung;
+     }
+    }
+    /* Verkleidungstyp ergibt Art des Befestigungsset */
+    if (IsSubTypeOf(setpart,'metallverkleidung')) {
+      befset = 'glas-metall';
+    }
+    return befset;
+    } "/>
+</function>
+
+  <function description="* Count and set the most used colo">
+    <definition expression="def globalColorWeb(partlist) {
+      my blechlist = FilterList(partlist,'element',`element['type'] ne 'blech';`);
+      my colorlist = List();
+      my basecolor = 0;
+      my max = 0;
+      my color = '';
+      my colorlist = List(basecolor);
+      for (my blech : blechlist) {
+          color = Number(blech['property']['name','material']['value']);
+          colorlist[color] = colorlist[color] + 1;
+      }
+      
+      max = ListMax(colorlist);
+      
+      for (my i : IndexList(colorlist)) {
+        if (colorlist[i] eq max) {
+          color = i;
+          break;
+        }
+      }
+      return color;
+      }"/>
+  </function>
+
+<function description="Generiert eine Linie, als Abschnitt auf der Normalen (z-Achse) eines Elementes">
+  <param name="part" description="component" type="Pointer"/>
+  <returnvalue description="Linie auf der Normalen" type="Line"/>
+  <definition expression="def globalNormal(p) {
+    /* moeglich zB. auch Vector(0,0,111) und Vector(0,0,222) */
+	  my v1 = GlobalPos(p, Vector(0,0,0));
+	  my v2 = GlobalPos(p, Vector(0,0,1));
+	  return Line(v1, VectorSub(v2, v1));
+	} "/>
+</function>
+
+<function description="Generiert eine Linie, als Abschnitt auf der Normalen (z-Achse) eines Elementes">
+  <param name="part" description="component" type="Pointer"/>
+  <returnvalue description="Linie auf der Normalen" type="Line"/>
+  <definition expression="def globalNormalY(p) {
+    /* moeglich zB. auch Vector(0,0,111) und Vector(0,0,222) */
+    my v1 = GlobalPos(p, Vector(0,0,0));
+    my v2 = GlobalPos(p, Vector(0,1,0));
+    return Line(v1, VectorSub(v2, v1));
+  } "/>
+</function>
+ 
+<function description="check the sym of the tischblatt because of the Material that can apply">
+  <param name="part" description="tischblatt" type="Pointer"/>
+  <returnvalue description="Die Art des Befestigungsset: glas-glas, glas-metall" type="BOOL"/>
+  <definition expression="def checkAsymTischEinsaeulig(tischblatt) {
+			my asym = false;
+			my tisch = Parent('mainstructure',tischblatt);
+			if (tisch) {
+			  if (IsSubTypeOf(tisch,'einsaeuliger_tisch')) {
+					my list = ChildrenListOfTypeDeep(tisch,'auflagerrohrgarnitur');
+					my base = GetPartType(list[0]);
+					for (my i = 0; i lt Size(list); i = i +1) {
+					     if (base ne GetPartType(list[i])) {
+					       asym = true;
+					       break;
+					     }
+					}
+				}
+			}
+			return asym;			
+			} "/>
+</function>
+
+<function description="check the sym of the tischblatt because of the Material that can apply">
+  <param name="part" description="tischblatt" type="Pointer"/>
+  <returnvalue description="Die Art des Befestigungsset: glas-glas, glas-metall" type="BOOL"/>
+  <definition expression="def checkAsymTischZweisaeulig(tischblatt) {
+      my asym = false;
+      my asym1 = false;
+      my asym2 = false;
+      my tisch = Parent('mainstructure',tischblatt);
+      my list = List();
+      my ag300 = 0;
+      my ag375 = 0;
+      my ag450 = 0;
+      
+      if (tisch) {
+        if (IsSubTypeOf(tisch,'zweisaeuliger_tisch')) {
+             list = ChildrenListOfTypeDeep(tisch,'auflagerrohrgarnitur');
+          ag300 = ChildCount(tisch,'auflagerrohrgarnitur300');
+          ag375 = ChildCount(tisch,'auflagerrohrgarnitur375');
+          ag450 = ChildCount(tisch,'auflagerrohrgarnitur450');
+          if (PartAttr(part,'length') eq 150) {
+          asym1 = ag300 eq 1 and ag375 eq 4 and ag450 eq 1;
+          asym2 = ag300 eq 3 and ag450 eq 3;
+          asym = asym1 or asym2;
+        } else if (PartAttr(part,'length') eq 175) {
+            asym1 = ag300 eq 3 and ag375 eq 0 and ag450 eq 3;
+            asym2 = ag300 eq 1 and ag375 eq 4 and ag450 eq 1;
+            asym = asym1 or asym2;
+          }
+        }
+      }
+      
+      return asym;      
+      }"/>
+</function>
+ 
+
+<function description="check für zarge ob variotisch, noch nicht benutzt">
+<param name="part" description="part" type="Pointer"/>
+<returnvalue description="variotisch ja/nein" type="BOOL"/>
+<definition expression="def typeVarioTisch(part) {
+    my val = 0;
+    my mypart =  DockGetConnectedPart(Dock(DockGetConnectedPart(Dock('zarge2winkel')), 'winkel2bein', 1));
+    if (Bool(mypart)){ 
+      mypart = DockGetConnectedPart(Dock('zarge2winkel'));
+    }else{
+      mypart = DockGetConnectedPart(Dock('zarge2winkel', 2));
+    };         
+    if (Bool(mypart)){val = Feature(mypart, 'variotisch');};
+    val;
+  };
+"/>
+</function>  
+
+<function description="check für zarge ob CPU-Halter, montiert ist">
+<param name="part" description="part" type="Pointer"/>
+<returnvalue description="CPU-Halter ja/nein" type="BOOL"/>
+ <definition expression="def zargeWithCPU(part) {
+  my tisch = Parent('mainstructure', part);
+  my connect = false;
+  my list = ChildrenListOfType(tisch, 'tischzarge_breite_vario');
+  for (my i : IndexList(Size(list))) {
+  if (Bool(ConnectedDocksOfType(list[i],'zargen_2_konsole4'))){connect = true;};
+  };
+  connect;
+  };
+"/>
+</function>  
+
+<function description="check Ist die Umstellung der MotorBedieneinheit möglich">
+<returnvalue description="ja/nein" type="BOOL"/>
+ <definition expression="def checkMotorBedieneinheit() {
+      my forestpartlist = GetSelectedPartList('mainstructure');
+      my partlist = List();
+
+      my retval = false;
+      /* beim C3-Tisch (mit saeulenbasisb3) ist immer dei Komfort(4Pos)-Steuerung, keine Umstellung */
+      for (my i = 0; i lt Size(forestpartlist); i = i+1) {
+          partlist = ListAdd(partlist,ChildOfTypeDeep(forestpartlist[i], 'saeulenbasisb3'));
+      };
+      partlist;
+      retval = not (Size(partlist) gt 1) and not Bool(partlist[0]);
+    };
+  "/>
+</function>
+
+<function description="wegen der Artiklierung duerfen unmonierte/montierte Tische nicht gemeinsam aug hoehenverstellbar gestellt werden">
+<returnvalue description="ja/nein" type="BOOL"/>
+ <definition expression="def checkMixedTisch_i() {
+      my forestpartlist = GetSelectedPartList('mainstructure');
+      my partlist = List();
+      my checkpart = NULL;
+      my mountlist = List();
+      my unmountlist = List();
+      my retval = false;
+      /* beim i-Tisch (TDA Tische) muss über pr_vario_top umgestellt werden */
+      for (my i = 0; i lt Size(forestpartlist); i = i+1) {
+          checkpart = ChildOfTypeDeep(forestpartlist[i], 'ct_kabelwanne_i');
+          if (checkpart) {
+            if (Feature(checkpart,'Mounted')) {
+               mountlist = ListAdd(partlist, checkpart);
+            }else{
+               unmountlist = ListAdd(partlist, checkpart);           
+            }
+          }
+      }
+      retval = Size(mountlist) gt 1 and Size(unmountlist) gt 1;
+    }
+  "/>
+</function>
+
+<function description="check Ist die Umstellung auf möglich, wenn mehrere unterschiedliche Tisch-Modelle selektiert sind ">
+<returnvalue description="ja/nein" type="BOOL"/>
+ <definition expression="def checkVarioNormalTisch() {
+      my forestpartlist = GetSelectedPartList('mainstructure');
+      my partlist = List();
+
+      my retval = false;
+      /* beim i-Tisch (TDA Tische) muss über pr_vario_top umgestellt werden */
+      for (my i = 0; i lt Size(forestpartlist); i = i+1) {
+          partlist = ListAdd(partlist,ChildOfTypeDeep(forestpartlist[i], 'ct_tischzarge_i_all'));
+      }
+      partlist;
+      
+      my zubehoer = false;
+      my selected = GetSelectedPart('mainstructure');
+      if (selected) {
+         my name = GetTypeName(selected);
+      my parent = Parent('mainstructure',selected);
+      my pname  = GetTypeName(parent);
+      if (StringContains(name,'zubehoer') or StringContains(pname,'zubehoer')) {
+       zubehoer = true;
+      }
+    }
+      
+      retval = not (Size(partlist) gt 1) and not Bool(partlist[0]) and not zubehoer;
+    }
+  "/>
+</function>
+
+<function description="check ob Tischklappen-Position gewählt werden kann">
+  <param name="check" description="testet besetzte Tischklappenposition innen oder aussen" type="String"/>
+  <returnvalue description="kann montiert werden ja/nein" type="BOOL"/>
+  <definition expression="def checkTischklappe(check) {
+
+    my forestpartlist = GetSelectedPartList('mainstructure');
+    my partlist = List();
+    my proplist = List();
+    my propstring = '';
+    my retval = false;
+      
+    for (my i=0; i lt Size(forestpartlist); i=i+1) {
+        /* Tische i */
+        if (PropertyActive(forestpartlist[i], 'pr_tischklappenvariante_L_top')){
+          partlist = ListAdd(partlist,forestpartlist[i]);
+        /* Tische i mit Zubehoer */
+        }else if (Bool(ChildOfType(forestpartlist[i],'at_tisch_i_einheit'))) {
+          partlist = ListAdd(partlist,ChildOfType(forestpartlist[i],'at_tisch_i_einheit'));
+        }else if (Bool(ChildOfType(forestpartlist[i],'at_tisch_e_einheit'))) {
+          partlist = ListAdd(partlist,ChildOfType(forestpartlist[i],'at_tisch_e_einheit'));
+        }else if (Bool(ChildOfType(forestpartlist[i],'at_tisch_m_einheit'))) {
+          partlist = ListAdd(partlist,ChildOfType(forestpartlist[i],'at_tisch_m_einheit'));
+        }else{
+        /* Normale Tische */
+          partlist = ListAdd(partlist,ChildOfTypeDeep(forestpartlist[i], 'tisch_75_std'));
+          partlist = ListAdd(partlist,ChildOfTypeDeep(forestpartlist[i], 'tisch_100_std'));
+          partlist = ListAdd(partlist,ChildOfTypeDeep(forestpartlist[i], 'tisch_75_sondergroesse'));
+          partlist = ListAdd(partlist,ChildOfTypeDeep(forestpartlist[i], 'tisch_100_sondergroesse'));
+        }
+     }
+    
+    if (check eq 'aussen') {
+    my list = PropertyValuesFromPartList(partlist, 'pr_tischklappenvariante_L_top');
+    proplist = PropertyValuesFromPartList(partlist, 'pr_tischklappenvariante_R_top');
+    proplist = JoinList(list,proplist);
+    }
+    
+    if (check eq 'R_aussen') {
+    my list = PropertyValuesFromPartList(partlist, 'pr_tischklappenvariante_RL_top');
+    proplist = PropertyValuesFromPartList(partlist, 'pr_tischklappenvariante_RR_top');
+    proplist = JoinList(list,proplist);
+    }
+    
+    if (check eq 'R_innen') {
+    proplist = PropertyValuesFromPartList(partlist, 'pr_tischklappenvariante_RM_top');
+    }
+    
+    propstring = DumpToString(proplist);
+    retval = not (StringContains(propstring,'_vorne') or StringContains(propstring,'_hinten')) ;
+    
+  }"/>
+</function>
+
+<function description="check alle Komponenten montiert sind und es kein Zubehoer dran hat ">
+<param name="part" description="part" type="Pointer"/>
+<returnvalue description="ja/nein" type="BOOL"/>
+ <definition expression="def checkAllMounted(part) {
+    my partlist = GetSelectedComponentList('mainstructure');
+    my proplist = PropertyValuesFromPartList(partlist, 'mounted');
+    my propstring = DumpToString(proplist);
+    my allmounted = not (StringContains(propstring,'false'));
+    /* check Zubehoer */
+    my zubehoer = false;
+    my selected = GetSelectedPart('mainstructure');
+    if (selected) {
+         my name = GetTypeName(selected);
+      my parent = Parent('mainstructure',selected);
+      my pname  = GetTypeName(parent);
+      if (StringContains(name,'zubehoer') or StringContains(pname,'zubehoer')) {
+       zubehoer = true;
+      }
+    }
+    return allmounted and not zubehoer;
+    }
+  "/>
+</function>
+
+<function description="check für richtige Tischhöhe M Basic/Plus/Advanced + M Meeting">
+<param name="part" description="Tisch" type="Pointer"/>
+<param name="direction" description="up oder down" type="String"/>
+<returnvalue description="move up/down oder min/max" type="BOOL"/>
+ <definition expression="def checkManuellMovable(part, param) {
+   my retval = '';
+   my tisch = GetTypeName(part);
+   
+   if (param eq 'up') {
+     if (tisch ne 'as_tisch_m_meeting') {
+        retval = Feature(part,'f_hoehe_vario_top') lt 1200;
+     } else {
+        retval = Feature(part,'f_hoehe_vario_top') lt 1150;
+     }
+   }
+   
+   if (param eq 'down') {
+     retval = Feature(part,'f_hoehe_vario_top') gt 700;
+   }
+      
+   if (param eq 'min') {
+     retval = 70;
+   }
+    
+   if (param eq 'max') {
+     if (tisch ne 'as_tisch_m_meeting') {
+        retval = 120;
+     } else {
+        retval = 115;
+     }
+   }   
+   retval;
+  }
+"/>
+</function>
+
+
+
+<function description="check für richtige Tischhöhe E2,E3">
+<param name="part" description="part" type="Pointer"/>
+<param name="direction" description="up oder down" type="String"/>
+<returnvalue description="move up/down oder min/max oder movable" type="BOOL"/>
+ <definition expression="def checkElectricMovable(part, param) {
+   my type = '';
+   my trav = '';
+   my retval = '';
+   if (PropertyActive(part, 'pr_saeulenpaar_top')) { 
+      type = Feature(part,'f_saeulenpaar_top');
+      trav = Feature(part,'f_traverse_e1_top');
+    }else{
+      type = Feature(ChildOfTypeDeep(part,'at_tisch_e_main'),'f_saeulenpaar_top');
+      trav = Feature(ChildOfTypeDeep(part,'at_tisch_e_main'),'f_traverse_e1_top');
+    }
+   
+   if (param eq 'movable') {
+     if (type eq 'saeulenpaar_e2' or type eq 'saeulenpaar_e3') { retval = true; }else{ retval = false; };
+   }
+   
+   if (param eq 'change') {
+     if (Bool(trav)) { retval = true; }else{ retval = false; };
+   }
+   
+   if (param eq 'up') {
+     if (type eq 'saeulenpaar_e2') { retval = Feature(part,'f_hoehe_vario_top') lt 1200;};
+     if (type eq 'saeulenpaar_e3') { retval = Feature(part,'f_hoehe_vario_top') lt 1300;};
+   }
+   
+   if (param eq 'down') {
+     if (type eq 'saeulenpaar_e2') { retval = Feature(part,'f_hoehe_vario_top') gt 700;};
+     if (type eq 'saeulenpaar_e3') { retval = Feature(part,'f_hoehe_vario_top') gt 650;};
+   }
+      
+   if (param eq 'min') {
+     if (type eq 'saeulenpaar_e1') { retval = 74;};
+     if (type eq 'saeulenpaar_e2') { retval = 70;};
+     if (type eq 'saeulenpaar_e3') { retval = 65;};
+   }
+    
+   if (param eq 'max') {
+     if (type eq 'saeulenpaar_e1') { retval = 74;};
+     if (type eq 'saeulenpaar_e2') { retval = 120;};
+     if (type eq 'saeulenpaar_e3') { retval = 130;};
+   }
+   
+   retval;
+  }
+"/>
+</function> 
+
+<function description="check für richtige Tischhöhe E+M Basic/Plus/Advanced + E+M Meeting">
+<param name="part" description="Tisch" type="Pointer"/>
+<param name="direction" description="up oder down" type="String"/>
+<returnvalue description="move up/down oder min/max" type="BOOL"/>
+ <definition expression="def checkMovable(part, param) {
+   my retval = '';
+   my tisch = GetTypeName(part);
+   
+   if (StringContains(tisch,'tisch_e') ) {
+     retval = call checkElectricMovable(part, param);
+   } else if (StringContains(tisch,'tisch_m')) {
+      retval = call checkManuellMovable(part, param);
+   }
+   return retval;
+ } "/>
+</function>
+
+<function description="um die neuen mit insertprotooperator ersetzen Tische zu erhalten">
+  <param description="Anzahl der urspruenglich selektieren Tische" type="integer"/>
+  <param description="Breite der neuen Tische" type="string"/>
+  <returnvalue description="der hintere Teil der Assembly Liste" type="List"/>
+  <definition expression="def postSelection(selected,width) {
+    
+    my root = Forest('mainstructure');
+    my inputlist = List();
+    if (width le 75) {inputlist = ChildrenListOfTypeDeep(root, 'tisch_einheit_75');};
+    if (width eq 100) {inputlist = ChildrenListOfTypeDeep(root, 'tisch_einheit_100');};
+    my list = List();
+    my size = Size(inputlist);
+    my start = size - selected;
+    for (my i = start; i lt size; i = i+1) {
+     list = ListAdd(list, inputlist[i]);
+    };
+    list;
+  }"/>
+</function> 
+
+<function description="KITOS: kontrolle ob dock aktiv ist">
+  <param description="" type="integer"/>
+  <param description="" type="string"/>
+  <returnvalue description="Dock ist aktiv oder nicht" type="BOOL"/>
+  <definition expression="def checkDockActive(param1,param2) {
+my active = false;
+my sp_1= FindPart('rohr2keil', '1', 'spannring');
+my sp_2= FindPart('rohr2keil', '2', 'spannring');
+my checkIndex_1= PartRot()['z'] EQ 90 AND PartRot(sp_1)['z'] EQ 0 ? param1 : param2;
+my checkIndex_2= PartRot()['z'] EQ 90 AND PartRot(sp_2)['z'] EQ 0 ? param1 : param2;    
+ 
+if (sp_1 AND sp_2) {
+  my A = Bool(FindPart(sp_1, 'ring2keil', checkIndex_1));
+  my B = Bool(FindPart(sp_2, 'ring2keil', checkIndex_2));
+  active = A and B;
+}
+return active;
+  };"/>
+</function> 
+
+<function>
+    <returnvalue description="returns the path where the local projects and the local project db are stored" type="String" />
+    <definition
+      expression="def getLocalGuiSettingsDir() { 
+  my path= call getIndividualDataDir();
+  path = ConcatPath(path,'guisettings');
+  path= ConcatPath(path,'coguisettings.xml');
+  path;
+  };" />
+</function>
+
+<function>
+    <returnvalue description="returns the path where the local projects and the local project db are stored" type="String" />
+    <definition
+      expression="def centerPart(direction) { 
+      my trans = 0;
+      my lpos = PartPos(part);
+      my gpos = GlobalPos(part, lpos);
+      my gposdir =Round(gpos[direction]);
+      if(gposdir gt 0) {
+        trans = (0 - gposdir)/2;
+      }else{
+        trans = (0 - lpos[direction])/2;
+      };
+      trans;
+  }" />
+</function>
+
+<function>
+    <param name="subkat" type="String" description="kelco,holz,mdf,linoleum,fenixglas,buntglas,mattglas,stein"/>
+    <returnvalue description="Ja/Nein" type="Bool" />
+    <definition expression="def redTischMaterial(part) { 
+      my A = Bool(FindPart(part,'ct_tischblende_quer'));
+      my B = Bool(FindPart(part,'ct_kabelrost_i'));
+      my C = call zargeWithCPU(part);
+      my D = Bool(Feature('f_klappentischblatt'));
+      my E = Bool(PartAttr(part, 'type') eq 'esstisch');
+      return A or  B or C or D or E;
+  }" />
+</function> 
+<function>
+    <param name="subkat" type="String" description="kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein"/>
+    <returnvalue description="Ja/Nein" type="Bool" />
+    <definition expression="def redTischMaterialKitos(part) {
+      my parent = Parent('mainstructure'); 
+      my A = IsSubTypeOf(part, 'rundtischblatt') and Bool(ChildOfType(parent,'tischgestell_apero'));
+      my B = IsSubTypeOf(part, 'ct_secksecktischblatt');
+      my C = Bool(GetTypeName(part) eq 'tischblatt750x750') and Bool(ChildOfType(parent,'tischgestell_apero')) and Bool(ChildOfTypeDeep(parent,'auflagerrohrgarnitur450'));
+      my D = IsSubTypeOf(part, 'standardtischblatt_2s_4eck') and (Bool(Property(parent,'hc_saeulen') eq 'saeule_B2') or Bool(Size(FreeDocksOfType(part, 'dt_tischblatt_2_konsole')) ne 2));
+      my E = IsSubTypeOf(part, 'standardtischblatt_1o2s') and Bool(Property(parent,'hc_saeulen') eq 'saeule_B2');
+      my F = Bool(Feature(part,'f_asymTischEinsaeulig'));
+      my G = Bool(Feature(part,'f_asymTischZweisaeulig'));
+      my H = IsSubTypeOf(part, 'tischblatt900x750') and ParentOfType(part, 'mainstructure', 'einsaeuliger_tisch');
+      return A or B or C or D or E or F or G or H;
+  }" />
+</function> 
+
+<function>
+    <param name="subkat" type="String" description="kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein"/>
+    <returnvalue description="Ja/Nein" type="Bool" />
+    <definition expression="def checkMaterialSubKategorie(part,subkat) { 
+      my retval = true;
+      my redpart = false;
+      my cartridge = GetCartridge(part);
+      my weichkat = List('kelco','holz','mdf','linoleum','fenix');
+      my hartkat = List('glas','buntglas','mattglas','stein');
+      if (cartridge eq 'usm_hallertisch') {
+         redpart = IsSubTypeOf(part, 'tisch_100_60dreieck') or IsSubTypeOf(part, 'tisch_100_90dreieck') or
+                   IsSubTypeOf(part, 'tisch_75_60dreieck') or IsSubTypeOf(part, 'tisch_75_90dreieck') or
+                   IsSubTypeOf(part, 'tisch_100_trapez') or IsSubTypeOf(part, 'tisch_75_trapez') or
+                   IsSubTypeOf(part, 'tisch_100_sondergroesse') or IsSubTypeOf(part, 'tisch_75_sondergroesse') or 
+                   IsSubTypeOf(part, 'at_tisch_i_main') or IsSubTypeOf(part, 'tisch_mit_zubehoer') or 
+                   call redTischMaterial(part);
+         	if (IsSubTypeOf(part, 'tischblatt_125_50')) {
+         		retval = InList(List('kelco','linoleum','fenix'), subkat);
+         	}
+     } else if (cartridge eq 'usm_kitos') {
+       redpart = IsSubTypeOf(part, 'at_tisch_e') or IsSubTypeOf(part, 'at_tisch_m_main') or call redTischMaterialKitos(part);
+     }
+     if (redpart and InList(hartkat,subkat) ) {
+       retval = false;
+     }
+     return retval;
+  }" />
+</function> 
+
+<function>
+    <param name="part" description="Tischblatt" type="Pointer"/>
+    <param name="subkat" type="String" description="kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein"/>
+    <returnvalue description="Default Material" type="String" />
+    <definition expression="def defaultMaterial(part,propertychanged) {
+       my changed = Property(part,propertychanged);
+       my headings = 'kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein';
+       my values = '02,06,24,41,58,80,22,24,09';
+       if (GetCartridge(part) eq 'usm_kitos') {
+       values = '2,6,24,41,58,80,22,24,9';
+      }
+      
+       my defaultTable = CreateTable(headings, values,',');
+       return defaultTable[0][changed];
+    }" />
+</function> 
+
+<function>
+    <param name="part" description="Tischblatt" type="Pointer"/>
+    <param name="subkat" type="String" description="kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein"/>
+    <returnvalue description="Default Material Kategorie" type="String" />
+    <definition expression="def defaultMaterialOberKategorie(part,propertychanged) {
+       my changed = Property(part,propertychanged);
+       my headings = 'kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein';
+       my values = 'weich,weich,weich,weich,weich,hart,hart,hart,hart';
+       my defaultTable = CreateTable(headings, values,',');
+       return defaultTable[0][changed];
+    }" />
+</function>
+
+<function>
+    <param name="part" description="Tischblatt" type="Pointer"/>
+    <param name="subkat" type="String" description="kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein"/>
+    <returnvalue description="Default Material Kategorie" type="String" />
+    <definition expression="def defaultMaterialKategorie(part,propertychanged) {
+       my changed = Property(part,propertychanged);
+       my headings = 'kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein';
+       my values = 'standard,standard,standard,standard,standard,stein_glas,buntglas,mattglas,stein_glas';
+       my defaultTable = CreateTable(headings, values,',');
+       return defaultTable[0][changed];
+    }" />
+</function>
+
+<function>
+    <param name="part" description="Tischblatt" type="Pointer"/>
+    <param name="subkat" type="String" description="kelco,holz,mdf,linoleum,fenix,glas,buntglas,mattglas,stein"/>
+    <returnvalue description="Default Material Kategorie" type="String" />
+    <definition expression="def materialienListe(kategorie) {
+       my materialienliste = List();
+       if (kategorie eq 'farbe') {
+         materialienliste = List('22','23','24','25','26','27','28','29','30','31','32','33','34','35','36');
+       }
+       return materialienliste;
+    }" />
+</function>
+
+
+<function  description="legacy">
+   <param name="part" description="Tischblatt oder Zarge" type="Pointer"/>
+   <param name="set" description="Materialsets: sub, std, ober" type="Pointer"/>
+   <returnvalue description=" Materialkategorie fuer Artiklierung" type="String" />
+   <definition expression="def artikelMaterialKategorie(part,set) { 
+      my kat = '';
+      my tischblatt = part; /* wenn Tischblatt */
+      my mat = Feature(tischblatt,'Tischmaterial');
+      my matfarbe = Feature(tischblatt,'f_materialFarbe');
+      my tdakitos = IsSubTypeOf(tischblatt,'at_tisch_e') or IsSubTypeOf(tischblatt,'at_tisch_m');
+      my tda = IsSubTypeOf(tischblatt,'at_tisch_i_main');
+      if (tda) {
+         mat = Feature(tischblatt,'f_tischmaterial_top');
+      }
+      if (tdakitos) {
+         tischblatt = ChildOfTypeDeep(tischblatt,'ct_tischblatt');
+         mat = Feature(tischblatt,'Tischmaterial');
+      }
+      if (IsSubTypeOf(part,'ct_tischzarge_rechtecktisch')) {
+         /* Zarge muss abgefragt werden, wegen not calcluated vario Tische */
+         if (Feature(part,'f_tischmodell') eq 'basis') {   
+           /* wenn Zarge des Klassik-Tisches */
+           tischblatt = FindPart(part,'tischblatt');
+           mat = Feature(tischblatt,'Tischmaterial');
+         } else {
+           /* wenn Zarge des Access/Plus/Adv-Tisches */
+           tischblatt = Parent('mainstructure',Parent('mainstructure',Parent('mainstructure',part)));
+           mat = Feature(tischblatt,'f_tischmaterial_top');
+         }  
+        tischblatt;
+      }
+ 
+      my kelco = List('02','51','52','53');
+      my stein = List('09','61','62','63');
+      my holz = List('05','06','07','15','16','17','18');
+      my linoleum = List('41','44','45','46','47');
+      my fenix = List('56','57','58');
+      my glas = List('80');
+      my mattglas = List('24','29','30','32','33','34');
+      my farbe = call materialienListe('farbe');
+      
+      if (GetCartridge(part) eq 'usm_kitos') {
+        my kelco = List('2','51','52','53');
+        my stein = List('9','61','62','63');
+        my holz = List('5','6','7','15','16','17','18');
+      }
+      
+      if (InList(farbe, mat)) {
+        if (Feature(tischblatt,'f_materialSubKategorie') eq 'mdf' or BeginsWith(GetTypeName(tischblatt),'tischblatt_i' )
+            or BeginsWith(GetTypeName(tischblatt),'ct_tischblatt') or tdakitos or tda) {
+          kat = 'mdf';
+        } else if (InList(mattglas, mat) and Feature(tischblatt,'f_materialSubKategorie') eq 'mattglas') {
+          kat = 'mattglas';
+        } else if (Feature(tischblatt,'f_materialSubKategorie') eq 'buntglas') {
+          kat = 'buntglas';
+        }
+      }
+      
+      my standard = JoinList(kelco,holz);
+      standard = JoinList(standard,linoleum);
+      standard = JoinList(standard,fenix);
+      my stein_glas = JoinList(stein,glas);
+      my weich = JoinList(holz,kelco);
+      weich = JoinList(weich,linoleum);
+      weich = JoinList(weich,fenix);
+      
+    
+      if (BeginsWith(set,'sub')) {
+        if (InList(kelco, mat)) {
+          kat = 'kelco';
+        } else if (InList(stein, mat)) {
+          kat = 'stein';
+        } else if (InList(holz, mat)) {
+          kat = 'holz';
+        } else if (InList(linoleum, mat)) {
+          kat = 'linoleum';
+        } else if (InList(fenix, mat)) {
+          kat = 'fenix';
+        } else if (InList(glas, mat)) {
+          kat = 'glas';
+        }
+      }else if (set eq 'std') {
+        if (InList(standard, mat) or kat eq 'mdf') {
+          kat = 'standard';
+        } else if (InList(stein_glas, mat)) {
+          kat = 'stein_glas';
+        }
+      }else if (set eq 'ober') {
+        if (InList(stein_glas, mat) or kat eq 'buntglas' or kat eq 'mattglas') {
+          kat = 'hart';
+        } else if (InList(weich, mat) or kat eq 'mdf') {
+          kat = 'weich';
+        }
+      kat;
+      }
+      if (set eq 'sub-legacy' and InList(farbe,mat)) {
+        /* WriteInfoLog('fff3: ' ++ matfarbe); */
+          if (matfarbe eq 'glas-farbe') {
+             kat = 'buntglas';
+          } else if (matfarbe eq 'mdf-farbe') {
+             kat = 'mdf';
+          } else if (matfarbe eq 'mattglas-farbe') {
+             kat = 'mattglas';
+          }
+          kat;
+          /* WriteInfoLog('fff4: ' ++ kat); */
+       }
+      return kat;           
+    }"/>
+</function>
+
+<function description="Berechnet zwei-stellige korrekte Artikelnummer">
+   <param description="Basis-Artikelnummer zB 14567" name="art" type="String"/>
+   <param description="ID des Artikel Child" name="childid" type="String"/>
+   <returnvalue description="zwei-stellige korrekte Artikelnummer, 14567.05" type="String" />
+   <definition expression="def normalizeMaterialCode(art,childid) {
+  my mat = Feature(ChildWithId(part,childid),'Tischmaterial'); 
+  if (StrLen(mat) lt 2 ) {
+   mat = '0' ++ mat;
+  }
+  return art ++ '.' ++ mat;
+  }" />
+</function>
+
+<function description="legacy">
+   <param name="part" description="Tischblatt oder Zarge" type="Pointer"/>
+   <returnvalue description="Materialvariante, von 22-35" type="String" />
+   <definition expression="def defaultmaterialFarbe(part) {
+       my default = Feature(part,'f_materialFarbe');
+       my material = Feature(part,'Tischmaterial');
+       my farbenliste = call materialienListe('farbe');
+       my farbe = InList(farbenliste,material);
+       my subkat = Feature(part,'f_materialSubKategorie');
+       /* WriteInfoLog('fff1: ' ++ default ++ ', ' ++ material ++ ', ' ++ farbe ++ ', ' ++ subkat); */
+       
+       if (farbe and default eq 'none' and subkat eq 'kelco') {
+              /* Old Tables to convert them */
+             my name = GetTypeName(part);
+             my parent = Parent('mainstructure',part);
+             my grandparent = NULL;
+             my rost = NULL;
+             my check5 = false;
+             if (parent) {
+               grandparent = Parent('mainstructure',parent);
+               if (grandparent) {
+                 rost = ChildOfType(grandparent, 'ct_kabelrost_i');
+               }
+             }
+             my check1 = BeginsWith(name,'tischblatt_i') or BeginsWith(name,'tischblatt_300') or BeginsWith(name,'tischblatt_a');
+             my check2 = IsSubTypeOf(part, 'tisch_100_trapez') or IsSubTypeOf(part, 'tisch_100_dreieck');
+             my check3 = IsSubTypeOf(part, 'tisch_75_trapez') or IsSubTypeOf(part, 'tisch_75_dreieck');
+             my check4 = PartAttr(part,'type') eq 'esstisch';
+             if (rost) {check5 = true;}
+             my check6 = IsSubTypeOf(part, 'at_tisch_i_main') or IsSubTypeOf(part, 'tisch_mit_zubehoer');
+             if ( check1 or check2 or check3 or check4 or check5 or check6) {
+                default = 'mdf-farbe';
+             } else {
+                default = 'glas-farbe';
+             }   
+             default;
+       } else {
+             /* Tische mit bereits gesetzter subKategorie */ 
+             if (subkat eq 'buntglas' or subkat eq 'glas') {
+               default = 'glas-farbe';
+             } else if (subkat eq 'mattglas') {
+               default = 'mattglas-farbe';
+             } else if (subkat eq 'mdf') {
+               default = 'mdf-farbe';
+             }
+       } 
+       return default;
+   }" />
+</function>                         
+
+<function>
+    <returnvalue description=" Kitos returns true if the table is no sechsecktisch" type="Bool" />
+    <definition expression="def notSechsEckTisch() { 
+		  my tisch= MainRoot();
+		  my tischblatt = 'ct_secksecktischblatt';
+		  return not Bool(ChildCountDeep(tisch, tischblatt, -1));
+		}"/>
+</function>
+
+<function>
+    <returnvalue description="List von TDAs, die via pr_mounted_top gsteuert werden" type="List" />
+    <definition expression="def mountTDAList() {
+			my list = GetSelectedPartList('mainstructure');
+			my foundlist = List();
+			my foundpart = Null;
+			for (my i = 0; i lt Size(list); i = i + 1) {
+			  if ( IsSubTypeOf(list[i],'at_tisch_e_einheit') or IsSubTypeOf(list[i],'at_tisch_m_einheit')) {
+			   foundlist = ListAdd(foundlist, list[i]);
+			  }
+			  if (GetTypeName(list[i]) eq 'as_tisch_e_mit_zubehoer') {
+			     foundpart = ChildOfType(list[i], 'at_tisch_e_main');
+			     foundlist = ListAdd(foundlist, foundpart);
+			  }
+			  if (GetTypeName(list[i]) eq 'as_tisch_m_mit_zubehoer')  {
+			     foundpart = ChildOfType(list[i], 'at_tisch_m_main');
+			     foundlist = ListAdd(foundlist, foundpart);
+			  }
+			}
+			
+			return foundlist;
+		}"/>
+</function>
+<function>
+    <returnvalue description="Check ob das Document eine alte Version enhält" type="Bool" />
+    <definition expression="def oldDocument() { 
+      my oldversion = false;
+      my cartridgeversion = '0.0.0';
+      my documentversion = '0.0.0';
+      my cartridgelist = Document_CartridgeList();
+      for (my i=0; i lt Size(cartridgelist); i= i+1) {
+        cartridgeversion = CartridgeVersion(cartridgelist[i]);
+        documentversion = Document_CartridgeVersion(cartridgelist[i]);
+        if (cartridgeversion ne documentversion ) {
+          oldversion = true;
+        }
+      }
+      oldversion;
+      } "/>
+</function>
+
+<function>
+    <returnvalue description=" list of Auslaufarticle in the commercial" type="Bool" />
+    <definition expression="def cleanAuslaufArtikel(commercial) { 
+      my article = '';
+			my auslauf = '';
+			my auslauflist = List();
+			
+			for (my i = 0; i lt Size(commercial); i = i + 1) {
+			  article = commercial[i]['value'];
+			  for (my j = 0; j lt Size(CHANGED); j = j + 1) {
+			    auslauf = CHANGED[j]['Anr'];
+			    if (article eq auslauf) {
+			      auslauflist = ListAdd(auslauflist,auslauf);
+			    }
+			  }
+			}
+			return auslauflist;
+    }"/>
+</function>
+
+<function>
+   <param name="" type="" description=""/>
+  <returnvalue description="Part oder Feature-value" type="Pointer oder String" />
+    <definition expression="def checkMeetingTischklappen(meetingtisch,side,mode) { 
+      my tisch = Null;
+      my retval = '';
+      if (mode eq 'tisch') {
+        retval = tisch;
+      }
+      if (side eq 'R') {
+         if (EndsWith(Property(meetingtisch,'pr_tischklappenvariante_R_top'),'_hinten')) {
+           if (mode eq 'tisch') {
+              retval = meetingtisch;
+           } else if (mode eq 'feature') { 
+             retval = 'Klappe_gross_innen';
+           } 
+         } else  if (EndsWith(Property(meetingtisch,'pr_tischklappenvariante_R_top'),'_vorne')) {
+           if (mode eq 'tisch') {
+              retval = meetingtisch;
+           } else if (mode eq 'feature') { 
+             retval = 'Klappe_gross_aussen';
+           } 
+         }   
+      } else if (side eq 'L') {
+        if (EndsWith(Property(meetingtisch,'pr_tischklappenvariante_L_top'),'_hinten')) {
+           if (mode eq 'tisch') {
+              retval = meetingtisch;
+           } else if (mode eq 'feature') { 
+             retval = 'Klappe_gross_aussen';
+           } 
+         } else  if (EndsWith(Property(meetingtisch,'pr_tischklappenvariante_L_top'),'_vorne')) {
+           if (mode eq 'tisch') {
+              retval = meetingtisch;
+           } else if (mode eq 'feature') { 
+             retval = 'Klappe_gross_innen';
+           } 
+         }   
+       }   
+      return retval;
+   }"/>
+</function>
+<function>
+  <param name="RactiveDock" type="Pointer" description="the maybe connected dock"/>
+  <param name="LactiveDock" type="Pointer" description="the maybe connected dock"/>
+  <returnvalue description="true or fales" type="BOOL" />
+    <definition expression="def checkActiveDock(RactiveDock,LactiveDock) { 
+	my retval = false;
+    if (DockGetConnectedPart(RactiveDock) or DockGetConnectedPart(LactiveDock)) {
+			retval = false;
+		} else { 
+			retval = true;
+		}
+    return retval;
+   }"/>
+</function>
+
+<function>
+  <param name="Part" type="Pointer" description="sperrstange"/>
+  <returnvalue description="true or fales" type="BOOL" />
+  <definition expression="def sperrstangenConnectedMountStatus(part) { 
+    my mount = 'true';
+    my dockOben = null;
+    my dockUnten = null;
+    my teleskopOben = null;
+    my teleskopUnten = null;
+    my mountOben = '';
+    my mountUnten = '';
+    
+    if (part) {
+      dockOben = Dock(part,'sperrstange_oben2teleskop','1');
+      dockUnten = Dock(part,'sperrstange_unten2teleskop','1');
+      teleskopOben = DockGetConnectedPart(dockOben);
+      teleskopUnten = DockGetConnectedPart(dockUnten);
+
+      if (teleskopOben and teleskopUnten) {
+        
+        mountOben = Feature(teleskopOben,'Mounted');
+        mountUnten = Feature(teleskopUnten,'Mounted'); 
+
+        if (mountOben ne mountUnten) {       
+        mount = 'false';
+        } 
+        mount;
+      } 
+     mount;
+    }
+    return mount; 
+  }
+"/>
+</function>
+
+<function description="via Vertikalrohr neben Sperrstange wird der Mountstatus der Sperrstange gesetzt">
+  <param name="Part" type="Pointer" description="sperrstange"/>
+  <returnvalue description="true or fales" type="BOOL" />
+  <definition expression="def sperrstangenMountStatus(movedpart,part) { 
+    my state = List();
+    state[0] = 'true';
+    state[2] = Feature(movedpart,'montageid');
+    state[3] = Feature(movedpart,'mid');
+    my posz = PartPos(part)['z'];
+    my deltaz = 9999;
+    my distz = 0;
+    my refrohr = null;
+    my rohre = List();
+    if (Feature(movedpart,'Mounted')) {
+      rohre = GetComponentListOfConnectionId(ConnectionId(part));
+      rohre = FilterList(rohre,'element',`not IsSubTypeOf(element,'normalrohr');`);
+      rohre = FilterList(rohre,'element',`call horizontalPart(element);`);
+      rohre = FilterList(rohre,'element',`Abs(RelativePartPos(part,element)['x']) gt 4;`);
+      rohre = FilterList(rohre,'element',`Abs(RelativePartPos(part,element)['y']) gt 4;`);
+      if (Bool(Size(rohre))) {
+        for (my rohr : rohre) {
+          /* sucht rohr auf moeglichst selber Hoehe */ 
+          distz = Abs(RelativePartPos(part,rohr)['z']);
+          if (distz lt deltaz) {
+             refrohr = rohr;
+             deltaz = distz;
+          }
+        }         
+        
+        if (refrohr) {
+          state[0] = Feature(refrohr,'Mounted');
+          state[2] = Feature(refrohr,'montageid');
+          state[3] = Feature(refrohr,'mid');
+        }
+      }
+    } else {
+      state[0] = 'false';
+    }
+    if (state[0] and StrLen(state[2]) gt 0) {
+    /* additional check with the connected teleskopauszuege */
+    /* Montiert und eine Montage-ID ist vorhanden */
+      state[0] = call sperrstangenConnectedMountStatus(part);
+      /* wenn unmoniert, dann montageid x.0 und mid auf 0 setzen */
+      if (not state[0]) {
+         state[2] = StringToList(state[2],'.')[0] ++ '.' ++ '0';
+         state[3] = '0';
+      }
+    }
+    return state; 
+  }
+"/>
+</function>
+
+<function>
+  <param name="Part" type="Pointer" description="sperrstange"/>
+  <returnvalue description="true or fales" type="BOOL" />
+  <definition expression="def aztSperrstangen(part) {
+		my sperrstangen = List();
+		my teleskop = null;
+		my sperrstange = null;
+		my dock = '';
+		for (my i : List(1,2)) {
+		  teleskop = FindPart(part,'tablar2teleskop',i);
+		  if (teleskop) {
+			  for (my slot : List('oben','unten')) {
+			    dock = 'teleskop2sperrstange_' ++ slot;
+			    sperrstange = FindPart(teleskop,dock);
+				  if (sperrstange) { 
+				     sperrstangen = ListAdd(sperrstangen,sperrstange);
+				  }
+			  }
+			};
+		 }
+		 sperrstangen;
+	 }"/>
+</function>
+
+<function description="The switch to display the standard ground floor">
+   <returnvalue type="Boolean" description="The boolean value to decide if the standard ground floor is displayed"/>
+   <definition expression="def displaySky() {
+      my state = false;
+      my sky = Bool(NodeValue(NamedNode('usersettings'),'co_displaySky'));
+      my beleuchtung = Bool(EnvValue('LightOn')) or Bool(EnvValue('LightOn.HallerE'));
+      state = sky and not beleuchtung;
+      return state;
+  }"/>
+</function>
+
+<function description="It returns the color to be used to render the ground floor, if the texture file is not specified.">
+    <returnvalue type="String" description="The floor color code"/>
+    <definition expression="def getSkyColor() {
+      return '#81b2edff';
+    }"/>
+  </function>
+
+<function>
+  <returnvalue description="Texture image path for the sky display" type="String" />
+  <definition expression="def getSkyImage() {  
+    my image = '';
+    if (NodeValue(NamedNode('usersettings'),'co_displaySky')) {
+      image = '../../shared/gui/icons/backgrounds/panorama_sky1.jpg';
+    }
+    return image; 
+   }"/>
+</function>
+
+<!-- 3D-Viewer Floor overwrites STD -->
+<function description="The switch to display the standard ground floor">
+   <returnvalue type="Boolean" description="The boolean value to decide if the standard ground floor is displayed"/>
+   <definition expression="def overwrites displayGroundFloor() {
+     my state = false;
+     state = NodeValue(NamedNode('usersettings'),'co_displayGroundFloor');
+     return Bool(state);
+   }"/>
+</function>
+
+<function description="It returns the path to the image to be used as ground floor. If no floor image to be used, please overwrite it and return empty string.">
+  <returnvalue type="String" description="Texture image path for the floor display"/>
+  <definition expression="def overwrites getGroundFloorImage() {
+    my image = 'res://backgrounds/floor_concrete_finegrained.png';
+	  return image;
+	}"/>
+</function>
+
+<function description="It returns the tile size of the ground floor texture">
+  <returnvalue type="String" description="A vector with the z component as 0, x and y representing the length and the width of the tile size."/>
+  <definition expression="def overwrites getGroundFloorTileSize() {
+  return Vector(50, 50, 0);
+}"/>
+</function>
+
+<function description="It returns the color to be used to render the ground floor, if the texture file is not specified.">
+  <returnvalue type="String" description="The floor color code"/>
+  <definition expression="def overwrites getGroundFloorColor() {
+  return '#eeeeeeff';
+}"/>
+</function>
+
+<function description="It returns the color to be used to render the ground floor, if the texture file is not specified.">
+  <returnvalue type="String" description="The floor color code"/>
+  <definition expression="def checkApero(part) {
+	  my state = false;
+		my parent = Parent('mainstructure',part);
+		if (parent) {
+		  state = ChildOfType(parent,'tischgestell_apero');
+		}
+		return state;
+  }"/>
+</function>
+
+<function description="It returns the color to be used to render the ground floor, if the texture file is not specified.">
+  <param name="part" type="Pointer" description="ct_buegel_flex"/>
+  <param name="direction" type="String" description="y or z"/>  
+  <returnvalue type="Number" description="DockPosition"/>
+  <definition expression="def flexBuegelDockPos(part,direction) {
+    my pos = 0;
+    my angle = Round(GetDOFValue(DockGetConnectedDock(Dock('flex_2_fix'))),0.1);
+    my headings = List('angle','y','z');
+    my list1 = List('27.4','-4.8','25.9');
+    my list2 = List('13.7','-5.2','24.7');
+    my list3 = List('0','-5.4','23.4');
+    my list4 = List('-13.7','-5.3','22.1');
+    my list5 = List('-27.4','-4.9','20.9');
+    my values = JoinList(list1, list2);
+    values = JoinList(values, list3);
+    values = JoinList(values, list4);
+    values = JoinList(values, list5);
+    my positions = CreateTable(headings, values);
+    pos = positions['angle',angle][direction];
+    return pos;
+  }"/>
+</function>
+
+<function description="Existiert eine Metallverkleidung, die in diesen Typ konvertiert werden kann.">
+  <param name="part" description="part to checke" type="Pointer"/>
+  <param name="subtypes" description="list of sutypes" type="List()"/>
+  <returnvalue type="Bool" description="part is inside in one of the subtypes"/>
+  <definition expression="def inListOfSubTypes(part,subtypes) {
+    my state = false;
+    my size = Size(subtypes);
+    for (my j = 0; j lt size; j = j + 1) {
+      if (IsSubTypeOf(part,subtypes[j]) ) {
+        state = true;
+        break;
+      }    
+    }
+    return state;
+  }"/>
+</function>
+
+<function description="Existiert eine Metallverkleidung, die in diesen Typ konvertiert werden kann.">
+  <param name="partlist" description="selected parts" type="List"/>
+  <returnvalue type="Bool" description="true/false"/>
+  <definition expression="def metallklasse_ohne_Loch(partlist) {
+    my state = false;
+    my instate = false;
+    partlist = FilterList(partlist,'element',`not IsSubTypeOf(element,'metallverkleidung');`);
+    /* component types they cannot converted to a lochblech */
+    my subtypes = List('blech250_750','blech500_750','einsatz500_750','perfblech250_750','perfblech500_750','trapezvorderwand');
+    for (my i = 0; i lt Size(partlist); i = i + 1) {
+      instate = call inListOfSubTypes(partlist[i],subtypes);
+      if (instate) {
+      state = true;
+      break;
+      }
+    }
+    return state;
+  }"/>
+</function>
+
+<function description="Berechnet die Tiefe des Tisches fuer die PPs Tischnblende">
+  <param name="partlist" description="selected parts" type="List"/>
+  <returnvalue type="Bool" description="true/false"/>
+  <definition expression="def classicTischTargenTiefe(part) {
+    my tiefe = 99;
+    my zarge = null;
+    my zarge1 = null;
+    my winkel1 = null;
+    my winkel2 = null;
+      winkel1 = FindPart(part,'zarge2winkel',1);
+      winkel2 = FindPart(part,'zarge2winkel',2);
+    if (IsSubTypeOf(winkel1,'eckwinkel_90') and IsSubTypeOf(winkel2,'eckwinkel_90')) {
+    /* Wenn false, dann ist es reich dreiekc- oder trapez-Tisch, dann bleibt tiefe = 99 */
+    if (winkel1) {
+      zarge1 = FindPart(winkel1,'winkel2zarge',2);
+    }
+    tiefe = PartAttr(zarge1,'laenge');
+    }
+    return tiefe;
+  }"/>
+</function>
+
+
+<function>
+  <param name="Rohre horizontal" type="List" description="Rohre horizontal mit 2 Kugeldocks"/>
+  <returnvalue description="beidseitige Rohr-Docks und Horizontal-Rohr ja/nein" type="BOOL" />
+  <definition expression="def horizontalPart(part) { 
+       return Feature(part,'f_horizontal');
+    }"/>
+</function>
+
+<function>
+  <param name="direction" type="String" description="Trennung horizontal oder vertikal"/>
+  <returnvalue description="kann getrennt werden ja/nein" type="BOOL" />
+  <definition expression="def separatePossible() {
+    my possible = List();
+    my valid = true;
+    my vol = null;
+    my refvols = List();
+    my regalvols = List();
+    my refvol = null;
+    my vselection = true;
+    my hselection = true;
+    my posx =  Vector();
+    my posy =  Vector();
+    my posz = Vector();
+    my connection_id = '';
+    my connected_parts = List();
+    my kugeln = List();
+    my volumes = GetSelectedPartList('mainstructure');
+    volumes = FilterList(volumes,'element',`not IsSubTypeOf(element,'normal_volume');`);
+    my size = Size(volumes);
+    
+    if (Bool(size)) {
+      posx = Round(PartPos(volumes[0])['x']);
+      posy = Round(PartPos(volumes[0])['y']);
+      posz = Round(PartPos(volumes[0])['z']);
+      connection_id = ConnectionId(volumes[0]);
+      connected_parts =GetComponentListOfConnectionId(connection_id);
+      kugeln = FilterList(connected_parts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+      
+      /* Alle Faecher,Volumen im Regal */
+      for (my kugel : kugeln) {
+        refvols = GetRefVolumes(kugel, 'mainstructure');
+        for (my refvol : refvols) {
+          if (not InList(regalvols, refvol)) {
+            regalvols = ListAdd(regalvols,refvol);
+          }
+        }
+      }
+      
+      /* Spezialfall nur ein Volumen ist selektiert */
+      if (size eq 1) {
+        for (my vol: regalvols) {
+          if (Round(PartPos(vol)['z']) ne posz and Round(PartPos(vol)['x']) ne posx) {
+            valid = false;
+            break;
+          }
+        }
+      } else {       
+        /* Horizontale Selektion */
+        for (my vol: volumes) {
+          if (Round(PartPos(vol)['z']) ne posz) {
+            hselection = false;
+            break;
+          }
+        }
+         /* Vertikale Selektion */
+        for (my vol: volumes) {
+          if (Round(PartPos(vol)['x']) ne posx or Round(PartPos(vol)['y']) ne posy) {
+            vselection = false;
+            break;
+          }
+        }
+        /* Sind alle Faecher in der Hoehe oder in der Breite selektiert */
+        if (vselection) {
+          for (my vol : regalvols) {
+            if (not InList(volumes, vol) and (Round(PartPos(vol)['x']) eq posx and Round(PartPos(vol)['y']) eq posy)) {
+              valid = false; 
+              break;
+            }
+          }
+        }
+        if (hselection) {
+          for (my vol : regalvols) {
+            if (not InList(volumes, vol) and Round(PartPos(vol)['z']) eq posz) {
+              valid = false;
+              break;
+            } 
+          }
+        }
+      }
+      if (not vselection and not hselection) {
+        valid = false;
+      }
+    } else {
+      valid = false;
+    }
+    possible[0] = valid;
+    possible[1] = vselection;
+    possible[2] = hselection;
+    possible[3] = volumes;
+    possible[4] = regalvols;
+    return possible;
+  }"/>
+</function>
+
+<function>
+  <returnvalue description="Konflikte" type="List" />
+  <definition expression="def tischMaterialKategorieMix() {
+    my conflicts = List(); 
+    my tischblaetter = List();
+    my kategorie = '';
+    my subkategorie = '';
+    tischblaetter = GetComponentListOfType('tischblatt');
+    for (my blatt : tischblaetter) {      
+      if (blatt) {
+        kategorie = Feature(blatt,'f_materialKategorie');
+        subkategorie = Feature(blatt,'f_materialSubKategorie');
+       if ((subkategorie eq 'buntglas' or subkategorie eq 'mattglas') and subkategorie ne kategorie) {
+         conflicts = ListAdd(conflicts,blatt);
+       }
+      }
+    }
+    return conflicts;
+    }"/>
+</function>
+
+<function>
+  <returnvalue description="Konflikte" type="List" />
+  <definition expression="def vertikalRohrNichtVerbunden() {
+    my conflicts = List(); 
+    my rohre = List();
+    my rohr = null;
+    my kugel1 = null;
+    my kugel2 = null;
+    my kugel = false;
+    my hoehe = 0;
+    my hoehe1 = 0;
+    my hoehe2 = 0;
+    my diff1 = 0;
+    my diff2 = 0;
+    my dist = 0;
+    my range1 = false;
+    my range2 = false;
+    rohre = GetComponentListOfType('rohr');
+    /* Gewindehilfsrohre sind innere Hilfsrohre, die intern gedockt sind  */
+    rohre = FilterList(rohre,'element',`IsSubTypeOf(element,'gewindehilfsrohr');`);
+    rohre = FilterList(rohre,'element',`call horizontalPart(element);`);
+    for (my rohr : rohre) {      
+      if (rohr) {
+        hoehe = PartPos(rohr)['z'];
+        dist = Round(PartAttr(rohr,'hc_length')/20,0.1);
+        kugel1 = DockGetConnectedPart(Dock(rohr,'rohr2kugel',1));
+        kugel2 = DockGetConnectedPart(Dock(rohr,'rohr2kugel',2));
+        /* wegen bibliozapfen muss der Typ auch ueberprueft werden */
+        kugel = IsSubTypeOf(kugel1,'kugel') and IsSubTypeOf(kugel2,'kugel');
+       if (kugel1 and kugel2 and kugel) {
+         hoehe1 = PartPos(kugel1)['z'];
+         hoehe2 = PartPos(kugel2)['z'];
+         diff1 = Round(Abs(hoehe - hoehe1),0.1);
+         diff2 = Round(Abs(hoehe - hoehe2),0.1);
+         range1 = InRange(diff1 - 0.2,diff1 + 0.2,dist);
+         range2 = InRange(diff2 - 0.2,diff2 + 0.2,dist);
+         /* Message(dist ++ ', ' ++ diff1 ++ ', ' ++ diff2); */
+         if (not range1 or not range2) {
+           conflicts = ListAdd(conflicts,rohr);
+         } 
+       }
+      }
+    }
+    return conflicts;
+    }"/>
+</function>
+
+<function name="volumeIsRotated" description="Berechnet ob das Volumen so gedreht ist, dass es eine Printzone braucht">
+  <param name="Voilumen" type="Pointer" description="Haller Volumen"/>
+  <returnvalue description="gedreht ja/nein" type="BOOL" />
+  <definition expression="def volumeIsRotated(part) {
+    my rotated  = true;
+    my rohr = null;
+    my kugel1 = null;
+    my kugel2 = null;
+    my pos1 = Vector();
+    my pos2 = Vector();
+    my diffx = 0;
+    my diffy = 0;
+    my horizontal_rohre = List();
+    horizontal_rohre = FilterList(GetVolumeRefParts(part),'element',`not IsSubTypeOf(element,'rohr');`);
+    horizontal_rohre = FilterList(horizontal_rohre,'element',`not call horizontalPart(element);`);
+    rohr = horizontal_rohre[0];
+    if (rohr) {
+      kugel1 = DockGetConnectedPart(Dock(rohr,'rohr2kugel',1));
+      kugel2 = DockGetConnectedPart(Dock(rohr,'rohr2kugel',2));
+      if (kugel1 and kugel2) {
+        pos1 = PartPos(kugel1);
+        pos2 = PartPos(kugel2);
+        diffx = pos1['x'] - pos2['x'];
+        diffy = pos1['y'] - pos2['y'];
+        diffx = Abs(Round(diffx,1));
+        diffy = Abs(Round(diffy,1));
+		    if (not diffx or not diffy) {
+		      rotated = false;
+		    }
+		  }
+    }
+    return rotated;
+  }"/>
+</function>
+
+<function name="volumeIsRotated" description="Berechnet ob das Volumen so gedreht ist, dass es eine Printzone braucht">
+  <param name="Voilumen" type="Pointer" description="Haller Volumen"/>
+  <returnvalue description="gedreht ja/nein" type="BOOL" />
+  <definition expression="def volumeInDirectionY(part) {
+    my direction_y  = false;
+    my rohr = null;
+    my kugel1 = null;
+    my kugel2 = null;
+    my pos1 = List();
+    my pos2 = List();
+    my diffx = 0;
+    my diffy = 0;
+    my horizontal_rohre = List();
+    horizontal_rohre = FilterList(GetVolumeRefParts(part),'element',`not IsSubTypeOf(element,'rohr');`);
+    horizontal_rohre = FilterList(horizontal_rohre,'element',`not call horizontalPart(element);`);
+    horizontal_rohre = FilterList(horizontal_rohre,'element',`Bool(Abs(PartRot(element)['z']));`);
+    horizontal_rohre = FilterList(horizontal_rohre,'element',`Bool(Abs(PartRot(element)['x']));`);
+    horizontal_rohre = FilterList(horizontal_rohre,'element',`not Bool(Abs(PartRot(element)['y']));`);
+    if (Bool(Size(horizontal_rohre))) {
+      rohr = horizontal_rohre[0];
+      kugel1 = DockGetConnectedPart(Dock(rohr,'rohr2kugel',1));
+      kugel2 = DockGetConnectedPart(Dock(rohr,'rohr2kugel',2));
+      if (kugel1 and kugel2) {
+        pos1 = RelativePartPos(rohr,kugel1);
+        pos2 = RelativePartPos(rohr,kugel2);
+        diffx = pos1['x'] - pos2['x'];
+        diffy = pos1['y'] - pos2['y'];
+        diffx = Bool(Abs(Round(diffx,1)));
+        diffy = Bool(Abs(Round(diffy,1)));
+        if (not diffx and diffy) {
+          direction_y = true;
+        }
+      }
+    }
+    return direction_y;
+  }"/>
+</function>
+
+<function description="Gibt den Namen der Verkleidung zurueck, beim Web-Import">
+    <param name="part" type="List of Attribut's"/>
+    <returnvalue description="Type Name" type="String" />
+    <definition expression="def blechName(comptype,type,width,depth) { 
+       my blechname = '';
+       my list1 = List('blech250_100','blech250_150','blech250_175','blech250_250','blech250_350','blech250_395','blech250_500','blech250_750');
+       my list2 = List('blech350_100','blech350_150','blech350_175','blech350_350','blech350_395','blech350_500','blech350_750');
+       my list3 = List('blech395_100','blech395_150','blech395_175','blech250_395','blech395_395','blech500_100');
+       my list4 = List('blech500_150','blech500_175','blech500_395','blech500_500','blech500_750');
+       my list5 = List('kurzblech350_395','kurzblech500_395','kurzblech750_395','kurzblech350_500','kurzblech350_750','kurzblech500_500','kurzblech500_750');
+       my list6 = List('blech750_100','blech750_150','blech750_175','blech750_395');
+       my blechlist = JoinList(list1,list2);
+       blechlist = JoinList(blechlist,list3);
+       blechlist = JoinList(blechlist,list4);
+       blechlist = JoinList(blechlist,list5);
+       blechlist = JoinList(blechlist,list6);
+       /* compose component name: blech normal */
+       if (type eq 'normal') {
+         blechname = comptype ++ depth ++ '_' ++ width;
+         if (not InList(blechlist,blechname)) {
+           blechname = comptype ++ width ++ '_' ++ depth;
+         }
+       /* compose component name: blech gelocht */
+       } else if (type eq 'gelocht') {
+           list1 = List('lochblech100_350','lochblech175_500','lochblech250_100','lochblech250_125','lochblech250_150','lochblech250_175','lochblech250_200','lochblech250_250','lochblech250_350','lochblech250_500');
+           list2 = List('lochblech275_250','lochblech350_125','lochblech350_150','lochblech350_175','lochblech350_200','lochblech350_275','lochblech350_350','lochblech350_395','lochblech350_500');
+           list3 = List('lochblech395_125','lochblech395_350','lochblech395_500','lochblech500_500','lochblech750_125','lochblech750_350');
+           list4 = List('lochblech500_100','lochblech500_125','lochblech500_150','lochblech500_200','lochblech500_275','lochblech550_350');
+           blechlist = JoinList(list1,list2);
+		       blechlist = JoinList(blechlist,list3);
+		       blechlist = JoinList(blechlist,list4);
+           blechname = 'loch' ++ comptype ++ width ++ '_' ++ depth;
+            if (not InList(blechlist,blechname)) {
+	            blechname = 'loch' ++ comptype ++ depth ++ '_' ++ width;
+	          }
+       } else if (type eq 'gegengewicht') {
+          blechlist = List('blech750_395_ggw','blech500_395_ggw','blech350_750_ggw','blech500_750_ggw');
+          blechname = comptype ++ depth ++ '_' ++ width ++ '_ggw';
+         if (not InList(blechlist,blechname)) {
+           blechname = comptype ++ width ++ '_' ++ depth ++ '_ggw';
+         }
+       }
+       return blechname;
+     }" 
+  />
+</function>
+  
+<function description="Gibt den Namen der Verkleidung zurueck, beim Web-Import">
+    <param name="part" type="List of Attribut's"/>
+    <returnvalue description="Type Name" type="String" />
+    <definition expression="def metallFarbeActive(part) { 
+       my active = false;
+       my comptype = '';
+       comptype = part['type'];
+       if (StringContains(comptype,'blech') or StringContains(comptype,'tablar') or 
+           StringContains(comptype,'tuere') or StringContains(comptype,'box') or comptype eq 'schublade') {
+         active = true;
+       }
+       return active;
+     }" 
+  />
+</function>
+
+<function description="Gibt den Namen der Verkleidung zurueck, beim Web-Import">
+    <param name="part" type="List of Attribut's"/>
+    <returnvalue description="Type Name" type="String" />
+    <definition expression="def chrommaterialActive(part) { 
+       my active = false;
+       my comptype = '';
+       comptype = part['type'];
+       if (StringContains(comptype,'kugel') or StringContains(comptype,'rohr') or StringContains(comptype,'teleskopauszug')) {
+         active = true;
+       } else if (StringContains(comptype,'tablarwinkel')) {
+         active = true;
+       }
+       return active;
+     }" 
+  />
+</function>
+  
+<function description="Gibt den Namen der Verkleidung zurueck, beim Web-Import">
+  <param name="part" type="List of Attribut's"/>
+  <returnvalue description="Type Name" type="String" />
+  <definition expression="def importComponentType(part) { 
+     my comptype = '';
+     my width = '';
+     my depth = '';
+     my height = '';
+     my length = '';
+     my side = '';
+     my type = '';
+     my uscore = '_';
+     
+     comptype = part['type'];
+     
+     if (part['property']) {
+       width = part['property']['name','width']['value'];
+       depth = part['property']['name','depth']['value'];
+       height = part['property']['name','height']['value'];
+       length = part['property']['name','length']['value'];
+       side = SubStr(part['property']['name','side']['value'],0,1);
+       type = part['property']['name','type']['value'];
+     }
+     
+     if (comptype eq 'fuss'){
+       comptype = 'hallerfuss';
+     } else if (comptype eq 'volumeconnector') {
+       comptype = 'volcontconnector';
+     } else if (comptype eq 'kugel') {
+       comptype = 'kugel_std';
+     } else if (comptype eq 'klemmhalter') {
+       comptype = 'stdklemmhalter';
+     } else if (comptype eq 'durchlass') {
+       comptype = 'blechausschnitt';
+     } else if (comptype eq 'rohr') {
+       comptype = comptype ++ width;
+     } else if (comptype eq 'teleskopauszug') {
+       comptype = comptype ++ depth ++ uscore ++ side;
+     } else if (comptype eq 'tablarseitenwinkel') {
+       comptype = comptype ++ depth ++ uscore ++ side;
+     } else if (comptype eq 'ausziehtablar') {
+        if (type eq 'inverse') {
+            comptype = 'ausziehtablarverkehrt' ++ width ++ uscore ++ depth;
+        } else {
+          comptype = comptype ++ width ++ uscore ++ depth;
+        }
+     } else if (comptype eq 'tablar') {
+       comptype = comptype ++ width ++ uscore ++ depth;
+     } else if (StringContains(comptype, 'blech')) {
+       comptype = call blechName(comptype,type,width,depth);
+     } else if (comptype eq 'tuere') {
+       comptype = 'tuerelement' ++ width ++ uscore ++ height;
+     } else if (comptype eq 'sperrstange') {
+       comptype = comptype ++ uscore ++ length;
+     } else if (comptype eq 'griff') {
+       comptype = comptype ++ uscore ++ 'normal';
+     } else if (comptype eq 'schubladenauszug') {
+       comptype = comptype ++ width;
+     } else if (comptype eq 'schublade') {
+       comptype = comptype ++ uscore ++ type ++ uscore ++ 'o';
+     } else if (comptype eq 'scherengelenk') {
+       comptype = comptype ++ uscore ++ side;
+     } else if (comptype eq 'box') {
+       comptype = 'schubladenrahmen' ++ width ++ uscore ++ depth ++ uscore ++ height;
+     } else if (comptype eq 'einschubtuere') {
+       comptype = 'einschubtuer' ++ height;
+       if (width eq '500') {
+         comptype = comptype ++ uscore ++ 'b' ++ width;
+       }
+      } else if (comptype eq 'einschubtuergelenk') {
+       comptype = comptype ++ uscore ++ side;
+     }                                                                                                                                      
+     
+     return comptype;
+   }" />
+</function>
+
+
+<function>
+  <param name="rohre" type="Pointer" description="Liste der horizontalen Bleche mit tablschlitz, beim Web-Import "/>
+  <returnvalue description="Bleche mit Schlitz fuer Einschubtuere" type="List(Pointer)" />
+  <definition expression="def tablschlitzBleche() {
+    my schlitzBleche = List();
+    my griffe = GetComponentListOfType('ct_griff_normal');
+    my bleche = GetComponentListOfType('ct_standardblech');
+    my bleche_ggw = GetComponentListOfType('gewichtbleche');
+    my bleche = JoinList(bleche,bleche_ggw);
+    my hoehe = 0; 
+    my posx = 0;   
+    for (my griff : griffe) {
+      hoehe = PartPos(griff)['z'];
+      posx = PartPos(griff)['x'];
+      for (my blech : bleche) {
+        if (InRange(hoehe-5,hoehe-2,PartPos(blech)['z']) and InRange(posx - 1,posx + 1,PartPos(blech)['x'])) {
+          schlitzBleche = ListAdd(schlitzBleche,blech);
+        }
+      }
+    }
+    return schlitzBleche;
+    }
+  "/>
+</function>
+
+<function>
+  <param name="rohre" type="Pointer" description="sortiert die Rohre und holt die untersten horizontal verfuegbaren "/>
+  <returnvalue description="true or fales" type="BOOL" />
+  <definition expression="def horizontalRohr(rohre,size) {
+    my rohrliste = List();
+    my horizontal = List();
+    my rohr = null;
+    my hoehe = 0;
+    my laenge = 0;
+    my maxhoehe = 99999.99;
+    
+    for (my i = 0; i lt Size(rohre); i = i + 1) {
+     rohr = rohre[i];
+     hoehe = PartPos(rohr)['z'];
+     laenge = PartAttr(rohr,'hc_length');
+     if (call horizontalPart(rohr) and laenge eq size) {
+         horizontal = ListAdd(horizontal,rohr);
+         if (hoehe lt maxhoehe) {
+           maxhoehe = hoehe;
+         }
+       }
+    }
+    /* alle horzontale Rohre, die auf der Hoehe des untersten Rohres sind */
+    rohrliste = FilterList(horizontal,'element',`my z = PartPos(element)['z']; not InRange(maxhoehe-2,maxhoehe+2,z);`);
+    return rohrliste;
+    }"/>
+</function>
+
+<function description="Dimension Collisonbox stossbuegeltuere">
+	<returnvalue  description="dimesion of collisionbox" type="Number" />
+	<definition expression="def stossbuegeltuere(part,dimension) {
+    my retval = 0; 
+    my p= Parent('mainstructure');
+    p= p ? Parent('mainstructure', p) : 0;
+    my show= p AND IsSubTypeOf(p, 'ausziehtuertablarset') ? true : false;
+    my p_name= p ?  GetTypeName(p) : '';
+    my length= show ? SubStr(p_name, 12, 3)/10 : 0;
+    my depth= show ? SubStr(p_name, 16, 3)/10 : 0;
+    my height= show ? SubStr(p_name, 20, 3)/10 : 0;
+    
+    if (dimension eq 'posx') {
+      retval = -length/2 - 1.5;
+    } else if (dimension eq 'posy') {
+      retval = depth/2 - 6;
+    } else if (dimension eq 'posz') {
+      retval = height - 14.5;
+    } else if (dimension eq 'posz2') {
+      retval = height - 15.5;
+    } else if (dimension eq 'sizez') {
+      retval = show ? 6 : 0;
+    }
+    return retval;
+    }" />
+</function>
+<function description="Konflikt Einschubtüre und Tablarschlitz des unteren Bleches, ersetzt clause hasvolume_tablarschlitz_unten">
+	<returnvalue  description="conflicts" type="List" />
+	<definition expression="def missingTablarSchlitz() {
+    my conflicts = List(); 
+    my gelenke = List();
+    my bleche = List();
+    my bleche_ggw = List();
+    my vol = null;
+    my volname = '';
+    my blech = null;
+    my volhoehe = 0;
+    my gelenkhoehe = 0;
+    gelenke = GetComponentListOfType('einschubtuergelenk_l');
+    if (Bool(Size(gelenke))) {
+      for (my gelenk : gelenke) {      
+        vol = MainRoot(gelenk);
+        volname = GetTypeName(vol);
+        if (IsSubTypeOf(vol,'normal_volume')) {
+          volhoehe = Feature(vol,'zlength');
+          gelenkhoehe = PartPos(gelenk)['z'];
+          bleche = FilterList(GetVolumeRefParts(vol),'element',`not IsSubTypeOf(element,'ct_standardblech');`);
+          bleche_ggw = FilterList(GetVolumeRefParts(vol),'element',`not IsSubTypeOf(element,'gewichtbleche');`);
+          bleche = JoinList(bleche,bleche_ggw);
+          if (Bool(Size(bleche))) {
+            bleche = FilterList(bleche,'element',`call vertikalBlech(element);`);
+            if (Bool(Size(bleche))) {
+              bleche = FilterList(bleche,'element',`my blechhoehe = PartPos(element)['z'];not InRange(gelenkhoehe - (volhoehe + 2),gelenkhoehe - (volhoehe - 2), blechhoehe);`);
+              if (Bool(Size(bleche))) {
+                blech = bleche[0];
+              }
+            }
+          }  
+          if (blech) {
+            if (not Feature(blech,'tablschlitz')) {
+              conflicts = ListAdd(conflicts,blech);
+            }
+          }
+        }
+      }
+    }
+    return conflicts;
+    }" />
+</function>
+
+<function description="Fuer Sperrstangen die durch ein getrenntes Volumen durchgehen
+                       Sperrstangen innerhalb eines getrennten Volumens werden durch generischen Operator behandelt">
+  <returnvalue description="Sperrstangen zum Trennen und Verbinden" type="List" />
+  <definition expression="def checkSperrstangen() {
+    my sperrstangen = List();
+    my allsperrstangen = List();
+    my regalstangen = List();
+    my sperrstangen_temp = List();
+    my sperrhalbelaenge = 0;
+    my sperrhoehe = 0;
+    my unten = 0;
+    my oben = 0;
+    my lower = 0;
+    my upper = 0;
+    my selectedcomponents = List();
+    my sperrbleche = List();
+    my sperrnachbarn = List();
+    my nacbbarstangen = List();
+    my sperrvolumes = List();
+    my refparts = List();
+    my kugeln = List();
+    my possible = call separatePossible();
+    
+    if (possible[0]) {
+       /* holt alle sperrstangen des gesamten Regals */
+       for (my regalvol : possible[4]) {
+          regalstangen = ChildrenListOfTypeDeep(regalvol, 'sperrstange');
+          if (Bool(Size(regalstangen))) {
+            allsperrstangen = JoinList(allsperrstangen, regalstangen);
+          }
+       }
+       /* ueberprueft, ob sie die Unterseite der selektierten Volumen durchstossen  */
+       /* ueber alle sperrstangen  */
+       if (Size(allsperrstangen) gt 0) {
+	       for (my sperrstange : allsperrstangen) {
+	          /* 4 cm Zusatz, damit die inneren Sperrstangen das untere Blech auch durchstossen */
+	          sperrhalbelaenge = Number(SubStr(GetTypeName(sperrstange),12,3)/20) + 1;
+	          sperrhoehe = PartPos(sperrstange)['z'];
+	          lower = Round(sperrhoehe - sperrhalbelaenge);
+	          upper = Round(sperrhoehe + sperrhalbelaenge);
+	          /* ueber die selektierten Volumen */
+	          for (my volume : possible[3]) {
+	            unten = Round(PartPos(volume)['z'] - Feature(volume,'zlength')/2); 
+	            oben = Round(PartPos(volume)['z'] + Feature(volume,'zlength')/2); 
+	           /* Message(lower ++ ', ' ++ upper ++ ', ' ++ hoehe); */
+	            if (InRange(lower,upper,unten) or InRange(lower,upper,oben) ) {
+	              sperrstangen_temp = ListAdd(sperrstangen_temp,sperrstange);
+	            }
+	          }
+	       }
+       }
+       for (my volume : possible[3]) {
+         refparts = GetVolumeRefParts(volume);
+         kugeln = FilterList(refparts,'element', 'not IsSubTypeOf(element,`kugel`);');
+         kugeln = SortByValue(kugeln, 'PartPos(element)[`z`];');
+         ListSplice(kugeln, 0, 4, null);
+         for (my sperrstange : sperrstangen_temp) {
+           if (call inEbene(kugeln, PartPos(sperrstange))) {
+             if (not InList(sperrstangen,sperrstange)) {
+              sperrstangen = ListAdd(sperrstangen,sperrstange); 
+            }
+           }
+         }
+       }
+    }     
+    return sperrstangen;
+  }"/>
+</function>
+
+<function>
+  <param name="e" description="die vier Kugeln des Volumenbodens" type="List"/>
+  <param name="v" description="Position der Sperrstange" type="Vektor"/>
+  <returnvalue description="Liegt die Sperrstange in der Ebene eines selektierten Volumens" type="Bool" />
+  <definition expression="def inEbene(e, v) {
+    my inside = false;
+    my triangleList = List();
+    ListAdd(triangleList, List(PartPos(e[0]), PartPos(e[1]), PartPos(e[2])));
+    ListAdd(triangleList, List(PartPos(e[0]), PartPos(e[3]), PartPos(e[1])));
+    ListAdd(triangleList, List(PartPos(e[1]), PartPos(e[2]), PartPos(e[3])));
+    for (my t : triangleList) {
+        if (PointInPolygon(v, t)) {
+            inside = true;
+            break;
+        }
+    }
+    return inside;
+		}"/>
+</function>
+
+<function>
+  <returnvalue description="Sperrstangen zum Trennen und Verbinden" type="List" />
+  <definition expression="def setSperrstangen(mode,mount) {
+    my sperrstangen = call checkSperrstangen();
+    if (mode eq 'setback' and not mount ) {
+      sperrstangen = FilterList(sperrstangen,'element',`not Feature(element,'mid') ne '0';`);
+      sperrstangen = FilterList(sperrstangen,'element',`Feature(DockGetConnectedPart(Dock(element,'sperrstange_oben2teleskop','1')),'mid') ne '0';`);
+    }
+    return sperrstangen;
+  }"/>
+</function>
+
+
+<function>
+  <param name="part" description="sperrblech, kurzblech oder AZT" type="Pointer"/>
+  <returnvalue description="Sperrstangen zum Trennen und Verbinden" type="List" />
+  <definition expression="def blechStatus(blech) {
+    my state = List();
+    my mounted = Feature(blech,'Mounted'); /* Mounted */
+    my dock = null;
+    my rohre = List();
+    my rohr = null;
+    my glas = null;
+    my halter = null;
+    my montageids = List();
+    if (blech) {
+       if (IsSubTypeOf(blech,'metallverkleidung') ) {
+         for (my index : List(1,2,3,4)) {
+           dock = Dock(blech,'blech2rohr',index);
+           rohr = DockGetConnectedPart(dock);
+           if (rohr) {
+             rohre = ListAdd(rohre,rohr);
+           }
+         }
+       } else if (IsSubTypeOf(blech,'glasverkleidung')) {
+         glas = blech;
+         for (my index : List(1,2,11,12)) {
+           dock = Dock(glas,'glas2glashalter',index);
+           halter = DockGetConnectedPart(dock);
+           if (halter) {
+             for (my index : List(1,2)) {
+               dock = Dock(halter,'glashalter2rohr',index);
+               rohr = DockGetConnectedPart(dock);
+               if (rohr) {
+                rohre = ListAdd(rohre,rohr);
+               }
+             }
+          }
+        }
+      }
+	    if (rohre[0]) {
+	      montageids = FeatureValuesFromPartList(rohre, 'montageid');
+	      state = call defineMontageId(mounted,montageids);
+	    }
+    }
+    return state;
+  }"/>
+</function>
+
+<function>
+  <param name="montageids" description="Montage Stati Liste von Teilen" type="List"/>
+  <returnvalue description="relevante Stati fuer neue Teile" type="List" />
+  <definition expression="def defineMontageId(mounted,montageids) {
+	  my state = List();
+	  state[0] = mounted;
+    my maxlist = List();
+    my max = 0;
+    my count = 0;
+    my maxid = '';
+    my md = ''; 
+	  my ids = UniqueList(montageids);
+    for (my id : ids) {
+      count = 0;
+      for (my mid : montageids) {
+        if (id eq mid) {
+          count = count + 1;
+        }
+      }
+      if (count gt max) {
+           max = count;
+           maxid = id; 
+      }  
+    }
+    if (mounted) {
+      /* Regal-MontageBlock Id */
+	    md = StringToList(maxid,'.')[1];
+	    if (md eq 0) {
+	      state[0] = 'false';
+	    }
+	    state[2] = maxid;
+	    state[3] = md;
+    } else {
+       /* Regal ID */
+       md = StringToList(maxid,'.')[0];
+       state[0] = 'false';
+       state[2] = md ++ '.0';
+       state[3] = '0';
+    }
+	  return state;
+	}"/>
+</function>
+
+<function>
+  <param name="montageids" description="Montage Stati für Leiter" type="List"/>
+  <returnvalue description="relevante Stati fuer Leiter Teile" type="List" />
+  <definition expression="def seitenLeiterState(selectedparts) {
+     my state = List();
+     my montageids = List();
+     my montageid = '';
+     my rohr = null;
+     my rohre = List();
+     my glas = null;
+     my halter = null;
+     my dock = null;
+     my bleche = call seitenLeiterBleche(selectedparts);
+     my blech = bleche[0];
+     if (blech) {
+       if (IsSubTypeOf(blech,'metallverkleidung') ) {
+         for (my index : List(1,2,3,4)) {
+          dock = Dock(blech,'blech2rohr',index);
+          rohr = DockGetConnectedPart(dock);
+            if (rohr) {
+              rohre = ListAdd(rohre,rohr);
+            }
+          }
+       } else if (IsSubTypeOf(blech,'glasverkleidung')) {
+         glas = blech;
+         for (my index : List(1,2,11,12)) {
+          dock = Dock(glas,'glas2glashalter',index);
+          halter = DockGetConnectedPart(dock);
+          if (halter) {
+            for (my index : List(1,2)) {
+              dock = Dock(halter,'glashalter2rohr',index);
+              rohr = DockGetConnectedPart(dock);
+              if (rohr) {
+                rohre = ListAdd(rohre,rohr);
+              }
+            }
+          }
+        }
+       }
+       if (rohre[0]) {
+         montageids = FeatureValuesFromPartList(rohre, 'montageid');
+         if (Size(montageids) gt 0) {
+           montageid = montageids[0];
+           state[0] = 'false';
+           state[2] = StringToList(montageid,'.')[0] ++ '.0';
+           state[3] = '0';
+         }
+       }
+     }
+     return state;
+  }"/>
+</function>
+
+<function>
+  <param name="montageids" description="Montage Stati Liste von Teilen" type="List"/>
+  <returnvalue description="relevante Stati fuer neue Teile" type="List" />
+  <definition expression="def seitenLeiterBleche(selectedparts) {
+     my bleche = List();
+     bleche = FilterList(selectedparts,'element',`not IsSubTypeOf(element,'verkleidung');`);
+     bleche = FilterList(bleche,'element',`Feature(element, 'Mounted');`);
+     bleche = FilterList(bleche,'element',`Feature(element, 'mid') eq 0;`);
+     bleche = FilterList(bleche,'element',`not HasFeature(element, 'montageid');`);
+     return bleche;
+  }"/>
+</function>
+
+
+<function>
+  <param name="part" description="sperrblech, kurzblech oder AZT" type="Pointer"/>
+  <returnvalue description="Sperrstangen zum Trennen und Verbinden" type="List" />
+  <definition expression="def setMountStateSperrstangeDetached(part) {
+  my setlist = List();
+  my sperrstangen = List();
+  my getrennt = false;
+  my gesperrt = false;
+  my volumes = GetRefVolumes(part, 'mainstructure');
+  my parts = List();
+  my contentparts = List();
+  my shelfparts = List();
+  my trennlist = List();
+  my sperrstangen = List();
+  if (IsSubTypeOf(part,'AZT')) {
+    volumes[0] = MainRoot(part);
+  }
+  for (my vol : volumes) {
+     parts = ChildrenListOfTypeDeep(vol,'haller_shelf_component');
+     contentparts = JoinList(contentparts,parts);
+  }
+  sperrstangen = FilterList(contentparts,'element',`not IsSubTypeOf(element,'sperrstange');`);
+  gesperrt = Bool(Size(sperrstangen));
+  if (gesperrt) {
+    for (my vol : volumes) {
+     parts = GetVolumeRefParts(vol);
+     shelfparts = JoinList(shelfparts,parts);
+    }
+    
+    trennlist = FilterList(shelfparts,'element',`not Feature(element,'mid') ne '0';`);
+    /* trennlist = FilterList(trennlist,'element',`Feature(element,'Mounted');`); */
+    getrennt = Bool(Size(trennlist));
+  }
+  
+  if( gesperrt and getrennt) {
+    
+    setlist = sperrstangen;
+  }
+  return setlist;
+  }"/>
+</function>
+
+
+<function>
+  <param name="artikel component" type="Pointer" description="Child of Article Scherengurt, ChildWithId(part,11)"/>
+  <param name="kind" type="String" description="Zugkraft, 30,49,69 Newton"/>
+  <returnvalue description="0/1" type="Bool" />
+  <definition expression="def scherengelenkTyp(gelenk,kind) {
+	  my active = false;
+	  my tuere = FindPart(gelenk,'tuerelement');
+	  my height = PartAttr(tuere,'height');
+	  my width = PartAttr(tuere,'width');
+	  if (kind eq '30N') {
+	    active = height eq '17.5';
+	    } else if (kind eq '40N') {
+	      active = height eq '25' or (height eq '35' and width lt 50);
+	    } else if (kind eq '69N') {
+	      active = height eq '39.5' or (height eq '35' and width ge 50);
+	    }
+	  return active;
+	}
+	"/>
+</function>
+
+<function>
+  <param name="artikel component" type="Pointer" description="Child of Article Scherengurt, ChildWithId(part,11)"/>
+  <returnvalue description="1 or 2" type="INT" />
+  <definition expression="def mountingheightAZT(part) {  
+    my mountingheight = 1;
+    my volhoehe = 0;
+    my bodenhoehe = 0;
+    my teleskophoehe = PartPos(part)['z'];
+    my vol = MainRoot(part);
+    if (vol) {
+      volhoehe = PartPos(vol)['z'];
+      bodenhoehe = volhoehe - Feature(vol,'zlength')/2;
+      mountingheight = Round((teleskophoehe - bodenhoehe - 1),0.5);
+    }
+    return NumberToString(mountingheight,0);
+  }"/>
+</function>
+
+<function>
+  <param name="assembly" type="Pointer" description="as_gliederkette"/>
+  <returnvalue description="true or fales" type="BOOL" />
+  <definition expression="def kettenElementAmount(part) { 
+			my diag = Power(Feature('f_kettenBreite_top') * 0.1 ,2) + Power(Feature('f_kettenHoehe_top') * 0.1 ,2);
+			diag = Sqrt(diag);
+			my amount = Round(diag/3,1.0);
+      return amount;
+   }"/>
+</function>
+
+<function>
+  <param name="assembly" type="Pointer" description="as_gliederkette"/>
+  <param name="mode" type="String" description="transx,transz,roty"/>
+  <returnvalue description="true or fales" type="BOOL" />
+    <definition expression="def kettenElementDefinitions(part,count,index,mode) { 
+      my retval = '';
+      my laenge = Feature('f_kettenBreite_top') * 0.1;
+      my hoehe = Feature('f_kettenHoehe_top') * 0.1;
+      my breite = Feature('f_kettenGliedBreite_top');
+      my amount = count;
+      my delta = 1 / amount;
+      my x = (index + 1) * delta; 
+      my alpha = (Power(E,x) - Power(E,-x)); /* Ableitung */
+      if (mode eq 'transx') {
+         delta = laenge / amount;
+         retval = (index + 1) * delta;
+      } else if (mode eq 'transz') {
+         retval = (Power(E,x) + Power(E,-x)) * hoehe;
+      } else if (mode eq 'roty') {
+         /* im Viertelkreis */
+         retval = - ATan(alpha) * 2 / PI * 90;
+      }
+      return retval;
+   }"/>
+</function>
+
+<function>
+  <returnvalue description="Konflikte" type="LISTE" />
+  <definition expression="def lonelyParts() {
+    my conflicts = List(); 
+    my checklist = List();
+    my parent = null;
+    my partlist = GetComponentListOfType('ct_haller_shelf_component');
+    my checklist = FilterList(partlist,'element',`ParentOfType(element, 'mainstructure', 'volume');`);
+    checklist = FilterList(checklist,'element',`IsConnectedToVolume(element,'mainstructure');`);
+    checklist = FilterList(checklist,'element',`ParentOfType(element, 'mainstructure', 'sub_assembly');`);
+    checklist = FilterList(checklist,'element',`FindPart(element,'nktrohr');`);
+    checklist = FilterList(checklist,'element',`IsSubTypeOf(element,'co_safety_dummy') and DockGetConnectedPart(Dock(element, 'safety_2_kugel', 1));;`);
+    checklist = FilterList(checklist,'element',`IsSubTypeOf(element,'co_qs_article') and DockGetConnectedPart(Dock(element, 'qs_article_2_part', 1));`);
+    checklist = FilterList(checklist,'element',`DockGetConnectedPart(Dock(element,'einschubtuergelenk2einschubtuerhalter','1'));`);
+    for (my element : checklist) {
+      if (IsSubTypeOf(element,'tuerelement')) {
+         parent = Parent('mainstructure',element);
+         if (parent) {
+            if (not IsSubTypeOf(parent,'tuerelementset') and not IsSubTypeOf(parent,'klapptuerset')) {
+              conflicts = ListAdd(conflicts, element);
+            }
+         } else {
+            conflicts = ListAdd(conflicts, element);
+         }
+      } else {
+         conflicts = ListAdd(conflicts, element);
+      }
+      
+    }
+    return conflicts;
+ }"/>
+</function>
+
+<function>
+	<returnvalue description="Konflikte" type="LISTE"/>
+	<definition expression="def blechausschnittBeiDifferenz(){
+	my conflicts = List();
+	my partlist = GetComponentListOfType('blechausschnitt');
+
+	if(partlist ne ''){
+		conflicts = ListAdd(conflicts, partlist);
+	};
+
+	return conflicts;
+	}"/>
+</function>
+
+<function>
+	<returnvalue description="Konflikte" type="LISTE"/>
+	<definition expression="def einschubtuerbei500x750(){
+	my conflicts = List();
+	my partlist = GetVolumeList();
+	my checklist = FilterList(partlist,'vol',`not (ChildOfTypeDeep(vol, 'einschubtuerset350_b500'));`);
+	
+	for (my element : checklist) {
+		if((Feature(element, 'ylength') eq '75.00') or (Feature(element, 'xlength') eq '75.00')){
+			
+				conflicts = ListAdd(conflicts, ChildOfTypeDeep(element, 'einschubtuerset350_b500'));
+			
+		}
+	}
+	
+	return conflicts;
+		
+	}"/>
+</function>
+
+<function>
+  <returnvalue description="Konflikte" type="LISTE" />
+  <definition expression="def tuerenDoppelteSystemtiefe() {
+    my conflicts = List(); 
+    my checklist = List();
+    my hitvol_0 = null;
+    my hitvol_1 = null;
+    my partlist = GetComponentListOfType('ct_haller_shelf_component');
+    my tuerelemente = FilterList(partlist,'element',`not IsSubTypeOf(element, 'tuerelement');`);
+    my glastueren = FilterList(partlist,'element',`not IsSubTypeOf(element, 'glastuer');`);
+    my checklist = JoinList(tuerelemente,glastueren);
+    for (my tuere : tuerelemente) {
+    	my hit = call invalidBlech(tuere, 'metall');
+    	if (hit) {
+    		conflicts = ListAdd(conflicts,tuere);
+    	}
+    }
+    for (my tuere : glastueren) {
+    	my hit = call invalidBlech(tuere, 'glas');
+    	if (hit) {
+    		conflicts = ListAdd(conflicts,tuere);
+    	}
+    }
+     return conflicts;
+ }"/>
+</function>
+
+<function>
+  <returnvalue description="Konflikte" type="LISTE" />
+  <definition expression="def invalidBlech(part,doortype) {
+		my p1 = Vector();
+		my p2 = Vector();
+		
+		if (doortype eq 'metall') {
+		p1 = Vector(0,10,-PartAttr(part,'height')/2+1);
+		p2 = Vector(0,10,-PartAttr(part,'height')/2-10);
+		} else if (doortype eq 'glas') {
+		/* Local coord. system of glastuere is different */
+		p1 = Vector(0,-PartAttr(part,'height')/2+1,10);
+		p2 = Vector(0,-PartAttr(part,'height')/2-10,10);
+		}
+		my center= GlobalPos(part,p1);
+		my direction= VectorSub(GlobalPos(part,p2),center);
+		/* center and direction are now in the global coordinate system */
+		
+		my info = GetIntersectionInfo('1000', Line(center,direction), 'metallverkleidung', part);
+		my hit = info['part'];
+
+		return hit;
+	}"/>
+</function>
+
+<function description="testet, ob verkuerztes blech über einschubtuer ist">
+  <param name="part" description="einschubtuer component"/>
+  <returnvalue description="testet, ob verkuerztes blech über einschubtuer ist" type="Bool" />
+  <definition expression="def isEinschubtuerBelowVerkuerztBlech(part) {
+  		my found = false;
+  
+  		/* rechter tuerhalter als referenz part */
+  		my refpart = FindPart(part, 'einschubtuer2einschubtuerhalter', 1); 
+  		if (refpart) {
+			my hit = false;
+			my p1 = Vector(8,0,-2);
+			my p2 = Vector(8,-8,-2);
+			my center= GlobalPos(refpart,p1);
+			my direction= VectorSub(GlobalPos(refpart,p2),center);
+			/* center and direction are now in the global coordinate system */
+			my info = GetIntersectionInfo('1000', Line(center,direction), 'kurzblech', part);
+			my hit = Bool(info['part']);
+			
+			found = hit;
+		};
+			
+		return found;
+	}"/>
+</function>
+<function description="Einschubtür direkt unterhalb tablar darf nicht sein wegen kurzblech">
+  <returnvalue description="Einschubtür unterhalb AZT" type="Bool" />
+  <definition expression="
+  
+  def isEinschubtuerUnderAZTablar(part) {
+  	GetGeometryComplexity(1000, part);
+  	return call isEinschubtuerUnderAZTablar(part, false);
+  }
+  def isEinschubtuerUnderAZTablar(part, handle) {
+		my width = PartAttr(part, 'length')/2;
+		my zpos = handle ? -5 : -4;
+		my hit = false;
+		my p1 = Vector(0,0,zpos);
+		my p2 = Vector(width,0,zpos);
+		my center= GlobalPos(part,p1);
+		my direction= VectorSub(GlobalPos(part,p2),center);
+		/* center and direction are now in the global coordinate system */
+		my info = GetIntersectionInfo('1000', Line(center,direction), 'einschubtuergelenk', part);
+		my hit = Bool(info['part']);
+		return hit;
+	}"/>
+</function>
+<function>
+  <returnvalue description="Glas unterhalb AZT" type="Bool" />
+  <definition expression="
+  def isAZTablarOverGlas(part) {
+  	GetGeometryComplexity(1000, part);
+  	return call isAZTablarOverGlas(part, false);
+  }	
+  def isAZTablarOverGlas(part, handle) {
+		my hit = false;
+		my zdir = handle ? -3.5 : -2.5;
+		my p1 = Vector(0,-1,0);
+		my p2 = Vector(0,-1,zdir);
+		my center= GlobalPos(part,p1);
+		my direction= VectorSub(GlobalPos(part,p2),center);
+		/* center and direction are now in the global coordinate system */
+		my info = GetIntersectionInfo('1000', Line(center,direction), 'normalglas', part);
+		my hit = Bool(info['part']);
+		return hit;
+	}"/>
+</function>
+
+<function>
+  <returnvalue description="Glas unterhalb AZT" type="Bool" />
+  <definition expression="def isGlasUnderAZTablar(part) {
+		my hit = false;
+		my p1 = Vector(0,0,0);
+		my p2 = Vector(0,0,2.5);
+		my center= GlobalPos(part,p1);
+		my direction= VectorSub(GlobalPos(part,p2),center);
+		/* center and direction are now in the global coordinate system */
+		my info = GetIntersectionInfo('1000', Line(center,direction), 'ausziehtablar', part);
+		my hit = Bool(info['part']);
+		return hit;
+	}"/>
+</function>
+
+<function>
+  <returnvalue description="Sucht über Griff ob verkürzter Riegel nötig ist" type="Bool" />
+  <definition expression="def checkRiegelVerkuerzt(part) {
+	my fixedpart = null;
+	my tuerelement = DockGetConnectedPart(ConnectedDocksOfType(part, 'schlossgriff2tuer'));
+	my scherengelenklist = ConnectedDocksOfType(tuerelement, 'tuer2scherengelenk');
+	
+	if (Size(scherengelenklist) eq 0){
+		my tablar = DockGetConnectedPart(ConnectedDocksOfType(tuerelement, 'tuer2tablar'));
+		fixedpart = DockGetConnectedPart(ConnectedDocksOfType(tablar, 'tablar2teleskop'))[0];
+		my klemmhalter = DockGetConnectedPart(ConnectedDocksOfType(fixedpart, 'anything2klemmhalter')[0])[0];
+		my seitenblech = DockGetConnectedPart(ConnectedDocksOfType(klemmhalter, 'klemmhalter2blech')[0])[0];
+	}
+	else {
+		fixedpart =  DockGetConnectedPart(scherengelenklist[0]);
+		my klemmhalter = DockGetConnectedPart(ConnectedDocksOfType(fixedpart, 'anything2klemmhalter')[0])[0];
+		my seitenblech = DockGetConnectedPart(ConnectedDocksOfType(klemmhalter, 'klemmhalter2blech')[0])[0];
+	}
+	
+	/* Determine if width is actually height or depth... */
+	if(StringToList(Feature(tuerelement, 'f_anzeige_tuer_dimension'), 'x')[1] gt StringToList(call blechDimension(seitenblech), 'x')[0]){
+		my seitenblech_height = StringToList(call blechDimension(seitenblech), 'x')[0]/10;
+		my seitenblech_depth = StringToList(call blechDimension(seitenblech), 'x')[1]/10;		
+	} else{
+		my seitenblech_height = StringToList(call blechDimension(seitenblech), 'x')[1]/10;
+		my seitenblech_depth = StringToList(call blechDimension(seitenblech), 'x')[0]/10;	
+	}
+	
+  	my einsatzlist = GetComponentListOfType('einsatzverkleidung');
+  	my glaslist = GetComponentListOfType('normalglas');
+  	my einsatzundglaslist = JoinList(einsatzlist, glaslist);
+  	my bibliolist = GetComponentListOfType('biblioblech');
+  	my metallverkleidungslist = GetComponentListOfType('metallverkleidung');
+	metallverkleidungslist = FilterList(metallverkleidungslist,'element',`IsSubTypeOf(element, 'biblio') or RelativePartRot(fixedpart, element)['x'] ne 0 or RelativePartRot(fixedpart, element)['y'] ne 0;`);
+  	my elementlist = JoinList(einsatzundglaslist, bibliolist);
+  	my fulllist = JoinList(metallverkleidungslist, elementlist);
+
+	/* Find height of side for maximum z relative pos detection*/
+	my klemmhalter = DockGetConnectedPart(ConnectedDocksOfType(fixedpart, 'anything2klemmhalter')[0])[0];
+	my seitenblech = DockGetConnectedPart(ConnectedDocksOfType(klemmhalter, 'klemmhalter2blech')[0])[0];
+	my z_max = StringToList(Feature(tuerelement, 'f_anzeige_tuer_dimension'), 'x')[1]/10;
+	
+	/* Find width of door for maximum x relative pos detection*/
+	my door_width = StringToList(Feature(tuerelement, 'f_anzeige_tuer_dimension'), 'x')[0]/10;
+	
+	for (my element: fulllist){
+		my rp = RelativePartPos(fixedpart, element);
+		my x_check = rp['x'] ge -(3+door_width/2) and rp['x'] le -(-3+door_width/2);
+		if(Size(scherengelenklist) eq 0){
+			my y_check = Round(rp['y']) eq 0;
+		}
+		else {
+			my y_check = rp['y'] ge 2 and rp['y'] le (seitenblech_depth + 5);
+		}
+		my z_check = rp['z'] ge (z_max-5) and rp['z'] le (z_max+5); 
+
+		if (x_check and y_check and z_check){
+			if (InList(bibliolist, element) and Round(RelativePartRot(part, element)['z']) ne 0){
+				return false; /* Verkuerzter Riegel nicht bei biblio mit anderer Ausrichtung */
+			}	else if (InList(einsatzlist, element)){
+				return true; /* Verkuerzter Riegel bei Einsatz*/
+			}	else if (InList(glaslist, element)){
+				return 'Glas'; /* Verkuerzter Riegel bei Glas */
+			}	else if (InList(metallverkleidungslist, element)){
+				return false; /* Verkuerzter Riegel nicht bei anderen Metallelementen */
+			}
+		}
+	}
+	return true; /* Verkuerzter Riegel wenn sonst nichts gefunden */
+	}	
+	"/>
+</function>
+
+<function>
+  <returnvalue description="Konflikte" type="LISTE" />
+  <definition expression="def schubladeUnterhalbBlech500x395Verkuerzt() {
+    my conflicts = List(); 
+    my checklist = List();
+    my blech = null;
+    my partlist = GetComponentListOfType('ct_haller_shelf_component');
+    my checklist = FilterList(partlist,'element',`not IsSubTypeOf(element, 'schubladenauszug');`);
+    for (my element : checklist) {
+      blech = FindPart(element,'schubladenauszug2blech',1);
+      if (IsSubTypeOf(blech,'kurzblech500_395')) {
+            conflicts = ListAdd(conflicts, element);
+      }
+      
+    }
+    return conflicts;
+ }"/>
+</function>
+
+<function description="Gibt es Rohre im getrennten Bereich, die keinen Schlitz haben?">
+  <returnvalue description="Konflikte" type="LISTE" />
+  <definition expression="def trennRohrOhneSchlitz() {
+    my conflicts = List();
+    my rohre = GetComponentListOfType('rohr');
+    rohre = FilterList(rohre,'element',`Feature(element, 'f_rohrtyp') ne 'rohr-normal';`);
+    /* ohne E-Rohre */
+    my trennrohre = FilterList(rohre,'element',`not HasFeature(element, 'mid');`);
+    /* nur getrennte Rohre */
+    trennrohre = FilterList(trennrohre,'element',`Feature(element, 'mid') ne '0';`);
+    /* getrennte unmontiert Rohre */
+    trennrohre = FilterList(trennrohre,'element',`Bool(Feature(element, 'Mounted'));`);
+    /* getrennte unmontiert Rohre, ohne Schlitz */
+    conflicts = FilterList(trennrohre,'element',`Bool(Feature(element, 'Schlitz'));`);    
+    return conflicts;
+    }"/>
+</function>
+
+<function description="Gibt es ein Vertikal-Rohr auf der anderen Seite">
+  <param description="Vertikalrohr" type="Pointer" />
+  <returnvalue description="gefunden" type="BOOL" />
+  <definition expression="def checkCounterTube(part) {
+    my found = false; 
+    my foundings = List();
+    my countertube = null;
+    my p1 = Vector(0,0,0);  
+    my center = GlobalPos(part,p1);
+    my horizontal = call horizontalPart(part);
+    my line = List();
+    my direction = Vector();
+    my dirs = List();
+    my info = List();
+    my spheres = FilterList(GetComponentListOfConnectionId(ConnectionId(part)),'element',`not IsSubTypeOf(element,'kugel');`);
+    /* Gibt immer zwei Suchweiten */
+    my depths = call shelfDepthToCounterTube(part,horizontal,spheres);
+    my foundedparts = List();
+    for (my j : List(0,1)) {
+      dirs = List(Vector(depths[j],0,0),Vector(-depths[j],0,0),Vector(0,0,depths[j]),Vector(0,0,-depths[j]));
+      for (my dir : dirs) {
+        direction = VectorSub(GlobalPos(part,dir), center);
+        line = Line(center, direction);
+        if (horizontal) {    
+          line['origin']['y'] = line['origin']['y'] +1.5;
+        } else {
+          line['origin']['z'] = line['origin']['z'] +1.5;
+        }
+        info = GetIntersectionInfo('1000', line, 'rohr', part);
+        if (not info['part']) {
+          info = GetIntersectionInfo('1000', line, 'kugel_gew', part);
+        }
+        if (info['part']) {
+          /* Damit nicht ein Rohr zweimal gefunden wird */
+          if (not InList(foundedparts,info['part'])) {
+             foundings[j] = true;
+             foundedparts = ListAdd(foundedparts,info['part']);
+           break;
+           }
+        }
+      }
+    }
+    
+    if (horizontal) {
+      found = Bool(foundings[0]) or Bool(foundings[1]);
+    } else {
+      found = Bool(foundings[0]) and Bool(foundings[1]);
+    }
+    return found;
+  }"/>
+</function>
+
+<function description="Kann ein Kabelausschnitt montiert werden, interactionrep">
+  <param description="blech" type="Pointer" />
+  <param description="dock" type="Pointer" />
+  <returnvalue description="wenn nicht montierbar: invalid eq true" type="BOOL" />
+  <definition expression="def keinAuschnitt(blech,dock) {
+    my invalid = false;
+    my name = GetTypeName(blech);
+    if (StringContains(name,150) or StringContains(name,175)) {
+      if (DockGetIndex(dock) LE 3) {
+        invalid = true;
+      }
+    }
+    return invalid;
+  }"/>
+</function>
+
+
+<function description="was ist die nächste Kugel">
+  <param description="rohr" type="Pointer" />
+  <returnvalue description="Distanzen" type="BOOL" />
+  <definition expression="def nearestSphereDist(base, line, horizontal, spheres) {
+    my mindist = -1;
+    if (horizontal) {
+      spheres = FilterList(spheres,'element',`Round(PartPos(element)['z']) ne Round(PartPos(base)['z']);`);
+    }
+    if (Bool(spheres[0])) {
+	    for (my s : spheres) {
+	      if (s ne base) {
+	        if (LinePointDistance(line, PartPos(s)) lt 0.3) {
+	          my len = VectorLength(VectorSub(PartPos(s), PartPos(base)));
+	          if (mindist lt 0 or len lt mindist) {
+	            mindist = len;
+	          }
+	        }
+	      }
+	    }
+    }
+    return mindist;
+  }"/>
+</function>
+
+<function description="Gibt es ein Vertikal-Rohr auf der anderen Seite">
+  <param description="Vertikalrohr" type="Pointer" />
+  <returnvalue description="gefunden" type="BOOL" />
+  <definition expression="def shelfDepthToCounterTube(part,horizontal,spheres) {
+    my depths = List();
+    my mindist = 0;
+    my p1 = Vector(0,0,0);
+    my kpos = Vector();
+    my dpos = Vector();
+    my infos = List();
+    my centers = List();
+    my depth = 76;
+    my dirs = List(Vector(depth,0,0),Vector(-depth,0,0),Vector(0,0,depth),Vector(0,0,-depth));
+    my line = List();
+    my direction = Vector();
+    my info = List();   
+    my kugeln = List();
+    kugeln[0] = DockGetConnectedPart(Dock(part,'rohr2kugel',1));
+    kugeln[1] = DockGetConnectedPart(Dock(part,'rohr2kugel',2));
+    if (not kugeln[1]){
+      kugeln[1] = DockGetConnectedPart(Dock(part,'rohr2gewinde_90',2));
+      if (not kugeln[1]){
+        kugeln[1] = DockGetConnectedPart(Dock(part,'rohr2gewinde_180',2));
+      }
+    }
+    if (kugeln[0] and kugeln[1]) {
+      centers[0] = GlobalPos(kugeln[0], p1);
+      centers[1] = GlobalPos(kugeln[1], p1);
+      for (my i : List(0,1)) {
+        for (my dir : dirs) {
+          kpos = LocalPos(part, PartPos(kugeln[i]));
+          dpos = VectorAdd(kpos, dir);
+          direction = VectorSub(GlobalPos(part, dpos), GlobalPos(part, kpos));
+          line = Line(centers[i], direction);
+          mindist = call nearestSphereDist(kugeln[i], line, horizontal, spheres);
+          ListAdd(infos, mindist);
+        }
+      }
+      /* Wenn keine Kugel dann keine Distanz */
+      infos = FilterList(infos,'element',`element lt 2;`);
+      /* Bei Vertikal-Rohren, wenn mehrere unterschiedliche Distanzen */
+      if (Size(infos) gt 2 and ListMax(infos) ne ListMin(infos)) {
+        infos = UniqueList(infos);
+      }
+      /* Groesste Distanz zuletzt */
+      infos = SortByValue(infos, 'element;');
+      /* die zwei Suchdistanzen bei Verikalrohr */
+      if (Size(infos) ge 2 and not horizontal) {
+        depths[1] = ListRemoveLast(infos) + 1;
+        depths[0] = ListRemoveLast(infos) + 1;
+      }
+      /* die zwei Suchdistanzen bei Horizontalrohr, es wird nur mit der groessten Distanz gesucht */
+      if (horizontal) {
+        depths[0] = ListRemoveLast(infos) + 1;
+        depths[1] = depths[0] + 0.1; /* damit es wirklich zwei Werte hat in der Liste der Suchdistanzen */
+      }
+    }
+    return depths;
+  } "/>
+</function>
+
+<function description="Enthaelt Selektion Spezialrohre">
+  <param name="selectedparts" type="List of components"/>
+	<returnvalue description="Structur selection with soecial tubes" type="Bool"/>
+	<definition expression="def containsGewindehilfsrohr(selectedparts) {
+   my gewindehilfsrohr = false;
+   my gewindehilfsrohre = FilterList(selectedparts,'element',`not IsSubTypeOf(element,'gewindehilfsrohr');`);
+   my nktrohre = FilterList(selectedparts,'element',`not IsSubTypeOf(element,'nktrohr');`);
+   gewindehilfsrohr = Size(gewindehilfsrohre) gt 0 or Size(nktrohre) gt 0;
+   return gewindehilfsrohr;
+}"/>
+</function>
+
+<function description="Diese Funktion listet die falschen Blechausschnitte (150 oder 175 breite Bleche) auf">
+	<returnvalue description="lister der falschen Blechausschnitte" type="list"/>
+	<definition expression="def falscheAusschnitteBlech150oder175() {
+		my falsche_ausschnitte = List();
+		my ausschnitte = GetComponentListOfType('blechausschnitt');
+		for (my ausschnitt : ausschnitte) {
+			if (Feature(ausschnitt,'f_falscherAusschnitt')) {
+				ListAdd(falsche_ausschnitte,ausschnitt);
+			}
+		}
+		return falsche_ausschnitte;
+	}"/>
+</function>
+
+<function description="Befindet sich dieses Rohr amEnde eines Regals (oben oder seitlich)">
+  <param  name="rohr" type="component"/>
+  <param  name="mode" type="horizontal, vertikal"/>
+	<returnvalue description="ja/nein" type="Bool"/>
+	<definition expression="def isEndRohr(rohr,mode) {
+    my ende = false;
+    my posz = 0;
+    my rohre = List();
+    my kugeln = List();
+    my rohrdocks = List();
+    my kugeldocks = ConnectedDocksOfType(rohr,'rohr2kugel');
+    for (my kugeldock : kugeldocks) {
+       kugeln = ListAdd(kugeln,DockGetConnectedPart(kugeldock));
+    }  
+    /* Message(kugeln); */
+    for (my kugel : kugeln) {
+      rohrdocks = ConnectedDocksOfType(kugel,'kugel2rohr');
+      posz = Round(PartPos(kugel)['z']);
+      rohre = List();
+      for (my rohrdock : rohrdocks) {
+        rohre = ListAdd(rohre,DockGetConnectedPart(rohrdock));
+      }
+      
+      if (mode eq 'horizontal') {
+         rohre = FilterList(rohre,'element',`not call horizontalPart(element);`);
+        /* rohre = FilterList(rohre,'element',`Round(PartPos(element)['z']) eq posz;`); */
+        /* Message(rohre); */
+        if (Size(rohre) eq 2) {
+          ende = true;
+          break;
+        }
+      } else if (mode eq 'vertikal') {
+        rohre = FilterList(rohre,'element',`call horizontalPart(element);`);
+        /* Message(rohre); */
+        if (Size(rohre) eq 1) {
+          ende = true;
+          break;
+        }
+      }
+    }
+  return ende;
+  }"/>
+</function>
+
+<function description="Koennen diese Rohre getrennt werden (100,150 oder 175 lange Rohre), da sie auf einer Seite nur noch eine Leiter haben">
+  <param  name="selectedparts" type="volumes"/>
+  <param  name="mode" type="Richtung der Rohre: horizontal, vertikal"/>
+	<returnvalue description="Liste betroffenen Rohre" type="Bool"/>
+	<definition expression="def validLeiterTrennung(selectedparts,mode) {
+    my valid = false;
+    my rohre = List();
+    my parts = List();
+    my posz = 0;
+    my maxposz = 0;
+    my maxposzrohr = null;
+    my cam = Vector();
+    my camdir = Vector();
+    my volumes = FilterList(selectedparts,'element',`GetTypeName(element) ne 'normal_volume';`);
+
+    if (volumes[0]) {
+      for (my vol : volumes) {
+        parts = JoinList(parts,GetVolumeRefParts(vol));
+      }
+      rohre = FilterList(parts,'element',`not IsSubTypeOf(element,'rohr');`);
+      rohre = FilterList(rohre,'element',`PartAttr(element, 'hc_length') gt 175;`);
+      if (rohre[0]) {
+        if (mode eq 'horizontal') {
+          cam = ViewerInfo('1000', 'camera')['camera'];
+          camdir = VectorSub(cam['lookat'], cam['eyep']);
+          camdir['z'] = 0;
+          rohre = FilterList(rohre,'element',`not call horizontalPart(element);`);
+          rohre = FilterList(rohre,'element',`call inViewDirection(element,camdir);`);
+        } else if (mode eq 'vertikal') {
+          rohre = FilterList(rohre,'element',`call horizontalPart(element);`);
+        }
+        
+        if (Size(rohre) ge 2) {
+          for (my rohr : rohre) {
+             posz = PartPos(rohr)['z'];
+             if (posz gt maxposz) {
+               maxposz = posz;
+               maxposzrohr = rohr;
+             }
+           }
+          valid = call isEndRohr(maxposzrohr,mode);
+        }
+      }  
+    }
+    return valid;
+  }"/>
+</function>
+
+<function description="Diese Funktion listet die falschen Schlitzrohre auf (100,150 oder 175 lange Rohre) auf">
+  <param  name="selectedparts" type="volumes"/>
+  <param  name="mode" type="ohne Schlitz: normal,  Richtung der Rohre: horizontal, vertikal"/>
+	<returnvalue description="Liste betroffenen Rohre" type="list"/>
+	<definition expression="def validSchlitzRohre(selectedparts,mode) {
+  my rohre = List();
+  my parts = List();
+  my cam = Vector();
+  my camdir = Vector();
+  my volumes = FilterList(selectedparts,'element',`not GetTypeName(element) eq 'normal_volume';`);
+  if (volumes[0]) {
+   for (my vol : volumes) {
+     parts = JoinList(parts,GetVolumeRefParts(vol));
+   }
+   rohre = FilterList(parts,'element',`not IsSubTypeOf(element,'rohr');`);
+   rohre = FilterList(rohre,'element',`not PropertyActive(element, 'schlitzrohr');`);
+   if (rohre[0]) {
+     if (mode eq 'normal') {
+       rohre = FilterList(rohre,'element',`not Feature(element, 'Schlitz');`);
+       /* rohre = FilterList(rohre,'element',`EndsWith(Feature(element, 'montageid'),'.0');`); */
+     } else if (mode eq 'vertikal') {
+       rohre = FilterList(rohre,'element',`call horizontalPart(element);`);
+     } else if (mode eq 'horizontal') {
+       cam = ViewerInfo('1000', 'camera')['camera'];
+		   camdir = VectorSub(cam['lookat'], cam['eyep']);
+		   camdir['z'] = 0;
+       rohre = FilterList(rohre,'element',`not call horizontalPart(element);`);
+       rohre = FilterList(rohre,'element',`call inViewDirection(element,camdir);`);
+     }
+   }
+  }
+  return rohre;
+}"/>
+</function>
+
+<function description="Diese Funktion listet die falschen Blechausschnitte (150 oder 175 breite Bleche) auf">
+  <param  name="selectedparts" type="volumes"/>
+  <param  name="mode" type="ohne Schlitz: normal,  Richtung der Rohre: horizontal, vertikal"/>
+	<returnvalue description="Liste betroffenen Rohre" type="list"/>
+	<definition expression="def validLochRohre(selectedparts,mode) {
+  my rohre = List();
+  my parts = List();
+  my cam = Vector();
+  my camdir = Vector();
+  my volumes = FilterList(selectedparts,'element',`not GetTypeName(element) eq 'normal_volume';`);
+  if (volumes[0]) {
+   for (my vol : volumes) {
+     parts = JoinList(parts,GetVolumeRefParts(vol));
+   }
+   rohre = FilterList(parts,'element',`not IsSubTypeOf(element,'rohr');`);
+   rohre = FilterList(rohre,'element',`not HasFeature(element, 'Loch');`);
+   /* Rohre die keine Glasverkleidung haben rausfiltern */
+   rohre = FilterList(rohre,'element',`ConnectedDockCount(element, 'rohr2glashalter') eq 0;`);
+   my rohreMitHorizontalBlech = call rohreOhneBohrung(parts);
+   
+   for(my removerow : rohreMitHorizontalBlech){
+   	 if(InList(rohre, removerow)){
+   		ListRemove(rohre, removerow);
+   	 }
+   }
+  }
+  return rohre;
+}"/>
+</function>
+
+<function description="Diese Funktion gibt eine Liste aller Rohre 750er zurück, wagerecht montierte Bleche haben">
+	<param name="rohre" type="List"/>
+	<definition expression="def rohreOhneBohrung(rohre){
+
+		my rohrmitblech = List();
+		for( my mypart : rohre){
+			my parttypename = GetPartTypeName(GetPartType(mypart));
+			if(parttypename eq 'rohr750'){
+				my rohrdocks = ConnectedDocksOfType(mypart, 'rohr2blech');
+				for(my rohrdock : rohrdocks){
+					my partnerdock = DockGetConnectedDock(rohrdock);
+					my partnerpart = DockGetPart(partnerdock);
+					if(not(call vertikalBlech(partnerpart))){
+						rohrmitblech = ListAdd(rohrmitblech, mypart);
+					}
+				}
+			}
+		};
+		return rohrmitblech;
+		
+			
+	};"/>
+</function>
+
+<function description="Diese Funktion listet die noch vorhandenen Bleche auf, wenn der der C++ operator autoentkleider fertig ist">
+  <param  name="selectedcomponents" type="components"/>
+	<returnvalue description="Liste betroffenen Verkleidungen" type="list"/>
+	<definition expression="def fraesrohrVerkleidungen(connectionid,selectedcomponents) {
+	  my fraesrohrpanel = List();
+	  my verkleidungen = FilterList(selectedcomponents,'element',`not IsSubTypeOf(element,'verkleidung');`);
+	  my regalverkleidung = GetComponentListOfConnectionId(connectionid);
+	  my regalverkleidungen = FilterList(regalverkleidung,'element',`not IsSubTypeOf(element,'verkleidung');`);
+	  for (my panel : verkleidungen ) {
+	    if (InList(regalverkleidungen,panel)) {
+	      fraesrohrpanel = ListAdd(fraesrohrpanel,panel);
+	    }
+	  }
+	  return fraesrohrpanel;
+	}"/>
+</function>
+
+<function description="Liegt das Rohr in Blickrichtung">
+	<returnvalue description="Ja/nein" type="Bool"/>
+	<definition expression="def inViewDirection(rohr,camdir) {
+    my viewdirection = false;
+    my d1 = Dock(rohr, 'rohr2kugel', 1);
+    my d2 = Dock(rohr, 'rohr2kugel', 2);
+    my v1 = GlobalPos(rohr, DockPos(d1));
+    my v2 = GlobalPos(rohr, DockPos(d2));
+    my rohrdir = VectorSub(v1,v2);
+    rohrdir['z'] = 0;
+    my angle = VectorAngle(rohrdir, camdir) * 180 / PI; 
+    if (angle gt 90) {
+     angle = (180 - angle);
+    }
+    if (angle le 45) {
+      /* bei genau 45 Grad liegen alle Rohre in Blickrichtung und werden somit nicht geschlitzt */
+      viewdirection = true;
+    }
+    return viewdirection;
+  }"/>
+</function>
+
+<function description="List of different PartGroup Ids inside a document">
+  <param description="garderobenstange" type="Pointer" />
+  <returnvalue description="Min. Abstand AZT zu Garerobenstange" type="Number" />
+  <definition expression="def garderobestangeCollision(part) {
+    my sizeZ = 0;
+    my blech = null;
+    for (my index : List('1','2','3','4')) {
+      blech = FindPart(part,'anything2klemmhalter',index,'klemmhalter2blech');
+      if (blech) {
+        if (not call vertikalBlech(blech)) {
+          /* somit kann ein AZT oberhalb einer Gst. nur noch ab Position 4 eingebaut werden */
+          sizeZ = 3;
+        }
+        break;
+      }
+    }
+  return sizeZ;
+  }"/>
+</function>
+
+
+	<function description="Diese Funktion evaluiert ob eine Volumengruppe über 3000mm lang/breit ist">
+		<param name="mypart" description="Komponente in einem Volumen" type="part"/>
+		<returnvalue description="evaluationsergebnis" type="boolean"/>
+		<definition expression="def printzonevolumelength(mypart) {
+			my clause = false;
+			my groupid = USMPartGroupId(mypart);
+			my volumes = call groupIdVolumeList(groupid);
+			my volposz = List();
+			for (my volume : volumes) {
+				ListAdd(volposz,Round(PartPos(volume)['z']));
+			}
+			volposz = UniqueList(volposz);
+			for (my pos : volposz) {
+				my x_length = 0;
+				my y_length = 0;
+				my vol_sum = FilterList(volumes,'volume',`Round(PartPos(volume)['z']) NE pos;`);
+				for (my i : vol_sum) {
+					x_length = x_length + Feature(i,'xlength');
+					y_length = y_length + Feature(i,'ylength');
+				}
+				if (x_length GE 300 OR y_length GE 300) {
+					clause = true;
+					break;
+				}
+			}
+			return clause;
+		}"/>
+	</function>
+
+
+ <function description="Gibt es ein Schraegtablar, mit 2 Ausziehtablare mit der gleichen ConnectedId?">
+  <returnvalue description="Konflikte" type="LISTE" />
+  <definition expression="def sperrstangeMitSchraegtablar() {
+  
+	my conflicts = List();
+    
+  my allComponents = GetComponentList(); 
+  my schraegtablare = List();
+  my sperrstangen = List(); 
+  /* klemmzunge_r als representant des schraegtablars */
+	schraegtablare = FilterList(allComponents, 'element', `not BeginsWith(GetTypeName(element), 'klemmzunge_r');`);
+	if(Size(schraegtablare) gt 0){
+		sperrstangen = FilterList(allComponents, 'element', `not BeginsWith(GetTypeName(element), 'sperrstange');`);
+		if(Size(sperrstangen) gt 0){
+			for(my schraegtablar : schraegtablare) {
+				for(my sperrstange : sperrstangen) {
+					if(ConnectionId(schraegtablar) eq ConnectionId(sperrstange)){
+						if(call schraegtablarPosition(schraegtablar, sperrstange)){
+							conflicts = ListAdd(conflicts, schraegtablar);
+							break;
+						}
+					}
+				}	
+			}	
+		}		 			 			 	
+	} 
+	return conflicts;
+}
+"/>
+
+</function>
+
+ <function description="Position der Schraegtablare relativ zu Sperrstangen">
+  <returnvalue description="Konflikt" type="Boolean" />
+  <definition expression="def schraegtablarPosition(schraegtablar, sperrstange) {
+			
+		my conflict = false;
+		
+		my width = PartAttr(schraegtablar,'width');
+		my length = PartAttr(sperrstange,'length');
+		my distx = width/20;
+		my disty = 7; /* distanz klemmzunge_r */		
+		my distz = length/20;
+		my klemmPosZ = PartPos(schraegtablar)['z'];
+		my sperrstangePosZ = PartPos(sperrstange)['z'];	
+		my depth = 0;	
+		my relpos = 0;
+		my xdirection = false;
+		my ydirection = false;
+		my zdirection = false;
+						
+		relpos = RelativePartPos(schraegtablar,sperrstange);
+		xdirection = InRange(distx-2,distx+1,Abs(relpos['x']));			
+		ydirection = InRange(disty-1,disty+1,Abs(relpos['y']));
+		zdirection = InRange(sperrstangePosZ-distz,sperrstangePosZ+distz,klemmPosZ);
+
+						
+		if(xdirection and ydirection and zdirection) {
+			conflict = true;	
+		}			
+		return conflict;
+  }
+  "/>
+</function>
+
+<function description="generiert eine Liste von Möbeln, die nicht berechnet werden">
+	<param type="List" description="groupids"/>
+	<returnvalue type="conflicts" description="volumes or groupsid"/>
+	<definition expression="def notIncludedInSafety(grouplist){
+    my conflicts = List();
+    my groupids = List();
+    my volumes = List();
+    for ( my groupid : grouplist ) {
+      my group_parts = call groupIdPartList(groupid);
+      my dim = call groupIdDimemsions(group_parts,'both');
+      my height = dim[0];
+      my width = dim[1]; /* kurze Seite */
+      my depth = dim[2]; /* lange Seite */
+      my schubladen = FilterList(group_parts,'element',`not IsSubTypeOf(element,'schublade');`);
+      my schublade = schubladen[0];
+      if (schublade) {
+        my dim1 = width eq 395 and depth eq 500 and height lt 745;
+      /* wdith wird zu depth, da breiter als tiefe */
+      	my dim2 = width eq 500 and depth eq 750 and height le 789;
+        if (dim1 or dim2) {
+          if (Size(FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'co_gewichtplatte'));`)) eq 0) {
+	          my volume = MainRoot(schublade);
+	          my vols = call getVolumesInColumn(volume);
+	          volume = Size(vols) gt 1 ? vols[Size(vols)-1] : volume; 
+	          ListAdd(volumes,volume);
+	          groupids = ListAdd(groupids,groupid);
+          };
+        }
+      }
+    }
+    conflicts[0] = volumes;
+    conflicts[1] = groupids;
+  return conflicts;
+
+  }"/>
+</function>
+
+<function description="Verhältnis zwischen Höhe und Seitenlänge der kürzesten Seite. 
+                      Ist das verhaeltnis groesser als 1 zu 4 wird von jedem element, 
+                      dass das verhaeltnis ueberschreitet eine rolle zurueckgegeben">
+	<param/>
+	<returnvalue type="List of Objects" description="Rollen"/>
+	<definition expression="def rollenToHeight(){
+    my invalid_rollen = List();
+    my grouplist = call partGroupIdList('usm_haller');
+    for ( my groupid : grouplist ) {
+      my group_parts = call groupIdPartList(groupid);
+      my rollen = FilterList(group_parts, 'row', `not IsSubTypeOf(row, 'rollen');`);
+      my dimensions = call groupIdDimemsions(group_parts ,'rolle');
+      if (dimensions[1] gt 0) {
+        if((dimensions[0]/dimensions[1] gt 4) and rollen[1]){
+          /*return a random wheel of the group to attach the height error to */
+          invalid_rollen = ListAdd(invalid_rollen,rollen[1]);
+        }
+      }
+    }
+    return invalid_rollen;
+  }"/>
+</function>
+
+<function description="Die Farbcodierung zusätzlich zum Namen übergeben">
+  <param name="key" description="Farbcodierung" type="Sring"/>
+  <returnvalue type="String" description="Farbnamen mit Codierung"/>
+  <definition expression="def showColorText(key) { 
+   
+    my fulltext = '';
+    my baseText = 'gl_h_metall.';
+    my baseKeyText = '';
+    
+    baseKeyText = baseText ++ key;
+    fulltext = key ++ ' - ' ++ Localize(baseKeyText);
+    
+    if(key eq 'globaldef') {
+      fulltext = Localize('globaldef');
+    } else if (key eq '__') {
+       fulltext = Localize(baseKeyText);
+    }
+    return fulltext;
+  }"/>
+</function>
+<function description="Die Farbcodierung zusätzlich zum Namen übergeben">
+  <param name="key" description="Farbcodierung" type="Sring"/>
+  <returnvalue type="String" description="Farbnamen mit Codierung"/>
+  <definition expression="def showPanelVerticalColorText(key) { 
+   
+    my fulltext = '';
+    my baseText = 'gl_h_metall.';
+    my baseKeyText = '';
+    
+    baseKeyText = baseText ++ key;
+    fulltext = key ++ ' - ' ++ Localize(baseKeyText);
+    
+    if(key eq 'globaldef') {
+      fulltext = Localize('globaldef');
+    } else if (key eq '__') {
+       fulltext = Localize(baseKeyText);
+    }
+    
+   	my key2 = '';
+   	my color = key;
+   	if(color eq 91) {
+   		key2 = 'soft_panel_grau';
+   	} else
+   	if(color eq 92) {
+   		key2 = 'soft_panel_dunkelblau';
+   	} else
+   	if(color eq 93) {
+   		key2 = 'soft_panel_hellgrau';
+   	} else
+   	if(color eq 94) {
+   		key2 = 'soft_panel_hellgrün';
+   	} else
+   	if(color eq 95) {
+   		key2 = 'soft_panel_hellblau';
+   	} else
+   	if(color eq 96) {
+   		key2 = 'soft_panel_orange';
+   	}
+   	
+   	my baseKeyText2 = baseText ++ key2;
+    
+    	
+   	fulltext = fulltext ++'/'++Localize(baseKeyText2);
+    
+    return fulltext;
+  }"/>
+</function>
+<function description="Die Position des Kabelausschnitts auf dem dazugehörigen Blech überprüfen">
+	<param name="part" description="" type="Part"/>
+	<returnvalue type="String" description="Position des Kabelausschnitts"/>
+	<definition expression="def checkKabelausschnittPosition(part) {
+		my positionText = 'Pos.';
+		my ausschnittdock = ConnectedDocksOfType(part, 'ausschnitt2blech')[0];
+		my blech = DockGetConnectedPart(ausschnittdock);
+		my pos = null;
+		if (RelativePartPos(blech, part)['x'] GT 0.01) {
+			RelativePartPos(blech, part)['y'] GT 0.01 ? pos = '7' : (RelativePartPos(blech, part)['y'] LT -0.01 ? pos = '1' : pos = '4');
+		} else if (RelativePartPos(blech, part)['x'] LT -0.01) {
+				RelativePartPos(blech, part)['y'] GT 0.01 ? pos = '9' : (RelativePartPos(blech, part)['y'] LT -0.01 ? pos = '3' : pos = '6');
+		} else {
+			RelativePartPos(blech, part)['y'] GT 0.01 ? pos = '8' : (RelativePartPos(blech, part)['y'] LT -0.01 ? pos = '2' : pos = '5');
+		}
+		return 'Pos.' ++pos;
+	}"/>
+</function>
+<function description="Die Position des Kabelausschnitts auf dem dazugehörigen Blech überprüfen">
+  <param name="part" description="" type="Part"/>
+  <returnvalue type="String" description="Position des Kabelausschnitts"/>
+  <definition expression="def old_checkKabelausschnittPosition(part) {
+
+    my positionText = 'Pos.';
+    my ausschnittdock = ConnectedDocksOfType(part, 'ausschnitt2blech');
+  
+    if (Size(ausschnittdock) gt 0){
+      my actBlechdock = DockGetConnectedDock(ausschnittdock[0]);
+      my actIndex = DockGetIndex(actBlechdock);
+      my blech = DockGetConnectedPart(ausschnittdock[0]);
+      my blechdocks = DocksOfType(blech, 'blech2ausschnitt');
+      my localpoint = Vector(0,0,0);
+      my sortedBlechDocks = List();
+      my sortedIndex = 1;
+        
+      for(my sortedBlechDock : IndexList(Size(blechdocks))){
+        for(my blechdock : blechdocks){
+          my index = DockGetIndex(blechdock);
+          if(index eq sortedIndex){
+            sortedBlechDocks = ListAdd(sortedBlechDocks, blechdock);
+            sortedIndex = sortedIndex + 1;
+            break;
+          }
+        }  
+      }
+      /* Message(GetTypeName(blech) ++ ', ' ++ DockCount(blech, 'blech2ausschnitt')); */
+      if (DockCount(blech, 'blech2ausschnitt') eq 9){
+        if (call vertikalBlech(blech)){ 
+          /*Fall 7 8 9 gleiches z und z von 1 höher als z von 7*/ 
+          if (call checkGlobalDockPosZ(sortedBlechDocks[6], sortedBlechDocks[7], 'eq')){
+            if (call checkGlobalDockPosZ(sortedBlechDocks[7], sortedBlechDocks[8], 'eq')){
+              if (call checkGlobalDockPosZ(sortedBlechDocks[0], sortedBlechDocks[6], 'gt')){
+                positionText = call checkCase(actIndex, '9a');
+              }
+            }
+          }
+          /*Fall 1 4 7 gleiches z und z von 3 höher als z von 1*/
+          if (call checkGlobalDockPosZ(sortedBlechDocks[0], sortedBlechDocks[3], 'eq')){
+            if (call checkGlobalDockPosZ(sortedBlechDocks[3], sortedBlechDocks[6], 'eq')){
+              if (call checkGlobalDockPosZ(sortedBlechDocks[2], sortedBlechDocks[0], 'gt')){
+                positionText = call checkCase(actIndex, '9b');
+              }
+            }
+          }         
+          /*Fall 3 2 1 gleiches z und z von 9 höher als z von 3*/
+          if (call checkGlobalDockPosZ(sortedBlechDocks[2], sortedBlechDocks[1], 'eq')){
+            if (call checkGlobalDockPosZ(sortedBlechDocks[1], sortedBlechDocks[0], 'eq')){
+              if (call checkGlobalDockPosZ(sortedBlechDocks[8], sortedBlechDocks[2], 'gt')){
+                positionText = call checkCase(actIndex, '9c');            
+              }
+            }
+          }           
+          /*Fall 9 6 3 gleiches z und z von 7 höher als z von 9*/
+          if (call checkGlobalDockPosZ(sortedBlechDocks[8], sortedBlechDocks[5], 'eq')){
+            if (call checkGlobalDockPosZ(sortedBlechDocks[5], sortedBlechDocks[2], 'eq')){
+              if (call checkGlobalDockPosZ(sortedBlechDocks[6], sortedBlechDocks[8], 'gt')){
+                positionText = call checkCase(actIndex, '9d');
+              }
+            }
+          }
+        }
+        else {
+          positionText = call checkCase(actIndex, '9a');
+        }
+      }        
+      else if(DockCount(blech, 'blech2ausschnitt') eq 6) {
+        my width = PartAttr(blech,'width');
+        my length = PartAttr(blech,'length');
+        if(InRange(100,175,width) and InRange(250,750,length) or InRange(250,750,width) and InRange(100,175,length)){           positionText = call checkCase(actIndex, '3b3c');
+          /* Message(GetTypeName(blech) ++ ', ' ++ actIndex ++ ', ' ++ positionText); */
+          positionText = call checkCase(actIndex, '3b3c');
+        } else {
+          positionText = positionText ++ actIndex;
+        }  
+      }
+      else if(DockCount(blech, 'blech2ausschnitt') eq 3) {
+        my width = PartAttr(blech,'width');
+        my length = PartAttr(blech,'length');
+        if(InRange(100,175,width) and InRange(250,750,length) or InRange(250,750,width) and InRange(100,175,length)){ 
+          positionText = call checkCase(actIndex, '3b3b');
+        }
+      }
+    }         
+    return positionText;
+}"/>
+</function>
+
+<function description="Checkt welcher Fall gefunden wurde">
+	<param name="actIndex" description="acktueller Index des Kabelausschnitts" type="actIndex"/>
+  <param name="Case" description="Fall" type="String"/>
+  <returnvalue type="String" description="Position des Kabelausschnitts"/>
+  <definition expression="def checkCase(actIndex, case) {
+  
+  	my text = ' ';
+  	my newPosition = ' ';
+  	my mapping = call createMappingPosition(actIndex, case);
+  	
+  	newPosition = mapping['index',actIndex]['pos']; 
+ 		text = 'Pos.' ++ newPosition ++ ':';
+
+    return text;
+}"/>
+</function>
+
+<function description="Mapping Tabelle für Positionen erstellen">
+	<param name="actIndex" description="acktueller Index des Kabelausschnitts" type="actIndex"/>
+  <param name="Case" description="Fall" type="String"/>
+  <returnvalue type="table" description="Mapping Tabelle"/>
+  <definition expression="def createMappingPosition(actIndex, case) {
+    
+    my headings = List('index','pos');
+    my values = List();
+    
+    if(case eq '9a'){
+      values = List('1','1','2','2','3','3',
+                    '4','4','5','5','6','6',
+                    '7','7','8','8','9','9');
+  
+    } 
+    else if(case eq '9b') {
+      values = List('1','7','2','4','3','1',
+                    '4','8','5','5','6','2',
+                    '7','9','8','6','9','3');
+  
+    } 
+    else if(case eq '9c') {
+      values = List('1','9','2','8','3','7',
+                    '4','6','5','5','6','4',
+                    '7','3','8','2','9','1');
+                      
+    } 
+    else if(case eq '9d') {
+      values = List('1','3','2','6','3','9',
+                    '4','2','5','5','6','8',
+                    '7','1','8','4','9','7');
+                      
+    } 
+    else if(case eq '3a6a') {
+      values = List('1','3','2','2','3','1',
+                    '4','3','5','2','6','1');
+                
+    } 
+    else if(case eq '3b6b') {
+      values = List('1','1','2','2','3','3',
+                    '4','1','5','2','6','3');
+    }
+    else if(case eq '3b3b') {
+      values = List('1','4','2','5','3','6');
+    }     
+    else if(case eq '3b3c') {
+      /* 6 Docks are there, but only 3 of them can be correctly assigned */
+      values = List('1','4','2','5','3','6','4','4','5','5','6','6');
+    }     
+    my mapping = CreateTable(headings, values);
+    
+    return mapping;   
+}"/>
+</function>
+<function description="Holt GlobalDockPosZ von Docks 1 und 2">
+	<param name="dock1" description="erstes dock" type="dock"/>
+  <param name="dock2" description="zweites dock" type="dock"/>
+   <param name="mode" description="Modus" type="String"/>
+  <returnvalue type="String" description="Position des Kabelausschnitts"/>
+  <definition expression="def checkGlobalDockPosZ(dock1, dock2, mode) {
+  
+  	my result = false;
+    my localpoint = Vector(0,0,0);
+
+    if (mode eq 'eq'){
+    	result = Round(GlobalDockPos(dock1, localpoint)['z']) eq Round(GlobalDockPos(dock2, localpoint)['z']);
+    }
+    else if (mode eq 'gt'){
+    	result = Round(GlobalDockPos(dock1, localpoint)['z']) gt Round(GlobalDockPos(dock2, localpoint)['z']);
+    }
+  
+  	return result;  	
+}"/>
+</function>
+
+<function description="Liste als String von connected Kabelausschnitten">
+  <param name="part" description="" type="Part"/>
+  <returnvalue type="String" description="Positionsnummern der Kabelausschnitte"/>
+  <definition expression="def checkConnectedKabelausschnittPosition(part) {
+    my resultString = '';
+    my kabelausschnittPosList = List();
+    my kabelausschnittSortedPosList = List();
+    my sortedList = List();
+    my sortedIndex = 1;
+    my feature = '';
+    my pos = '';
+    
+    my kabelausschnittList = ConnectedDocksOfType(part, 'blech2ausschnitt');
+    
+    if (Size(kabelausschnittList) gt 0){
+      for(my kabelausschnitt : kabelausschnittList){
+        my kabelausschnittPart = DockGetConnectedPart(kabelausschnitt);
+        feature = Feature(kabelausschnittPart, 'f_posNr');      
+        pos = SubStr(feature, 4, 1);
+        kabelausschnittPosList = ListAdd(kabelausschnittPosList, pos);
+      }
+      for(my kabelausschnittSortedPos : IndexList(9)){
+        for(my kabelausschnittPos : kabelausschnittPosList){
+          my index = kabelausschnittPos;
+          if(index eq sortedIndex){
+            kabelausschnittSortedPosList = ListAdd(kabelausschnittSortedPosList, kabelausschnittPos);
+            break;
+          }
+        }
+        sortedIndex = sortedIndex + 1;  
+      }
+      resultString = ListToString(kabelausschnittSortedPosList, ',');
+    }   
+    return resultString;
+  }"/>
+</function>
+
+<function description="Holt Kabelausschnitte von selected parts">
+	<param name="selectedparts" description="selektierte parts" type="list"/>
+  <returnvalue type="list" description="Liste mit Connected Kabelausschnitte"/>
+  <definition expression="def getBlechausschnitt(selectedparts) {
+  
+	my kabelausschnittList = List();
+	my list = selectedparts;
+	my blechList = List();
+	my tablarList = List();
+	my metallList = List();
+	my docks = List();			    																											      
+	blechList = FilterList(list,'element',`not IsSubTypeOf(element,'metalltablar');`);
+	tablarList = FilterList(list,'element',`not IsSubTypeOf(element,'ausziehtablar');`);
+	metallList = FilterList(list,'element',`not IsSubTypeOf(element,'metallverkleidung');`);
+	list = JoinList(blechList, tablarList);
+	list = JoinList(list, metallList);
+	for(my part : list){
+		docks = ConnectedDocksOfType(part,'blech2ausschnitt');
+   		for(my dock : docks){
+       	kabelausschnittList = ListAdd(kabelausschnittList, DockGetConnectedPart(dock));      
+      }
+	}
+	return kabelausschnittList;  	
+}"/>
+</function>
+
+<function description="Ueberprueft ob 2 Teleskopauszuege 'senkrecht' zueinander liegen">
+  <returnvalue type="list" description="Teleskopauszuege mit Konflikt"/>
+  <definition expression="def checkTeleskopauszugsPosition() {
+
+  my conflicts = List(); 
+  my noconflicts = List();
+  my senkrecht = false; 
+  my allComponentList = GetComponentList();
+  my allTeleskopList = List();
+  my teleskopList = List();
+  my relrotationz = 0;
+  my partposztele = 0;
+  my partposzmypart = 0;
+  my distz = 0;
+  my relposy = 0; 
+  my relposz = 0;
+  my relpos = Vector();
+  my relposx = Vector();
+  my relposy = Vector();
+      
+  allTeleskopList = FilterList(allComponentList,'element',`not IsSubTypeOf(element,'teleskopauszug_l');`);
+  for (my mypart : allTeleskopList){
+    my length = PartAttr(mypart,'length');
+    my dist = length/20;
+    if ( not InList(conflicts,mypart)) {   
+      for (my teleskop : allTeleskopList){
+        my teleskopLength = PartAttr(teleskop,'length');
+        my teleskopDist = teleskopLength/20;
+        relrotationz = Round(RelativePartRot(mypart, teleskop)['z']);
+        if (Abs(relrotationz) eq '90'){
+          partposztele = Round(PartPos(teleskop)['z']);
+          partposzmypart = Round(PartPos(mypart)['z']);
+          distz = Abs(partposztele - partposzmypart);
+          if (InRange(0,3,distz)){
+            relpos = RelativePartPos(mypart, teleskop);
+            relposx = Abs(relpos['x']);
+            relposy = Abs(relpos['y']);
+            
+			my offset = 0.48;
+            if (teleskopLength eq length ) {
+              /* +/- 0.25 -> no conflict in case of 17838 */
+	            if (InRange(dist - offset, dist + offset, relposy) and InRange(dist - offset, dist + offset, relposx)){
+	               if (not InList(conflicts,teleskop)) {
+	                conflicts = ListAdd(conflicts, teleskop);
+	              }
+	            }
+            } else {
+              /* +/- 0.25 -> no conflict in case of 17838 */
+	            if (InRange(dist - offset, dist + offset, relposy) and InRange(teleskopDist - offset, teleskopDist + offset, relposx)){
+	              if (not InList(conflicts,teleskop)) {
+	                conflicts = ListAdd(conflicts, teleskop);
+	              }
+            	}
+          	}
+          }
+      	} 
+      }
+  	}
+  	GetCollisions(GetComponentListOfType('stdklemmhalter'), GetComponentList());
+	my collisions = GetCollisions(GetComponentListOfType('stdklemmhalter'), GetComponentList());
+	if (Size(collisions) gt 0) {
+  		for (my col: collisions) {
+  			if (GetTypeName(col['part1']) eq 'stdklemmhalter' and IsSubTypeOf(col['part2'], 'AZT')) {
+  				not InList(conflicts, col['part2']) ? ListAdd(conflicts, col['part2']) : null;
+  			}
+  			if (GetTypeName(col['part2']) eq 'stdklemmhalter' and IsSubTypeOf(col['part1'], 'AZT')) {
+  				not InList(conflicts, col['part1']) ? ListAdd(conflicts, col['part1']) : null;
+  			}
+  		};
+  	};
+
+  }
+  return conflicts; 
+}"/>
+</function>
+
+<function description="Conflict if Schublade in Sperrstangen Range">
+  <returnvalue type="List" description="List of schubladenauszug which has a collision with sperrstange "/>
+  <definition expression="def collisionSchubladeSperrstange() {
+		my conflicts = List();
+		my uuidlist = List();
+		my partlist1 = GetComponentListOfType('schubladenauszug');
+		
+		if (Size(partlist1) gt 0) {
+			my partlist2 = GetComponentListOfType('sperrstange');
+			my collisiongroups = List('AZSperre');
+			my collisions = GetCollisions(partlist1, partlist2, collisiongroups);
+			
+			for (my i : IndexList(Size(collisions))) {
+			  my auszug = collisions[i]['part1'];
+			  my uuid = PartUuid(auszug);
+			  /* Because there are 2 conflicts normaly by a schubladenauszug */
+			  if (not InList(uuidlist, uuid)) {
+			     conflicts = ListAdd(conflicts,auszug);
+			     uuidlist = ListAdd(uuidlist,uuid);
+			  }
+			}
+		}
+		
+		return conflicts;
+		}"/>
+</function>
+
+<function description="Part ist ein Rohr und ist horizontal">
+  <param name="part" description="component" type="Pointer"/>
+  <returnvalue type="Bool" description="Horizontal Ja/nein"/>
+  <definition expression="def partIsRohrWithDirection(rohr, horizontal) {
+	  if (IsSubTypeOf(rohr, 'rohr')) {
+	    return Feature(rohr,'f_horizontal') eq horizontal;
+	  }
+	  return false;
+	}"/>
+</function>
+
+<function description="Einzelrohr-Anzeige Montage">
+  <param name="part" description="rohr" type="Pointer"/>
+  <returnvalue type="Bool" description="ist Einzelrohr"/>
+  <definition expression="def montageEinzelrohr(part) {
+    my einzel = false;
+    my parts = GetComponentListOfConnectionId(ConnectionId(part));
+    my hor = call horizontalPart(part);
+    my rohre = FilterList(parts,'element',`not (call partIsRohrWithDirection(element, hor));`);
+	  if (hor) {
+	    einzel = not Bool(call visaviRohr(part,rohre));
+	  } else {
+	     einzel = not Bool(call visaviRohrVertikal(part,rohre));
+	  }
+    return einzel;
+   }"/>
+</function>
+
+<function description="Material der Glastuerbeschlege">
+  <param name="part" description="Glastuer" type="Pointer"/>
+  <returnvalue type="String" description="Material"/>
+  <definition expression="def beschlagsMaterialGlasTuere(part) {
+    my material = 'CO';
+    my beschlag  = DockGetConnectedPart(Dock(part,'glas2scharnier_vorne_oben',2));
+    if (beschlag) {
+      material = Feature(beschlag,'Beschlaegematerial');
+    }
+    return material;
+    }"/>
+</function>
+
+<function description="Alle Parts die einem Subtyp des Supertyps entsprechen aus einer Liste von Parts">
+  <param name="parts" description="Liste von Parts" type="List"/>
+  <param name="supertype" description="name of the supertype" type="String"/>
+  <returnvalue description="Liste aller Parts mit Supertype aus dem Inputvalue" type="List"/>
+  <definition expression="
+		def getPartsOfSupertype(parts, supertype){
+		  my ret = List();
+		  for(my singlepart: parts){
+		    if(IsSubTypeOf(singlepart,supertype)){
+		      ListAdd(ret, singlepart);
+		    }
+		  }
+		  return ret;
+}
+  "/>
+</function>
+
+<function name="Verkleidung vertikal">
+  <param name="Verkleidung" type="Pointer" description="Blech, Glas, Tablar"/>
+  <returnvalue description="vertikal ja/nein" type="Bool" />
+  <definition expression="def vertikalVerkleidung(part) { 
+     my active = false;
+     my rot = PartRot(part);
+     my rotx = Abs(rot['x']);
+     my roty = Abs(rot['y']); 
+     my rotz = Abs(rot['z']); 
+     my active_xz = Bool(rotx) and Bool(rotz);
+     active = (Bool(rotx) or Bool(roty)) and not active_xz;
+     return active;
+  }"/>
+</function>
+
+<function name="Tuere Kaluliert in einem Volumen">
+  <param name="set" type="Assembly Type" description="klapp, einschub, azt"/>
+  <param name="element" type="Component Type" description="tuerblatt"/>
+  <returnvalue description="Tuerblatt kalkuliert" type="Object" />
+  <definition expression="def countDoor(vol,set,element) {
+   	 my door = null;
+   	 door = ChildOfTypeDeep(vol, set);
+   	 if (door) {
+   	  if (not Feature(ChildOfTypeDeep(door, element),'calculated')) {
+   	  	door = null;
+   	  }
+   	 }
+   	 return door;
+   }"/>
+</function>
+
+<function name="Benoetigt diese Rohr eine Doppelloch">
+  <param name="Rohr" type="Pointer" description="Rohr"/>
+  <returnvalue description="Doppelloch  ja/nein" type="Bool" />
+  <definition expression="def rohrDoppelLoch(part) {
+	  my doppelloch = 'false';
+	  my connections = List();
+	  my zpos = 0;
+	  my zlist = List();
+	  my zqlist = List();
+	  my localpoint = Vector(0,0,0);
+	  /* Feature Loch durch C++ vergeben */
+	  if (Feature(part,'Loch')) {
+	    connections = ConnectedDocksOfType(part,'rohr2blech');
+	    if (Size(connections) ge 2) {
+		    for (my connection : connections) {
+		      zpos = Round(GlobalDockPos(connection,localpoint)['z'],0.1);
+		      zlist = ListAdd(zlist, zpos);
+		    }
+		    zqlist = UniqueList(zlist);
+		    /* Message(Size(zlist) ++ ', ' ++ Size(zqlist)); */
+		    if (Size(zqlist) lt Size(zlist)) {
+		      doppelloch = 'true';
+		    }
+	    }
+	  }
+	  return doppelloch;
+	}"/>
+</function>
+
+<function description="Ist ein Volumen einer innerhalb einer groupid auf frozen gesetzt" name="2020-03">
+  <param name="groupid" description="Moebel ID" type="INT" />
+  <returnvalue type="Bool" description="Frozen Property auf volumen gesetzt oder nicht"  />
+  <definition expression="def frozenState(groupid) {
+    my frozen = false;
+    my volumes = call groupIdVolumeList(groupid);
+   for (my vol : volumes) {
+      if (Property(vol, 'frozen')) {
+          frozen = true;
+          break;
+      }
+  }
+  return frozen;
+  }"/>
+</function>
+
+<function description="Merial der Glastuerbeschlege">
+  <param name="part" description="Glastuer" type="Pointer"/>
+  <returnvalue type="String" description="Material"/>
+  <definition expression="def setNumberGGPL(part) {
+    my text = '';
+    if (HasFeature(part,'f_ggwPositionen')) {
+      my value = Feature(part,'f_ggwPositionen');
+      if (value ne '' or value lt 1) {
+         text = value ++ 'x';
+      }
+    }
+    return text;
+    }"/>
+</function>
+
+<function description="Changed Schuladen">
+  <param name="oldlist" description="selektierte Schubladen" type="List"/>
+  <param name="newlist" description="neu ausgewechselte Schubladen" type="List"/>
+  <returnvalue description="gefilterte Schubladen bezueglich Position" type="List" />
+  <definition expression="def filterSchublade(oldlist,newlist) {
+    my changelist = List();
+    my newpartlist = List();
+    my newschloss = null;
+    my newschlosslist = List();
+    my poslist = List();
+    my calclist = List();
+    my newcalclist = List();
+    for (my i : IndexList(Size(oldlist))) {
+      poslist[i] = PartPos(oldlist[i]);
+    }
+    for (my new : newlist) {
+      for (my j : IndexList(Size(poslist))) {
+        if (poslist[j] eq PartPos(new)) {
+           newpartlist = ListAdd(newpartlist,new);
+           newschloss = FindPart(new,'schublade2schloss','1');
+           if (newschloss) {
+              newschlosslist = ListAdd(newschlosslist,newschloss);
+           }
+        }
+      }
+    }
+    
+    changelist[0] = newpartlist;
+    changelist[1] = newschlosslist;
+    
+    return changelist;
+    }"/>
+</function>
+
+<function description="used montageid for the parts, they have to assemble together">
+	<param name="selectedcomponents" description="Liste of Rohre" type="List"/>
+	<returnvalue description="montage_id used for togetherAssembled" type="String"/>
+	<definition expression="def findStuetzprofile(selectedcomponents) {
+		my plist = selectedcomponents;
+		my partwithdock = '';
+		my parts = List();
+		
+		for (my p : plist){
+			my partwithdock = ConnectedDocksOfType(p, 'blech2centralmount');
+			my partwithdock_duo = ConnectedDocksOfType(p, 'blech2centralmount_duo');
+			my partwithdock_mountquer = ConnectedDocksOfType(p, 'blech2centralmountquer');
+			
+			if (Size(partwithdock) gt 0){
+				for (my pa : partwithdock){
+					ListAdd(parts, DockGetConnectedPart(pa));
+					}
+				}	
+			else if (Size(partwithdock_duo) gt 0){
+				for (my pad : partwithdock_duo){
+					ListAdd(parts, DockGetConnectedPart(pad));
+					}
+				}
+						
+			else if (Size(partwithdock_mountquer) gt 0){
+				for (my pam : partwithdock_mountquer){
+					ListAdd(parts, DockGetConnectedPart(pam));
+					}
+				}
+			}
+			parts;
+				}
+			"/>
+</function>
+
+<function description="Stuetzprofil check für Artiklierung der Schrauben">
+	<param name="Rohr_750_loch" description="Verschraubung Horizontalblech, draufsitzen bis 130kg " type="part"/>
+	<param name="mode" description="Mainstructure or Articlestructure" type="string"/>
+	<returnvalue description="Hat Horizontalblech mehr als 1 Stuetzprofil" type="Bool"/>
+	<definition expression="def countStuetzprofil(part,mode) {
+		my count = 1;
+		if ( EndsWith(mode,'Artikel')) {
+	     part = ChildWithId(part,'10');
+	    }
+		my bleche = call connectedPartsByDockType(part, 'rohr2blech');
+		for (my blech : bleche) {
+			my connectedparts = call connectedPartsByDockType(blech, 'dt_blech2central');
+			my stuetzprofile = FilterList(connectedparts,'element',`not IsSubTypeOf(element,'stuetzprofil');`);
+			if (Size(stuetzprofile) gt 1) {
+				count = 2;
+				break;
+			}
+		}
+		return count;
+	}
+	"/>
+</function>
+
+
+<function description="used montageid for the parts, they have to assemble together">
+	<param name="selectedcomponents" description="Liste of Rohre" type="List"/>
+	<returnvalue description="montage_id used for togetherAssembled" type="String"/>
+	<definition expression="def togetherAssembled(selectedcomponents) {
+		  my montage_id = '';
+		  my max = 0;
+		  my count = 0;
+		  my moebel_id = Feature(selectedcomponents[0],'montageid');
+		  moebel_id = SubStr(moebel_id,0,1); /* get the Mobel-Id used in the montageid */
+		  my montageids = FeatureValuesFromPartList(selectedcomponents, 'montageid');
+		  /* Filtered out the unmounted parts (inside the separated range) */
+		  montageids = FilterList(montageids,'element',`element eq (moebel_id ++ '.0');`);
+		  my ids = UniqueList(montageids);
+		  ids = Sort(ids,`StrAlphabeticalCompare(element1,element2);`);
+		  /* lowest montageid that is mostly used inside the selected tubes */
+		  for (my id : ids) {
+		    count = 0;
+		    for (my montageid : montageids) {
+		       if (id eq montageid) {
+		        count = count + 1;
+		       }
+		    }
+		    if (count gt max) {
+		      max = count;
+		      montage_id = id;
+		    }  
+		  }
+		  return montage_id;
+		}
+	"/>
+</function>
+
+<function name="getVolumeMountingInformation" description="Informations regarding the mounting state of a volume and inherantly parts within this volume.
+				This Namedoperation returns the mountingstate for parts within a volume and their montageid / mid. This is used to correctly mount / unmount parts">
+	<param name="volume"/>
+	<returnvalue description="list containing: [0] mounted true/false, [1] montageid, [2] mid for the volume"/>
+	<definition expression="
+		def getVolumeMountingInformation(volume){
+      my state = List();
+      my list = List();
+      my rohrliste = List();
+      my getrenntliste = List();
+      my separated = false;
+      my unmountedlist = List();
+      my unmounted = false;
+      if (volume) {
+        list = GetVolumeRefParts(volume);
+        rohrliste = FilterList(list,'element',`not IsSubTypeOf(element,'rohr');`);
+        getrenntliste = FilterList(rohrliste,'element',`Feature(element,'mid') ne 0;`);
+        separated = Bool(Size(getrenntliste));
+        if (not separated) {
+          /* Not separated but unmounted */ 
+           unmountedlist = FilterList(rohrliste,'element',`Feature(element,'Mounted');`);
+           unmounted = Bool(Size(unmountedlist) ge 4);
+        }
+      }
+      if (separated) {
+        state[0] = 'false';
+        state[1] = Feature(getrenntliste[0],'montageid');
+        state[2] = Feature(getrenntliste[0],'mid'); 
+      } else if (unmounted) {
+        state[0] = 'false';
+        state[1] = Feature(unmountedlist[0],'montageid');
+        state[2] = Feature(unmountedlist[0],'mid'); 
+       } else {
+        state[0] = 'true';
+        state[1] = Feature(rohrliste[0],'montageid');
+        state[2] = Feature(rohrliste[0],'mid'); 
+      }  
+      state;
+    }
+"/>
+</function>
+
+<function name="glasHalterListe" description="">
+	<param name="list" description="Glaselemente die geloescht werden muessen"/>
+	<returnvalue description="Glashalterliste zu einer List von Glaselementen"/>
+	<definition expression="
+		def glasHalterListe(deleteglasliste) {
+				my glashalterliste = List();
+			for (my glas : deleteglasliste) {
+				my list = call connectedPartsByDockType(glas, 'glas2glashalter');
+		    glashalterliste = JoinList(glashalterliste,list);
+	    }
+		}
+	"/>
+</function>
+
+<function name="tuerGriffEinsatz" description="">
+	<param name="part" description="Griff/Schloss/Schnapp"/>
+	<returnvalue description="Einsatzverkleidung oberhalb Griff/Schloss/Schnapp"/>
+	<definition expression="
+		def tuerGriffEinsatz(part) {
+		my einsatz = false;
+		my vol = MainRoot(part);	
+		if (vol) {
+			my parts = GetVolumeRefParts(vol);
+			parts = FilterList(parts,'element',`not IsSubTypeOf(element, 'einsatzverkleidung');`);
+			einsatz = Bool(parts[0]);
+		}
+		
+		return einsatz;
+		}
+		"/>
+</function>
+<function name="ArticleNumber of the horizontal Einsatz Element" description="">
+	<param name="article" description="Artikel"/>
+	<returnvalue description="Einsatzverkleidung Artikelnummer"/>
+	<definition expression="
+		def horizEinsatzMaterial(part,base1,base2) {
+			my articleNumber = '';
+			my material = Feature(ChildWithId(part,'10'),'Metallfarbe');
+			my kelco = List('02','51','52','53');
+			if ( InList(kelco,material) ) {
+			  articleNumber = base2 ++ material;
+			} else {
+				articleNumber = base1 ++ material;
+			}
+			return articleNumber;
+		}
+		"/>
+</function>
+<function description="tested die partlist oder alles auf QS Article in der Szene">
+	<param name="partlist" type="list" description="liste von parts oder leer"/>
+	<definition expression="
+def getQSArticle(partlist) {
+	my result = List();
+	if (Size(partlist) gt 0) {
+		my articles = GetComponentListOfType('co_qs_article');
+		for (my ar: articles) {
+			my cpart = DockGetConnectedPart(Dock(ar, 'qs_article_2_part', 1));
+			if (cpart and InList(partlist, cpart) or ConnectionId(cpart) eq ConnectionId(partlist[0])) {
+				result = List(ar);
+				break;
+			};
+		};
+	} 
+	
+	return result[0];
+};	
+	"/>
+</function>
+<function description="tested die partlist oder alles auf QS Article in der Szene">
+	<param name="partlist" type="list" description="liste von parts oder leer"/>
+	<definition expression="
+def hasQSArticle(partlist) {
+	return Bool(call getQSArticle(partlist));
+};	
+	"/>
+</function>
+
+	<function description="list of all unique color (Metallfarbe material) in the scene">
+		<param name="volumesonly" />
+		<definition expression="
+		def globalColorList() {
+			return call globalColorList(GetComponentList(), false, true);
+		};
+		def globalColorList(ctlist, volumesonly, unique) {
+
+			my filterstr = ``;
+			if (volumesonly) {
+				filterstr = `not (IsSubTypeOf(e, 'metallverkleidung') and not IsSubTypeOf(e, 'kugel') and not IsSubTypeOf(e, 'rohr') and not IsSubTypeOf(e, 'bodenelement') and (PropertyActive(e, 'metallverkleidungsFarbe_lokal') or PropertyActive(e, 'schalentypmaterialfarbig')));`;
+			} else {
+				filterstr = `not (not IsSubTypeOf(e, 'kugel') and not IsSubTypeOf(e, 'rohr') and not IsSubTypeOf(e, 'bodenelement') and (PropertyActive(e, 'metallverkleidungsFarbe_lokal') or PropertyActive(e, 'schalentypmaterialfarbig')));`;
+			};
+			my filteredCTList = FilterList(ctlist, 'e', filterstr);
+			my colors = FeatureValuesFromPartList(filteredCTList, 'Metallfarbe');
+			my schalen_filter_str = `not (not PropertyActive(e, 'schalentypmaterialfarbig') and PropertyActive(e, 'schalentypmaterial'));`;
+			my schalen_filtered_ct_list = FilterList(ctlist, 'e', schalen_filter_str);
+			ListExtend(colors, FeatureValuesFromPartList(filteredCTList, 'Schalentypmaterialfarbig'));
+			ListExtend(colors, FeatureValuesFromPartList(schalen_filtered_ct_list, 'Schalentypmaterial'));
+			
+			if (Size(filteredCTList) eq 0) {
+				colors = Size(GetComponentListOfType('glashalter_std')) ? List('80') : colors;
+			};	
+			
+			colors = FilterList(colors, 'c', `c eq '';`);
+			if (unique) {
+			 return UniqueList(colors);
+			} else {
+				return colors;
+			};
+		} ;"/>
+	</function>
+
+	<function description="list of all unique color (Metallfarbe material) in the scene">
+		<param name="partlist" description="componentlist"/>
+		<definition expression="
+def mostColorcode(partlist) {
+	my allfarbcodes = call globalColorList(partlist, true,false);		   
+	my farbcodes = FilterList(UniqueList(allfarbcodes), 'p', `StrLen(p) eq 0;`);
+	my result = List();
+	
+	my allfarbcodesstr = ListToString(allfarbcodes, ':');
+	
+	my max = 0;
+	my maxcolor = '';
+	for (my c: farbcodes) {
+		my count = StrCountOccurrence(allfarbcodesstr, c);
+		if (count gt max) {
+			maxcolor = c;
+			max = count;
+		}
+		/*
+		my entry = List();
+		entry['farbcode'] = c;
+		entry['count'] = count;
+		ListAdd(result, entry);
+		*/
+		maxcolor;
+	};
+}; 
+
+	"/>
+	</function>
+	<function>
+		<definition expression="
+		
+def kettenElementDefinitions(part,index,mode) { 
+      my retval = '';
+      my laenge = Feature('f_kettenBreite_top') * 0.1;
+      my hoehe = Feature('f_height') * 0.1;
+      my breite = Feature('f_kettenGliedBreite_top');
+      my x = (_pos + breite)/laenge;
+      my alpha = (Power(E,x) - Power(E,-x)); /* Ableitung */
+      my func = 'Power(E,x) + Power(E,-x)';
+      my delta = breite * Cos(alpha);
+      x = (_pos + delta)/laenge;
+      alpha = (Power(E,x) - Power(E,-x)); /* Ableitung */
+      if (mode eq 'transx') {
+         delta = breite * Cos(alpha);  
+         _pos = _pos + delta;    
+         retval = _pos;
+      } else if (mode eq 'transz') {
+         retval = Eval(func) * hoehe;
+      } else if (mode eq 'roty') {
+         retval = - ATan(alpha) * 2 / PI * 90;
+      }
+      return retval;
+   }
+   
+def kettenElementAmount(part) { 
+   my breite = Feature('f_kettenBreite_top') * 0.1;
+   my hoehe = Feature('f_height') * 0.1;
+   my posx = 0;
+   my posz = 0;
+      my diag = Power(breite,2) + Power(hoehe,2);
+      diag = Sqrt(diag);
+      my amount = Round(diag/3,1.0);
+      for (my i: IndexList(amount)) {
+         posx = call kettenElementDefinitions(part,i,'transx');
+         posz = call kettenElementDefinitions(part,i,'transz');
+         if (posx gt breite or posz gt hoehe) {
+          break;
+        }
+      }
+      return amount;
+   }
+		
+		"/>
+	</function>
+	<function>
+		<definition expression="def cosh(value) {
+			return (Exp(value) + Exp(-value))/2;
+		};"/>
+	</function>
+	<function>
+		<definition expression="def arcosh(value) {
+			return  Log( value + Sqrt(Power(value,2) - 1));
+		};"/>
+	</function>
+	<function>
+		<definition expression="def sinh(value) {
+			return (Exp(value) - Exp(-value))/2;
+		};"/>
+	</function>
+	<function>
+		<definition expression="def arsinh(value) {
+			return  Log(value + Sqrt(Power(value,2) + 1));
+		};"/>
+	</function>
+	
+<!-- Schloss C -->
+<function>
+	<definition expression="def schlossCActive() {
+		my active = false;
+		if (call isUSM()) {
+			active = true;
+		} else {
+			 my country = partnertable['country'];
+			 active = Size(TableRows(schloss_c_country, 'iso', country, true)) gt 0;
+		
+		};
+	
+		return active;
+	};"/>
+	</function>
+
+	
+	
+	<!-- soft panel  -->
+	<function name="getVolumeSideSpheres" description="gibt aus der sortierten liste der Kugel (interner volume code) die vier Kugeln für die indexierte volume side
+	side	normal 	direction	
+	0		-y		front side
+	1		+x		right side
+	2		+y		back side
+	3		-x		left side
+	4		-z		bottom side
+	5		+y		top side
+	
+	die 4 Kugeln werden für die Plane Berechnung benötigt.
+	">
+		<param name="v" description="volume"/>
+		<param name="index" description="Seitenindex"/>
+		<definition expression="
+			def getVolumeSideSpheres(v, index) {
+				my s = GetVolumeRefParts(v);
+				my list = List();
+				if (index == 0) {
+					ListAdd(list, s[0]);
+			        ListAdd(list, s[1]);
+			        ListAdd(list, s[5]);
+			    	ListAdd(list, s[4]);
+			      } else 
+			      if (index == 1) {
+			        ListAdd(list, s[1]);
+			        ListAdd(list, s[2]);
+			        ListAdd(list, s[6]);
+			        ListAdd(list, s[5]);
+			      } else 
+			      if (index == 2) {
+					ListAdd(list, s[2]);
+					ListAdd(list, s[3]);
+					ListAdd(list, s[7]);
+					ListAdd(list, s[6]);
+				 } else 
+				 if (index == 3) {
+					ListAdd(list, s[3]);
+					ListAdd(list, s[0]);
+					ListAdd(list, s[4]);
+					ListAdd(list, s[7]);
+				 } else 
+				 if (index == 4) {
+					ListAdd(list, s[0]);
+					ListAdd(list, s[3]);
+					ListAdd(list, s[2]);
+				    ListAdd(list, s[1]);
+				 } else 
+				 if (index == 5) {
+					ListAdd(list, s[4]);
+					ListAdd(list, s[5]);
+					ListAdd(list, s[6]);
+					ListAdd(list, s[7]);
+				 }
+				return list;
+			}
+		"/>
+	
+	</function>
+	
+	<function name="getVolumePlane" description="gibt die Plane für die Volumenseite mit gegebenem index
+		Die Plane besteht aus Punkt auf der Plane und der Planenormalen.
+	">
+		<param name="v" description="volume"/>
+		<param name="index" description="Seitenindex"/>
+		<definition expression="
+		def getVolumePlane(v, index) {
+      		my points = call getVolumeSideSpheres(v, index);
+			my p0 = PartPos(points[0]);
+			my p1 = PartPos(points[1]);
+			my p2 = PartPos(points[2]);
+			my d1 = VectorSub(p1, p0);
+			my d2 = VectorSub(p2, p0);
+			my planenormal = VectorCrossProduct(d1, d2);
+			return List(p0, VectorNormalize(planenormal));
+		}
+		
+		"/>
+	</function>
+	<function name="pointPlaneDistance" description="gibt die Distanz von p zur plane (o,n)">
+		<param name="o" description="point in plane"/>
+		<param name="n" description="planenormal"/>
+		<param name="p" description="point to test distance"/>
+		<definition expression="
+		/* o: point in plane, n: planenormal, p: point to test distance */
+		def pointPlaneDistance(o, n, p) {
+			my d = VectorDotProduct(n,p) - VectorDotProduct(n,o);
+			return Abs(d);
+		}
+		
+		"/>
+	</function>
+	<function name="getVolumePlaneNormalForPipe" description="gibt die Planenormale des Volumen, der Plane in der das Rohr liegt.">
+		<param name="pipe" description="rohr"/>
+		<definition expression="
+		def getVolumePlaneNormalForPipe(pipe) {
+			my v = GetRefVolumes(pipe, 'mainstructure');
+			v = v[0];
+			if (not v) {
+				return null;
+			};
+			for (my index : IndexList(4)) {
+				my plane = call getVolumePlane(v, index);
+				my normal = plane[1];
+				my dist = call pointPlaneDistance(plane[0], normal, PartPos(pipe));
+				if (dist lt 1.0) {
+					return normal;
+				}
+			}
+			return null;
+		}
+		
+		"/>
+	</function>
+	<function name="matrixFromCoordinateSystem" description="gibt die Matrix für einen Punkt im gegebenen Koordinationsyste(x,y,z)">
+		<param name="x" description="Vector für X Achse"/>
+		<param name="y" description="Vector für Y Achse"/>
+		<param name="z" description="Vector für Z Achse"/>
+		<param name="p" description="Vector für Punkt"/>
+		<definition expression="
+	def matrixFromCoordinateSystem(x,y,z,p) {
+		my matrixString =
+		x['x'] ++ ' ' ++ x['y'] ++ ' ' ++ x['z'] ++ ' ' ++ 0 ++ ' '
+		++ y['x'] ++ ' ' ++ y['y'] ++ ' ' ++ y['z'] ++ ' ' ++ 0 ++ ' '
+		++ z['x'] ++ ' ' ++ z['y'] ++ ' ' ++ z['z'] ++ ' ' ++ 0 ++ ' '
+		++ p['x'] ++ ' ' ++ p['y'] ++ ' ' ++ p['z'] ++ ' ' ++ 1;
+   
+		return String2Matrix(matrixString);
+	}
+		
+		"/>
+	</function>
+	<function name="horizontalPipeVolumeFrontDockTransformation" description="gibt die Transormation für ein Dock auf dem Rohr, sodass es vom Volumen nach aussen zeigt (x) und nach oben (z)">
+		<param name="pipe" description="rohr"/>
+		<definition expression="
+
+		def horizontalPipeVolumeFrontDockTransformation(pipe) {
+			my normal = call getVolumePlaneNormalForPipe(pipe);
+			my g_center = PartPos(pipe);
+			my zUpVector = Vector(0,0,1);
+			my g_x = VectorAdd(g_center, normal); /* point in front of volume */
+			my g_y = VectorAdd(g_center, VectorCrossProduct(zUpVector, normal));
+			my g_z = VectorAdd(g_center, zUpVector);
+			my center = LocalPos(pipe, g_center);
+			my dir_x = VectorSub(LocalPos(pipe, g_x), center);
+			my dir_y = VectorSub(LocalPos(pipe, g_y), center);
+			my dir_z = VectorSub(LocalPos(pipe, g_z), center);
+			my matrix = call matrixFromCoordinateSystem(dir_x, dir_y, dir_z, center);
+			
+			return Matrix2Transformation(matrix);
+		} 
+		
+		
+		"/>
+	</function>
+</code>
+

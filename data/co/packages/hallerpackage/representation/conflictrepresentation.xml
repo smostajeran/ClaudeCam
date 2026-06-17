@@ -1,0 +1,1089 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<conflictrepresentation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/co/VCML-Rep-conflicts.xsd" post_script="set_3dviewer_topjddj" pre_script="set_3dviewer_top">
+	<conflict text="einsam" type="lonely" problemtext="lonely_prob" solutiontext="lonely_solve" severity="10" 
+	          multiconflicts="true" conflictexpression="call lonelyParts();">
+		<solution title="Localize('einsam');">
+			<operation>
+				<inlineoperator cartridge="usm_haller">
+					<simpleop structureid="mainstructure" markedpartscondition="markedparts;">
+						<deletepart canundo="true" />
+					</simpleop>
+					<simpleop structureid="mainstructure">
+						<selectpart clearselection="true" select="false" />
+						<condition>
+							<part type="ct_haller_shelf_component" class="component" markable="true" maximum="1" />
+						</condition>
+					</simpleop>
+					<simpleop structureid="mainstructure">
+						<assembler forest="mainstructure" force="true" now="true" />
+					</simpleop>
+				</inlineoperator>
+			</operation>
+		</solution>
+	</conflict>
+	
+	<conflict severity="5" text="Konflikt_ueberlappen" type="softpanel_collision" problemtext="Softpanels überlappen" solutiontext="Löschen oder schieben sie das Softpanel" multiconflicts="false"
+		conflictexpression="
+		my result = List();
+		my softpanel_rohrlist = GetComponentListOfType('rohr750');
+		softpanel_rohrlist = FilterList(softpanel_rohrlist, 'r', `not (ConnectedDockCount(r, 'rohr_2_magnet') eq 2);`);
+		for (my rohr: softpanel_rohrlist) {
+			my s1 = DockGetConnectedDock(Dock(rohr, 'rohr_2_magnet', 1));
+			my s2 = DockGetConnectedDock(Dock(rohr, 'rohr_2_magnet', 2));
+			//Message(Abs(GetDOFValue2(s1) + GetDOFValue2(s2)));
+			if (Abs(GetDOFValue2(s1) + GetDOFValue2(s2)) gt 7) {
+				ListAdd(result, DockGetPart(s1));
+				ListAdd(result, DockGetPart(s2));
+			}
+		}
+		
+		return result;
+		"
+	>
+    
+  </conflict>
+  <conflict severity="5" text="Einbaukonflikt" type="softpanel_collision" problemtext="Softpanels über Einbauten" solutiontext="Löschen sie das Softpanel oder den Einbau" multiconflicts="true"
+		conflictexpression="
+		
+		my volumes = GetVolumeList();
+		volumes = FilterList(volumes, 'v', `not (ChildOfType(v, 'as_soft_panel'));`);
+		my result = List();
+		
+		for (my v: volumes) {
+			my ok = true;
+			my einbau_list = List();
+			ListExtend(einbau_list, ChildrenListOfTypeDeep(v, 'ausziehtuertablarset'));
+			ListExtend(einbau_list, ChildrenListOfTypeDeep(v, 'at_tuerset'));
+			ListExtend(einbau_list, ChildrenListOfTypeDeep(v, 'schubladenauszugset'));
+			ListExtend(einbau_list, ChildrenListOfTypeDeep(v, 'glastuerset'));
+	 		ok = Size(einbau_list) eq 0;
+				
+			if (not ok) {
+				for (my e: einbau_list) {
+					if ((my vc = ParentOfType(e, 'mainstructure', 'volumecontent'))) {
+						ListAdd(result, vc);
+					} else {
+						ListAdd(result, e);
+					}
+				} 
+			};	
+		};
+		
+		return result;
+		"
+	>
+    	<solution title="Localize('[CO]:[KF] Einbau löschen');">
+    		<operation>
+				<operationlist>
+					<operation>
+						<inlineoperator cartridge="usm_haller">
+							<simpleop structureid="mainstructure" markedpartscondition="part;">
+								<deletepart canundo="true" />
+							</simpleop>
+							<simpleop>
+								<assembler force="true"/>
+							</simpleop>
+						</inlineoperator>
+					</operation>
+					<operation>
+						<updateconflicts viewerid="999"/>
+					</operation>
+				</operationlist>
+			</operation>
+		</solution>
+    	<solution title="Localize('[CO]:[KF] Softpanel löschen');">
+			<operation>
+				<operationlist>
+					<operation>
+						<inlineoperator cartridge="usm_haller">
+							<simpleop structureid="mainstructure" markedpartscondition="my volume = ParentOfType(part, 'mainstructure', 'normal_volume');
+							if (volume) {
+								return ChildOfType(volume, 'as_soft_panel');
+							};
+							null;">
+								<deletepart canundo="true" />
+							</simpleop>
+							<simpleop>
+								<assembler force="true"/>
+							</simpleop>
+						</inlineoperator>
+					</operation>
+					<operation>
+						<updateconflicts viewerid="999"/>
+					</operation>
+				</operationlist>
+			</operation>
+		</solution>
+  </conflict>
+  <conflict severity="5" text="Hinweis_fehlendes Rohr" type="blech_not_fully_connected" multiconflicts="true" problemtext="blech_not_fully_connected_conflict" solutiontext="blech_not_fully_connected_conflict_solution"
+  	conflictexpression="
+  	my result = List();
+  	
+  	my bl = GetComponentListOfType('normalblech');
+	bl = FilterList(bl, 'b', `not (ConnectedDockCount(b, 'blech2rohr') gt 0 and ConnectedDockCount(b, 'blech2rohr') lt 4);`);
+	
+	result = bl;		
+  	
+  	"
+  >
+    
+  </conflict>
+  <conflict severity="10" text="Konflikt_fehlendes Rohr" type="soft_panel_fehlendes_rohr" multiconflicts="true" problemtext="soft_panel_fehlendes_rohr_conflict" solutiontext="soft_panel_fehlendes_rohr_conflict_solution"
+  	conflictexpression="
+  	my result = List();
+  	
+  	for (my sp: ChildrenListOfTypeDeep(Forest('mainstructure'), 'as_soft_panel')) {
+	  	my volume = ParentOfType(sp, 'mainstructure', 'volume');
+	
+		my rohr = FindPart(ChildOfType(sp, 'co_soft_panel'), 'magnet_2_rohr',1);
+		
+		my x  = Round(PartPos(rohr)['x']);
+		my y = Round(PartPos(rohr)['y']);
+		my refrohre = FilterList(GetVolumeRefParts(volume), TypeFilter('ct_verbraucherRohrE'));
+		
+		
+		if (Size(FilterList(refrohre, 'r', `not (r ne rohr and Round(PartPos(r)['x']) eq x and Round(PartPos(r)['y']) eq y);`)) eq 0) {
+			ListAdd(result, volume);		
+		};
+		
+	};
+	
+	result;
+  	"
+  >
+    
+  </conflict>
+  <conflict severity="5" text="Konflikt_ueberlappen" type="blech_collision" problemtext="Überlappendes Metallelement" solutiontext="Löschen sie das Metallelement" multiconflicts="true"
+		conflictexpression="
+		
+		my result = List();
+		my flist = GetComponentListOfType('fraesrohr_doppelseitig');
+		for (my f: flist) {
+			my x = Round(PartPos(f)['x']);
+			my z = Round(PartPos(f)['z']);
+			my bl = GetComponentListOfType('normalblech');
+			my blist = List();
+			
+			for (my b: bl) {
+				my rp = RelativePartPos(b, f);
+				my trans = InvertTransformation(Transformation(rp, PartRot(b)));
+				if (Round(PartPos(b)['z']) eq z and Abs(trans['transx']) lt 25) {
+					ListAdd(blist, b);
+				}
+			}
+			
+			if (Size(blist) gt 2) {
+				ListExtend(result, blist);
+			}
+			
+			
+		}
+		
+		
+		return result;
+		"
+	>
+    	<solution title="Localize('[CO]:[KF] Metallelement löschen');">
+    		<operation>
+				<operationlist>
+					<operation>
+						<inlineoperator cartridge="usm_haller">
+							<simpleop structureid="mainstructure" markedpartscondition="part;">
+								<deletepart canundo="true" />
+							</simpleop>
+							<simpleop>
+								<assembler force="true"/>
+							</simpleop>
+							<simpleop structureid="mainstructure" markedpartscondition="GetComponentListOfType('normalblech');">
+								<connectall/>
+							</simpleop>
+						</inlineoperator>
+					</operation>
+					<operation>
+						<updateconflicts viewerid="999"/>
+					</operation>
+				</operationlist>
+			</operation>
+		</solution>
+    	
+  </conflict>
+	<conflict severity="10" text="einsam" type="klemmhalter_undocked" problemtext="klemmhalter_undocked_conflict" solutiontext="klemmhalter_undocked_solution" multiconflicts="true">
+    <clause aggregationid="mainstructure" type="klemmhalter_undocked"/>
+  </conflict>
+	
+	<conflict severity="10" text="auslaufartikel_conflict_name" type="auslaufartikel_generell" problemtext="auslaufartikel_conflict_problem" solutiontext="auslaufartikel_conflict_solution">
+    <clause aggregationid="articlestructure" type="auslaufartikel_generell"/>
+  </conflict>
+  
+	<conflict severity="5" text="Hinweis_Endanfraesung" type="contains_fraesrohr" problemtext="contains_fraesrohr_conflict" solutiontext="contains_fraesrohr_conflict_solution">
+    <clause aggregationid="mainstructure" type="contains_fraesrohr"/>
+  </conflict>
+  
+	<conflict text="Lateralsetkonflikt" type="lateralset_with_sheet_between" problemtext="lateralset_with_sheet_between_conflict" solutiontext="lateralset_with_sheet_between_solution">
+		<clause aggregationid="mainstructure" type="lateralset_with_sheet_between"/>
+	</conflict>
+	<conflict text="Lateralsetkonflikt" type="lateralset_oblique_same_height" problemtext="lateralset_oblique_same_height_conflict" solutiontext="lateralset_oblique_same_height_solution">
+		<clause aggregationid="mainstructure" type="lateralset_oblique_same_height"/>
+	</conflict>
+	<conflict text="Glaseckenkonflikt" type="hasecken_not_calculated" problemtext="Glasecken sind an nicht kalkulierter Glasverkleidung befestigt." solutiontext="Setzen Sie bei Bedarf die selektierten Glasecken auf nicht kalkuliert.">
+		<clause aggregationid="mainstructure" type="hasecken_not_calculated"/>
+	</conflict>
+	<conflict text="Montagekonflikt" type="hasvolume_notmounted_middle" problemtext="Ein Fach inmitten des Regal ist nicht montiert, damit fehlen dort Schlitzrohre." solutiontext="Fach selektieren und trennen.">
+		<clause aggregationid="mainstructure" type="hasvolume_notmounted_middle"/>
+	</conflict>
+	<conflict text="Bodenelementkonflikt" type="fussrollenmix" problemtext="Unterschiedliche Bodenelemente am selben Fach." solutiontext="Fach selektieren und über Properties einheitliches Bodenelement wählen.">
+		<clause aggregationid="mainstructure" type="hasvolume_fussrollenmix"/>
+	</conflict>
+	<conflict text="Bodenelementkonflikt" type="glastuere_rollen" problemtext="Regale mit Glastüren dürfen nicht auf Rollen stehen." solutiontext="Regal selektieren und über Properties Nivellierfuss wählen." severity="10" multiconflicts="true">
+		<clause aggregationid="mainstructure" type="hasvolume_glastuere_rollen"/>
+	</conflict>
+	<conflict text="Bodenelementkonflikt" type="biblio_rollen" problemtext="Regale mit Biblio-Elementen dürfen nicht auf Rollen stehen." solutiontext="Regal selektieren und über Properties Nivellierfuss wählen.">
+		<clause aggregationid="mainstructure" type="hasvolume_biblio_rollen"/>
+	</conflict>
+	<conflict text="Materialkonflikt" type="glashaltermix" problemtext="Glasverkleidungselemente werden mittels Glashalter verchromt oder schwarz am Rahmen befestigt. Eine Mischung von verchromten oder schwarzen Glashalter innerhalb des gleichen Regals ist nicht vorgesehen." solutiontext="Glasvolumen selektieren und über Properties einheitlicher Materialtyp für Glashalter wählen.">
+		<clause aggregationid="mainstructure" type="hasvolume_glashaltermix"/>
+	</conflict>
+	<conflict text="Materialkonflikt" type="beschlagmix" solutiontext="Glasvolumen selektieren und über Properties einheitlicher Materialtyp für Beschläge wählen." problemtext="Glastüren existieren mit schwarzen oder verchromten Glashalter und Glastürscharnieren. Eine Mischung innerhalb des gleichen Regals ist nicht vorgesehen.">
+		<clause aggregationid="mainstructure" type="hasvolume_beschlagmix"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="einschtuer_lateralset" problemtext="Lateral-Set Twinlock 12 kann nicht hinter einer Einschubtüre eingebaut werden." solutiontext="missing solution for Lateralset hinter Einschubtüre">
+		<clause aggregationid="mainstructure" type="hasvolume_einschtuer_lateralset"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="nega_blechausschnitt" solutiontext="Bauen Sie einen Kabelausschnitt ein (Menu Verkleidung/Kabelausschnitt)" problemtext="Für die Stromzuführung zum Negatoskop muss ein Kabelausschnitt vorhanden sein">
+		<clause aggregationid="mainstructure" type="hasvolume_nega_blechausschnitt"/>
+	</conflict>
+	<conflict text="Tuerkonflikt" type="hasvolume_2estuere" problemtext="Im Fach ist nur eine Einschubtüre erlaubt." solutiontext="Klapptüren sind beidseitig einbaubar.">
+		<clause aggregationid="mainstructure" type="hasvolume_2einschubtuere"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="2schublade_A4" problemtext="Ein Schublade A4 darf aus Stabilitätsgründen in einem Fach 750 nur einmal montiert werden." solutiontext="Eine Schublade entfernen oder in Properties Schublade A5 wählen.">
+		<clause aggregationid="mainstructure" type="hasvolume_2schublade_A4"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="nrfseite_klapptuer" problemtext='An ein "Nicht rahmenfüllendes Metallelement" als Seitenwand darf keine Klapptüre befestigt werden.' solutiontext="Seitenwände durch rahmenfüllende Elemente ersetzen.">
+		<clause aggregationid="mainstructure" type="hasvolume_nrfseite_klapptuer"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="nrfseite_estuere" problemtext='An ein "Nicht rahmenfüllendes Metallelement" als Seitenwand darf keine Einschubtüre befestigt werden.' solutiontext="Seitenwände durch rahmenfüllende Elemente ersetzen.">
+		<clause aggregationid="mainstructure" type="hasvolume_nrfseite_estuere"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="nrfseite_glastuere" problemtext='An ein "Nicht rahmenfüllendes Metallelement" als Seitenwand darf keine Einschubtüre befestigt werden.' solutiontext="Seitenwände durch rahmenfüllende Elemente ersetzen.">
+		<clause aggregationid="mainstructure" type="hasvolume_nrfseite_glastuere"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="nicht_rahmen_f" problemtext="Sie habe ein Fach mit einem nicht rahmenfuellenden Element an der Rückseite in Kombination mit einem beweglichen Teil (AZT, Schublade oder Registraturset)" solutiontext="Stellen Sie sicher, dass es zu keiner Kollision kommt zwischen den beweglichen Teilen und dem nicht rahmenfüllenden Verkleidungselement.">
+		<clause aggregationid="mainstructure" type="has_nrfe_back"/>
+	</conflict>
+	<conflict text="Bodenelementkonflikt" type="missing_bodenele" problemtext="Bodenelement fehlt!" solutiontext="Montieren Sie das fehlende Element.">
+		<clause aggregationid="mainstructure" type="missing_bem"/>
+	</conflict>
+	<conflict text="Elektrifizierungsproblem" type="undefined_polarity" problemtext="undefined_polarity_conflict" solutiontext="undefined_polarity_solution">
+		<clause aggregationid="mainstructure" type="undefined_polarity"/>
+	</conflict>
+	<conflict text="Elektrifizierungsproblem" type="broken_electrification" problemtext="broken_electrification_conflict" solutiontext="broken_electrification_solution">
+		<clause aggregationid="mainstructure" type="broken_electrification"/>
+	</conflict>
+	<conflict text="Elektrifizierungsproblem" type="leitgestaenge_unverbunden" problemtext="leitgestaenge_unverbunden_conflict" solutiontext="leitgestaenge_unverbunden_solution">
+		<clause aggregationid="mainstructure" type="leitgestaenge_unverbunden"/>
+	</conflict>
+	<conflict text="Hinweis" type="aussenwand_als_innenwand" problemtext="aussenwand_als_innenwand_conflict" solutiontext="aussenwand_als_innenwand_solution">
+		<clause aggregationid="mainstructure" type="AussenwandAlsInnenwand"/>
+	</conflict>
+	<!--Conflict alter CPU-Halter-->
+	<conflict text="Einbaukonflikt" severity="10" type="article_no_more_supported" problemtext="article_no_more_supported_conflict" solutiontext="article_no_more_supported_solution">
+		<clause aggregationid="mainstructure" type="article_no_more_supported_haller-regal"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="SchraegtablarHasGlasTopBottom" solutiontext="SchraegtablarHasGlasTopBottom_solution" problemtext="SchraegtablarHasGlasTopBottom_conflict">
+		<clause aggregationid="mainstructure" type="SchraegtablarHasGlasTopBottom"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="EinschubtuereHasNRFETop" problemtext="EinschubtuereHasNRFETop_conflict" solutiontext="EinschubtuereHasNRFETop_solution">
+		<clause aggregationid="mainstructure" type="EinschubtuereHasNRFETop"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="EinschubtuereBlech" problemtext="Einschubtuer500x750_problem" solutiontext="Einschubtuer500x750_solution" severity="10" multiconflicts="true" conflictexpression="call einschubtuerbei500x750();">
+		<solution title="Delete">
+			<operation>
+				<deleteselection viewerid="1000"/>
+			</operation>
+		</solution>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="EinschubtuereEinsatzTop" problemtext="EinschubtuereEinsatzTop_conflict" solutiontext="EinschubtuereEinsatzTop_solution" severity="10">
+    <clause aggregationid="mainstructure" type="EinschubtuereEinsatzTop"/>
+  </conflict>
+	<conflict text="Einbaukonflikt" type="AbbugAussenUndSchubladeAZT" problemtext="AbbugAussenUndSchubladeAZT_conflict" solutiontext="AbbugAussenUndSchubladeAZT_solution" severity="10">
+		<clause aggregationid="mainstructure" type="has_abbug_outside_and_moveable"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="VolumeHasStossbuegel_NoWheel" problemtext="VolumeHasStossbuegel_NoWheel_conflict" solutiontext="VolumeHasStossbuegel_NoWheel_solution">
+		<clause aggregationid="mainstructure" type="VolumeHasStossbuegel_NoWheels"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="GlobalSperren" problemtext="GlobalSperren_conflict" solutiontext="GlobalSperren_solution" severity="10">
+		<clause aggregationid="mainstructure" type="GlobalSperren"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="OldStyleSperren" problemtext="OldStyleSperren_conflict" solutiontext="OldStyleSperren_solution">
+		<clause aggregationid="mainstructure" type="OldStyleSperren"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="EinbauBeiAnstossenderKugel" problemtext="EinbauBeiAnstossenderKugel_conflict" solutiontext="EinbauBeiAnstossenderKugel_solution">
+		<clause aggregationid="mainstructure" type="hasvolume_morethan8kugeln_verkleidung"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="TuerInLConfig" problemtext="TuerInLConfig_conflict" solutiontext="TuerInLConfig_solution" severity="10">
+		<clause aggregationid="mainstructure" type="TuerInLConfig"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="EinsatzStrukturStabilitaet" problemtext="EinsatzStrukturStabilitaet_conflict" solutiontext="EinsatzStrukturStabilitaet_solution" multiconflicts="true"
+	 conflictexpression="my result = List();
+	 for (my part: GetComponentListOfType('einsatzverkleidung')) {
+			 GetGeometryComplexity(1000, part);
+	 		my struktur = call kugelStrukturEinsatzStabilitaet(part); 
+				my stabil = struktur['stabil'];
+				if (stabil) {
+					stabil = call hasURohr(part);
+				};
+				if (not stabil) {
+					ListAdd(result, part);
+				};
+			};
+	 result;
+	">
+		
+	</conflict>
+	<conflict text="Einbaukonflikt" type="EinsatzStrukturStabilitaet_severity10" problemtext="EinsatzStrukturStabilitaet_conflict" solutiontext="EinsatzStrukturStabilitaet_solution" multiconflicts="true" severity="10">
+		<clause aggregationid="mainstructure" type="EinsatzStrukturStabilitaet_severity10"/>
+	</conflict> 
+
+	<conflict text="Druckkonflikt" type="VolumeNeedsPrintZone" problemtext="Sie haben noch keine Printzone gesetzt und das Möbel ist zu gross um auf einem Blatt gedruckt zu werden." solutiontext="Bitte setzen Sie eine Printzone." 
+		conflictexpression="
+		my volumes = ChildrenListOfType(Forest('mainstructure'), 'volume');
+		
+		my result = List();
+		result = GlobalClauseMarkedParts('VolumeNeedsPrintZone');
+		for (my v: volumes) {
+			
+			if (call printzonevolumelength(v) AND USMPartPrintZone(v, 'usm_haller') EQ null) {
+				ListAdd(result, v);
+			} else
+			if (call volumeIsRotated(v) and USMPartPrintZone(v, 'usm_haller') eq null) {
+				ListAdd(result, v);
+			}
+			
+			if (Size(result) gt 0) {
+				return result;
+			}
+		};
+		return List();
+		">
+		
+		
+		<!-- <clause aggregationid="mainstructure" type="VolumeNeedsPrintZone" /> -->
+	</conflict>
+	<conflict text="Druckkonflikt" type="VolumeIsOutsidePrintZone" problemtext="Sie haben mindestens eine Printzone gesetzt und es gibt noch weitere Regale, welche nicht auf Printzonen stehen." solutiontext="Bitte setzen Sie auch Printzonen unter den anderen Regalen, sonst werden Sie nicht gedruckt."
+		conflictexpression="
+		return GlobalClauseMarkedParts('VolumeIsOutsidePrintZone');
+		"
+	>
+		<clause aggregationid="mainstructure" type="VolumeIsOutsidePrintZone"/>
+	</conflict>
+	<conflict text="Druckkonflikt" type="PrimoExistsAndVolumeIsOutsidePrintZone" problemtext="Sobald Privacy Panels vorhanden sind, muss jedes Regal eine Printzone besitzen." solutiontext="Bitte setzten sie die notwendigen Printzonen, ansonsten der Ausdruck nicht optimal separiert wird."
+		conflictexpression="
+		return GlobalClauseMarkedParts('PrimoExistsAndVolumeIsOutsidePrintZone');
+		"
+	>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="AusziehTuerSchubladeNichtKomplett" 
+            problemtext="[CO]:[KF] AusziehTuerSchubladeNichtKomplett_problem" 
+            solutiontext="[CO]:[KF] AusziehTuerSchubladeNichtKomplett_solution" 
+            multiconflicts="true" >
+    <clause aggregationid="mainstructure" type="AusziehTuerSchubladeNichtKomplett"/>
+  </conflict>
+	<conflict text="Einbaukonflikt" type="HREinsatzFuehrung_GlasRueckwand" problemtext="HREinsatzFuehrung_GlasRueckwand_conflict" solutiontext="HREinsatzFuehrung_GlasRueckwand_solution">
+		<clause aggregationid="mainstructure" type="HREinsatzFuehrung_GlasRueckwand"/>
+	</conflict>
+	<conflict text="KonfliktTyp_AlteBauteile" type="SchraegtablerOlder2003" problemtext="Das eingesetzte Schraegtablar ist nicht mehr verfügbar." solutiontext="Bitte tauschen Sie die alten Schrägtablare mit den neuen aus dem e-Katalog.">
+		<clause aggregationid="mainstructure" type="SchraegtablerOlder2003"/>
+	</conflict>
+	<conflict text="KonfliktTyp_AlteBauteile" type="IndustrieRolleOlder2003" problemtext="Die eingesetzte Industrierollen sind nicht mehr verfügbar." solutiontext="Bitte ersetzen Sie die alten Industrierollen durch die neue Doppelrolle (Eigenschaften).">
+		<clause aggregationid="mainstructure" type="IndustrieRolleOlder2003"/>
+	</conflict>
+	<conflict text="KonfliktTyp_AlteBauteile" type="HasOldSchubladeMitSchloss" problemtext="In der Konfiguration existieren Schubladen die nicht mehr lieferbar sind." solutiontext="Bitte ersetzen Sie alle Schubladen oder ziehen Sie einen beliebigen Artikel in die Szene und loeschen ihn wieder damit der Automatismus zum Schubladentausch ausgeloest wird.">
+		<clause aggregationid="mainstructure" type="HasOldSchubladeMitSchloss"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="haseinlegrahmen" problemtext="Auf dem Ausziehttablar ist ein Einlegrahmen plaziert" solutiontext="Bitte entfernen Sie die  anderen Einbauten">
+		<clause aggregationid="mainstructure" type="haseinlegrahmen"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="hasschubladenrahmen" problemtext="Auf dem Ausziehttablar ist ein Schubladenrahmen plaziert" solutiontext="Bitte entfernen Sie die  anderen Einbauten" severity="10">
+		<clause aggregationid="mainstructure" type="hasschubladenrahmen"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="haslochblechanwand" problemtext="Sie haben ein Lochblech als sichtbares Seitenteil." solutiontext="Bitte aendern Sie die Eigenschaft des Bleches.">
+		<clause aggregationid="mainstructure" type="haslochblechanwand"/>
+	</conflict>
+	<conflict text="Metallverkleidung nicht ausreichend verbunden" type="blech_not_properly_connected" problemtext="Ein Metallverkleidungselement ist nicht an mindestens zwei gegenueberliegenden Seiten zwischen zwei Rohre eingeklemmt." solutiontext="Bitte aendern Sie die Groesse des Bleches, entfernen es oder bauen es an einer geeigneteren Stelle ein.">
+		<clause aggregationid="mainstructure" type="blech_not_properly_connected"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="Volume_has_Tuere_and_Schublade" problemtext="In einem Fach sind gleichzeitig Tueren und Schubladen eingebaut." solutiontext="Bitte entfernen Sie entweder die Tuere oder die Schubladen.">
+		<clause aggregationid="mainstructure" type="Volume_has_Tuere_and_Schublade"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="KlapptuereWithOnlyOneSchere" problemtext="Mindestens eine Klapptuere hat nicht die erforderlichen zwei Scherengelenke." solutiontext="Entfernen Sie die Tuere und alle dazugehoerigen Bauteile und bauen Sie sie neu ein.">
+		<clause aggregationid="mainstructure" type="KlapptuereWithOnlyOneSchere"/>
+	</conflict>
+	<conflict text="Einbaukonflikt" type="hasblech_kugelkollision" problemtext="hasblech_kugelkollision_conflict" solutiontext="hasblech_kugelkollision_solution">
+		<clause aggregationid="mainstructure" type="hasblech_kugelkollision"/>
+	</conflict>
+	<conflict text="Einbaukonflikt"
+	 conflictexpression="
+	 	my result = List();
+	 	for (my p: GetComponentListOfType('perfblech395_350')) {
+			my colllist = GetCollisions(List(p), GetComponentList());
+			for (my ce: colllist) {
+				ListAdd(result, ce['part1']);
+				ListAdd(result, ce['part2']);
+			};
+	 		
+	 	};
+	 	
+	 	result;
+	 "
+	 type="perfblech395_abbug_kollision"
+	 problemtext="perfblech395_abbug_kollision_conflict"
+	 solutiontext="perfblech395_abbug_kollision_solution"
+	 severity="10">
+		
+	</conflict>
+	<conflict text="Einbaukonflikt" type="hasbiblioblech_frontrohr" problemtext="[co]: hasbiblioblech_frontrohr_conflict" solutiontext="[co]: hasbiblioblech_frontrohr_solution">
+		<clause aggregationid="mainstructure" type="hasbiblioblech_frontrohr" />
+		<solution title="Einbaukonflikt">
+			<operation>
+				<inlineoperator cartridge="usm_haller">
+					<simpleop structureid="mainstructure">
+						<createpartandsnap type="rohr750" />
+						<condition>
+							<part class="component" exactly="1" type="biblioblech">
+								<owner>
+									<dock class="component" type="blech2rohr" occupied="false" index="3" markable="true" />
+								</owner>
+							</part>
+						</condition>
+					</simpleop>
+					<simpleop structureid="mainstructure">
+						<assembler forest="mainstructure" force="true" now="true" />
+					</simpleop>
+				</inlineoperator>
+			</operation>
+		</solution>
+	</conflict>
+	<conflict type="deprecated" text="Artikel nicht mehr verfügbar" problemtext="deprecated_prob" solutiontext="deprecated_solve" severity="10">
+		<clause type="DeprecatedArticles_haller" aggregationid="mainstructure"/>
+		<solution title="Localize('Artikel nicht mehr verfügbar');">
+			<operation>
+				<inlineoperator cartridge="usm_haller">
+					<simpleop structureid="mainstructure">
+						<exchangecomponent componenttype="schublade_schloss_num" addfeature="false" resnap="true" />
+						<condition>
+							<part type="schublade_schloss" class="component" selection="insideselection" markable="true" maximum="9999" />
+						</condition>
+					</simpleop>
+					<simpleop structureid="mainstructure">
+						<deletepart canundo="true" />
+						<condition>
+							<part type="ct_haller_shelf_component" class="component" selection="insideselection" markable="true" maximum="9999" />
+						</condition>
+					</simpleop>
+					<simpleop structureid="mainstructure">
+						<selectpart clearselection="true" select="false" />
+						<condition>
+							<part type="ct_haller_shelf_component" class="component" markable="true" maximum="1" />
+						</condition>
+					</simpleop>
+					<simpleop structureid="mainstructure">
+						<assembler forest="mainstructure" force="true" now="true" />
+					</simpleop>
+				</inlineoperator>
+			</operation>
+		</solution>
+	</conflict>
+	
+	<!--  Check if there is a "einschbtuerset" (door) and if the normal volume has a glass in the bottom to return the error message -->
+	<conflict type="EinschubtuereHasGlasTop" text="Einbaukonflikt" severity="10"
+      problemtext="EinschubtuereHasGlasTop_conflict" 
+      solutiontext="EinschubtuereHasGlasTop_solution"
+      multiconflicts="true" 
+      conflictexpression="call checkEinschubtuereHasGlasTop();"> 
+  	</conflict>
+  	
+  	
+  	<!--  Check if there is a einschbtuerset (door) and if the normal volume has a trafoE (light) in collision with the door -->
+	<conflict type="EinschubtuereWithTrafoE" text="EinschubtuereWithTrafoEkonflikt" severity="10"
+      problemtext="EinschubtuereWithTrafoE_conflict" 
+      solutiontext="EinschubtuereWithTrafoE_solution"
+      multiconflicts="true" 
+      conflictexpression="call checkEinschubtuereWithTrafoE();"> 
+  	</conflict>
+  	
+  	<!--  Check if there is a normal light or usb inside a shelf with a door to set the correct light with sensor -->
+	<conflict type="WrongLightTypeWithDoor" text="WrongLightTypeWithDoorkonflikt" severity="5"
+      problemtext="WrongLightTypeWithDoor_conflict" 
+      solutiontext="WrongLightTypeWithDoor_solution"
+      multiconflicts="true" 
+      conflictexpression="call checkLightTypeWithDoor();"> 
+  	</conflict>
+	
+	<!--  Haller E -->
+	 <conflict type="wrongUSBhallerE" text="wrongUSBhallerE_name" severity="10"
+      problemtext="wrongUSBhallerE_problem" 
+      solutiontext="wrongUSBhallerE_solution"
+      multiconflicts="true" 
+      conflictexpression="call wrongUSBhallerE();
+      "> 
+  	</conflict>
+  	
+  	<conflict type="rollenMitHallerE" text="rollenMitHallerE_name" severity="10"
+  	problemtext="rollenMitHallerE_problem"
+  	solutiontext="rollenMitHallerE_solution"
+  	multiconflicts="false"
+  	conflictexpression="call rollenMitHallerE();"
+  	>
+  	</conflict>
+  
+	 <conflict type="stromkreisKreuzKugel" text="stromkreisKreuzKugel_name" severity="10"
+      problemtext="stromkreisKreuzKugel_problem" 
+      solutiontext="stromkreisKreuzKugel_solution"
+      multiconflicts="true" 
+      conflictexpression="call stromkreisKreuzKugel();
+      "> 
+  	</conflict>
+  
+	 <conflict type="zuHoheTrafoLeistungE" text="zuHoheTrafoLeistungE_name" severity="10"
+      problemtext="zuHoheTrafoLeistungE_problem" 
+      solutiontext="zuHoheTrafoLeistungE_solution"
+      multiconflicts="true" 
+      conflictexpression="
+        my conflicts = List();      
+        my trafos = GetComponentListOfType('co_trafo_E');
+        for (my trafo : trafos) {
+          if (Feature(trafo,'f_stromkreisLeistung') gt 60){
+            conflicts = ListAdd(conflicts, trafo);
+          }
+        }
+        return conflicts;
+      "> 
+  </conflict>
+	 <conflict type="eingebautesHaengeRegisterE" text="eingebautesHaengeRegisterE_name" severity="10"
+      problemtext="eingebautesHaengeRegisterE_problem" 
+      solutiontext="eingebautesHaengeRegisterE_solution"
+      multiconflicts="true" 
+      conflictexpression="
+        my conflicts = List(); 
+        my roste = GetComponentListOfType('rost');
+        my rohr = null;
+        for (my rost : roste) {
+          for (my index : List(1,2,3,4)) {
+            rohr = FindPart(rost,'rost2rohr',index);
+            if (rohr) {
+              if (Feature(rohr,'f_rohrtyp') eq 'rohr-verbraucher'){
+                conflicts = ListAdd(conflicts, rost);
+                break; /* pro Rohr nur ein Konflikt */
+              }
+            }
+          }
+        }
+        return conflicts;
+      "> 
+  </conflict>
+	 <conflict type="stromkreisUnterbruchE" text="stromkreisUnterbruchE_name" severity="10"
+      problemtext="stromkreisUnterbruchE_problem" 
+      solutiontext="stromkreisUnterbruchE_solution"
+      multiconflicts="true" 
+      conflictexpression="
+        my conflicts = List(); 
+        my valid = List();  
+        my trafos = GetComponentListOfType('co_trafo_E');
+        for (my trafo : trafos) {
+          valid = call connectionReCalculation(trafo);
+          if (not valid[0]){
+            conflicts = JoinList(conflicts, valid[1]);
+          }
+        }
+        return conflicts;
+      "> 
+  </conflict>
+	<conflict type="stromkreisOhneTrafoE" text="stromkreisOhneTrafoE_name" severity="10"
+      problemtext="stromkreisOhneTrafoE_problem" 
+      solutiontext="stromkreisOhneTrafoE_solution"
+      multiconflicts="true" 
+      conflictexpression="call stromkreisMissingTrafo();
+      "> 
+  </conflict>
+	<conflict type="schlitzRohrKugelE" text="schlitzRohrKugelE_name" severity="10"
+      problemtext="schlitzRohrKugelE_problem" 
+      solutiontext="schlitzRohrKugelE_solution"
+      multiconflicts="true" 
+      conflictexpression="call schlitzRohrKugelE();
+      "> 
+  </conflict>
+	<conflict type="nochmalsTrennenE" text="nochmalsTrennenE_name" severity="5"
+      problemtext="nochmalsTrennenE_problem" 
+      solutiontext="nochmalsTrennenE_solution"
+      multiconflicts="true" 
+      conflictexpression="call nochmalsTrennenE();
+      "> 
+  </conflict>
+	<conflict type="tuereUSBchargerUntenE" text="tuereUSBchargerUntenE_name" severity="10"
+      problemtext="tuereUSBchargerUntenE_problem" 
+      solutiontext="tuereUSBchargerUntenE_solution"
+      multiconflicts="true" 
+      conflictexpression="call tuereUSBchargerUntenE();
+      "> 
+  </conflict>
+  
+  <conflict type="falscheSensorPosition" text="falscheSensorPosition_name" severity="5"
+      problemtext="falscheSensorPosition_problem" 
+      solutiontext="falscheSensorPosition_solution"
+      multiconflicts="true" 
+      conflictexpression="call validSensorHallerE();
+      "> 
+      <!-- LED  mit Sensor,  richtig Positioniert? 25Grad -->
+  </conflict>
+  
+  <conflict type="fehlenderSensorTuere" text="fehlenderSensorTuere_name" severity="5"
+      problemtext="fehlenderSensorTuere_problem" 
+      solutiontext="fehlenderSensorTuere_solution"
+      multiconflicts="true" 
+      conflictexpression="call fehlenderSensorTuere();
+      "> 
+      <!-- gibt es Verbraucherrohre mit LEDs oberhalb Klapp- oder Ausziehtuere, die keinen einzigen Sensor haben -->
+  </conflict>
+  
+  <conflict type="schlitzRohrGetrenntKugelE" text="schlitzRohrGetrenntKugelE_name" severity="10"
+      problemtext="schlitzRohrGetrenntKugelE_problem" 
+      solutiontext="schlitzRohrGetrenntKugelE_solution"
+      multiconflicts="true" 
+      conflictexpression="call schlitzRohrGetrenntKugelE();
+      "> 
+  </conflict>
+  <conflict type="stossbuegelKugelE" text="stossbuegelKugelE_name" severity="10"
+      problemtext="stossbuegelKugelE_problem" 
+      solutiontext="stossbuegelKugelE_solution"
+      multiconflicts="true" 
+      conflictexpression="call stossbuegelKugelE();
+      "> 
+  </conflict>
+  <conflict type="aufRollenRegalE" text="aufRollenRegalE_name" severity="10"
+      problemtext="aufRollenRegalE_problem" 
+      solutiontext="aufRollenRegalE_solution"
+      multiconflicts="true" 
+      conflictexpression="call aufRollenRegalE();
+      "> 
+  </conflict>
+  <conflict type="EinschubtuerOhneTablarschlitz" text="[CO]:[KF]_EinschubtuerOhneTablarschlitz_name" severity="10"
+      problemtext="[CO]:[KF] EinschubtuerOhneTablarschlitz_conflict" 
+      multiconflicts="true" 
+      conflictexpression="call missingTablarSchlitz();
+      "> 
+      <solution title="Localize('[CO]:[KF] EinschubtuerOhneTablarschlitz_solution');">
+        <operation>
+          <foreach valuelist="call missingTablarSchlitz();" valuevariable="blech">
+          	<operation>
+          		<executeexpression expression="
+          			my newpart = '';
+          		"/>
+          	</operation>
+          	<operation active="Feature(part, 'Metallklasse') eq 'perforiert' or Feature(part, 'Metallklasse')eq 'gelocht';">
+          		<executeexpression expression="
+          		my partname = GetTypeName(blech);
+          		my elementtype = SubStr(partname, 4, 5);
+          		my coordinates = StringToList(SubStr(partname, 9), '_');
+          		my newpartname = '';
+          		/*lochblech has the sizes in x and y flipped in their name. therefore we have to adjust the partTypeName*/
+          		if(Feature(part, 'Metallklasse') eq 'perforiert'){
+          			newpartname = elementtype++coordinates[0]++'_'++coordinates[1];
+          		}
+          		else{
+          			newpartname = elementtype++coordinates[1]++'_'++coordinates[0];
+          		}
+	          	return newpartname;
+          		" returnvariable="newpart"/>
+          	</operation>
+          	<operation active="Feature(part, 'Metallklasse') eq 'pflanzen';">
+          		<executeexpression expression="
+          		my partname = GetTypeName(blech);
+          		my elementtype = SubStr(partname, 11, 5);
+          		my coordinates = StringToList(SubStr(partname, 16), '_');
+          		my newpartname = '';
+          		newpartname = elementtype++coordinates[0]++'_'++coordinates[1];
+	          	return newpartname;
+          		" returnvariable="newpart"/>
+          	</operation>
+          	<operation active="Feature(part, 'Metallklasse') eq 'pflanzen';" >
+          		<inlineoperator cartridge="usm_haller">
+	                <simpleop markedpartscondition="DockGetConnectedPart(ConnectedDocksOfType(part, 'blech2schutzring'));">
+	                	<deletepart/>
+	                </simpleop>
+          		</inlineoperator>
+          	</operation>
+          	<operation>
+              <inlineoperator cartridge="usm_haller">
+                <simpleop structureid="mainstructure" markedpartscondition="blech;">
+                  <setfeature key="tablschlitz" value="1"/>
+                </simpleop>
+              </inlineoperator>
+            </operation>
+            <!-- In case its an illegal "Blechtype" we swap it out for the right one -->
+            <operation active="StrLen(newpart) gt 0;">
+          		<inlineoperator cartridge="usm_haller">
+          			<simpleop structureid="mainstructure" markedpartscondition="blech;">
+	                	<exchangecomponent componenttype="newpart;" resnap="true" addfeature="true"/>
+	                </simpleop>
+	                <simpleop markedpartscondition="">
+	                	<deletepart/>
+	                </simpleop>
+          		</inlineoperator>
+          	</operation>
+          </foreach>
+        </operation>
+      </solution>
+  </conflict>
+  
+  <conflict type="VertikalRohrNichtVerbunden" text="[CO]:[KF] VertikalRohrNichtVerbunden_name" severity="10"
+      problemtext="[CO]:[KF] VertikalRohrNichtVerbunden_conflict" 
+      solutiontext="[CO]:[KF] VertikalRohrNichtVerbunden_solution"
+      multiconflicts="true" 
+      conflictexpression="call vertikalRohrNichtVerbunden();
+      "> 
+  </conflict>
+  
+  <conflict type="SchubladeUnterhalbBlech500x395Verkuerzt" text="[CO]:[KF] SchubladeUnterhalbBlech500x395Verkuerzt" severity="10"
+      problemtext="[CO]:[KF] SchubladeUnterhalbBlech500x395Verkuerzt_conflict" 
+      solutiontext="[CO]:[KF] SchubladeUnterhalbBlech500x395Verkuerzt_solution"
+      multiconflicts="true" 
+      conflictexpression="call schubladeUnterhalbBlech500x395Verkuerzt();
+      "> 
+  </conflict>
+  
+  <conflict type="GewindestiftInKugelE" text="[CO]:[KF] GewindestiftInKugelE" severity="10"
+      problemtext="[CO]:[KF] GewindestiftInKugelE_conflict" 
+      solutiontext="[CO]:[KF] GewindestiftInKugelE_solution"
+      multiconflicts="true" 
+      conflictexpression="call gewindeStiftInKugelE();
+      "> 
+  </conflict>
+  
+  <conflict type="SchlitzFraesrohrKugelE" text="[CO]:[KF] SchlitzFraesrohrKugelE" severity="10"
+      problemtext="[CO]:[KF] SchlitzFraesrohrKugelE_conflict" 
+      solutiontext="[CO]:[KF] SchlitzFraesrohrKugelE_solution"
+      multiconflicts="true" 
+      conflictexpression="call schlitzFraesrohrKugelE();
+      "> 
+  </conflict>
+  
+  <conflict type="TrennRohrOhneSchlitz" text="[CO]:[KF] TrennRohrOhneSchlitz" severity="5"
+      problemtext="[CO]:[KF] TrennRohrOhneSchlitz_conflict" 
+      solutiontext="[CO]:[KF] TrennRohrOhneSchlitz_solution"
+      multiconflicts="true" 
+      conflictexpression="call trennRohrOhneSchlitz();
+      "> 
+  </conflict>
+  
+  <conflict type="printZoneTooBig" text="Druckkonflikt" severity="5"
+      problemtext="Die Printzone ist zu gross um auf einem Blatt gedruckt zu werden." 
+      solutiontext="Bitte setzen Sie statt der einen Printzone zwei neue, kleinere Printzonen."
+      multiconflicts="false" 
+      conflictexpression="call printZoneTooBig();
+      "> 
+  </conflict>
+	
+	<conflict
+		type="falscherAusschnittBlech150_175"
+		text="[CO]:[KF] falscherAusschnittBlech150_175"
+		severity="10"
+		problemtext="[CO]:[KF] falscherAusschnittBlech150_175_conflict"
+		solutiontext="[CO]:[KF] falscherAusschnittBlech150_175_solution"
+		conflictexpression="call falscheAusschnitteBlech150oder175();"
+	>
+		<solution title="Localize('[CO]:[KF] falscherAusschnittBlech150_175_automatic_solution');">
+			<operation>
+				<inlineoperator cartridge="usm_haller">
+					<simpleop structureid="mainstructure">
+						<deletepart canundo="true" />
+						<condition>
+							<part type="blechausschnitt" class="component" selection="insideselection" markable="true" maximum="9999"/>
+						</condition>
+					</simpleop>
+				</inlineoperator>
+			</operation>
+		</solution>
+	</conflict>
+	
+	<conflict type="schraegtablar" text="[CO]:[KF] schraegtablar_conflict" severity="10"
+      problemtext="[CO]:[KF] schraegtablar_sperrstange_conflict" 
+      solutiontext="[CO]:[KF] schraegtablar_sperrstange_solution"
+      multiconflicts="true" 
+      conflictexpression="call sperrstangeMitSchraegtablar();"> 
+  </conflict>
+  
+  <conflict type="teleskopauszugsposition" text="[CO]:[KF] teleskopauszugsposition" severity="10"
+      problemtext="[CO]:[KF] teleskopauszugsposition_conflict" 
+      solutiontext="[CO]:[KF] teleskopauszugsposition_solution"
+      multiconflicts="true" 
+      conflictexpression="call checkTeleskopauszugsPosition();"> 
+  </conflict>
+  
+<!-- 	Safety -->
+	 
+  <conflict type="safety_notIncluded" text="[CO]:[SF]:[KF]:[LBL] Sicherheitshinweis" severity="5" 
+     problemtext="[CO]:[SF]:[KF]:[PTXT] Rollkorpus ist nicht Safety ueberprueft" 
+     solutiontext="[CO]:[SF]:[KF]:[STXT] Rollkorpus Safety auf eigene Verantwortung"
+     multiconflicts="true" 
+     conflictexpression="
+     
+     my conflicts = Scenario() eq 'web' ? List() : call notIncludedInSafety(call partGroupIdList('usm_haller'));conflicts[0];"
+     > 
+     <solution title="Localize('2 Gegengewichtplatten setzen');">
+     	<operation>
+     		<operationlist>
+     			<localvar name="groupid" value="my groupid = USMPartGroupId(part);"/>
+		     	<localvar name="bottomvolume" value="my vols = call getVolumesInColumn(markedparts[0]);vols[Size(vols)-1];"/>
+		     	<operation>
+					<inlineoperator cartridge="usm_haller">
+						<simpleop>
+							<createpart type="blech350_350" newpartvariable="blech">
+								<setfeatures dictionary="my dict = List();
+								dict['_PXi_permanent_group_id'] = USMPartGroupId(bottomvolume);
+								dict;"/>
+							</createpart>
+						</simpleop>
+						<simpleop structureid="mainstructure" markedpartscondition="List(bottomvolume, blech);">
+							<brickonbrick assemblenewparts="true" viewerid="1000">
+								<fixed_part_offset z="-Feature('zlength')/2 +1;" />
+							</brickonbrick>
+						</simpleop>
+						<simpleop structureid="mainstructure" markedpartscondition="IsConnectedToVolume(blech, 'mainstructure') ? null : blech;">
+							<deletepart/>
+						</simpleop>
+					</inlineoperator>
+				</operation>
+     			<operation>
+		     		<inlineoperator cartridge="usm_haller">
+		     			<simpleop structureid="mainstructure" markedpartscondition="
+		     			
+		     			my group_parts = call groupIdPartList(groupid);
+		     			FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'blech500_750') and PartClause(p, 'IsLowestPanel'));`);
+		     			">
+		     				<changepropertyop propertytype="b_ggw_500_750" propertyvalue="blech500_750_ggw"/>
+		     			</simpleop>
+		     		</inlineoperator>
+     			</operation>
+     			<operation>
+		     		<inlineoperator cartridge="usm_haller">
+		     			<simpleop structureid="mainstructure" markedpartscondition="
+		     			
+		     			my group_parts = call groupIdPartList(groupid);
+		     			FilterList(group_parts, 'p', `not (IsSubTypeOf(p, 'blech500_395') and PartClause(p, 'IsLowestPanel'));`);
+		     			">
+		     				<changepropertyop propertytype="b_ggw_500_395" propertyvalue="blech500_395_ggw"/>
+		     			</simpleop>
+		     		</inlineoperator>
+     			</operation>
+     			<operation>
+     				<calloperator type="cleanupGewichtplatte"/>
+     			</operation>
+     		</operationlist>
+     	</operation>
+     </solution>
+  </conflict>
+	
+	
+  <conflict type="safety_kippgefahr_orange" text="[CO]:[SF]:[KF]:[LBL] Sicherheitskonflikt" severity="5" 
+     problemtext="[CO]:[SF]:[KF]:[PTXT] Leichte Kippgefahr" 
+     solutiontext="Localize('[CO]:[SF]:[KF]:[STXT] Regal ist nur bedingt benutzbar');"
+     multiconflicts="false" 
+     conflictexpression="call checkShelfSafetyOrange(call partGroupIdList('usm_haller'));"
+     > 
+  </conflict>
+  
+  <conflict type="safety_kippgefahr_rot" text="[CO]:[SF]:[KF]:[LBL] Fehlender Sicherheits-Check" severity="10" 
+     problemtext="[CO]:[SF]:[KF]:[PTXT] Sicherheitsprüfung fehlt" 
+     solutiontext="[CO]:[SF]:[KF]:[STXT] Bitte Sicherheitspruefung durchfuehren"
+     multiconflicts="false" 
+     conflictexpression="
+     my conflicts = Scenario() eq 'web' ? List() : call checkShelfSafetyRed(call partGroupIdList('usm_haller'),'hint');
+     conflicts;"
+     > 
+  </conflict>
+  
+  <conflict type="safety_kippgefahr_rot" text="[CO]:[SF]:[KF]:[LBL] Sicherheitskonflikt" severity="10" 
+     problemtext="[CO]:[SF]:[KF]:[PTXT] Kippgefahr" 
+     solutiontext="[CO]:[SF]:[KF]:[STXT] Regal muss gegen Kippen gesichert werden"
+     multiconflicts="false" 
+     conflictexpression="
+      my conflicts = Scenario() eq 'web' ? List() : call checkShelfSafetyRed(call partGroupIdList('usm_haller'),'interactive');
+      conflicts;"
+     > 
+  </conflict>
+  
+  <conflict type="bauhaeheMoebelAufRollen" text="[CO]:[SF]:[KF]:[LBL] hoehe_haller_auf_rollen" severity="10"
+		  problemtext="[CO]:[SF]:[KF]:[PTXT] max bauhoehe ueberschritten" 
+		  solutiontext="[CO]:[SF]:[KF]:[STXT] Haller auf Rollen hoehe anpassen"
+		  multiconflicts="true"
+		  conflictexpression="call rollenToHeight();"
+		  >
+  </conflict>
+  
+  <conflict type="collisionSchubladeSperrstange" text="[CO]:[SF]:[KF]:[LBL] Schublade im Sperrstangenbereich" severity="10"
+		  problemtext="[CO]:[SF]:[KF]:[PTXT] Schublade im Sperrstangenbereich" 
+		  solutiontext="[CO]:[SF]:[KF]:[STXT] Schublade entfernen"
+		  multiconflicts="true"
+		  conflictexpression="call collisionSchubladeSperrstange();"
+		  >
+  </conflict>
+  
+  <conflict type="collisionPflanzentopf" text="[CO]:[KF]:[LBL] Pflanzentopf hat zuwenig Platz" severity="5"
+		  problemtext="[CO]:[KF]:[PTXT] Pflanzentopf hat zuwenig Platz" 
+		  solutiontext="[CO]:[KF]:[STXT] Pflanzentopf entfernen oder mehr Platz geben"
+		  multiconflicts="true"
+		  conflictexpression="call collisionPflanzentopf();"
+		  >
+  </conflict>
+  
+  <conflict type="wrongPflanzenbleche" text="[CO]:[KF]:[LBL] Pflanzenblech ist falsch platziert" severity="10"
+		  problemtext="[CO]:[KF]:[PTXT] Pflanzenblech ist falsch platziert" 
+		  solutiontext="[CO]:[KF]:[STXT] Pflanzenblech entfernen"
+		  multiconflicts="true"
+		  conflictexpression="call wrongPflanzenbleche();"
+		  >
+  </conflict>
+  
+  <conflict type="tuerenDoppelteSystemtiefe" text="[CO]:[KF]:[LBL] Tuere oberhalb Tiefenvorsprung" severity="10"
+		  problemtext="[CO]:[KF]:[PTXT] Tueren duerfen nicht oberhalb eines Tiefenvorsprung geoeffnet werden" 
+		  solutiontext="[CO]:[KF]:[STXT] Bleche entfernen"
+		  multiconflicts="true"
+		  conflictexpression="call tuerenDoppelteSystemtiefe();"
+		  >
+  </conflict>
+  <conflict type="e-connectoren_100" text="[CO]:[KF]:[LBL] E-Connectoren auf Rohr 100" severity="10"
+		  problemtext="[CO]:[KF]:[PTXT] Zwei isolierende E-Connectoren auf Rohr 100 nicht möglich" 
+		  solutiontext="[CO]:[KF]:[STXT] E-Elemente entfernen"
+		  multiconflicts="true"
+		  conflictexpression="
+		  my rohr100list = GetComponentListOfType('rohr100');
+		  my result = List();
+		  for (my r: rohr100list) {
+		  	my a = FindPart(r, 'rohr2kugel',1);
+		  	my b = FindPart(r, 'rohr2kugel',2);
+		  	
+		  	if (a and b) {
+		  		
+		  		my f_a = Feature(a, 'f_stromkreis');
+		  		my f_b = Feature(b, 'f_stromkreis');
+		  		
+	  	  		Feature(a, 'f_kugelLeitend') and Feature(b, 'f_kugelLeitend') and StrLen(f_b) and f_a ne f_b ? ListAdd(result, r) : null;
+		  	};
+		  }; 	
+		  
+		  return result;
+		  "
+		  >
+  </conflict>
+  <conflict type="schloss_c_unterstes_fach_klapptuer" text="[CO]:[KF]:[LBL] Klapptuer mit Schloss C in unterstem Fach" severity="5"
+		  problemtext="[CO]:[KF]:[PTXT] Türe kann nicht ganz waagrecht geöffnet werden" 
+		  solutiontext="[CO]:[KF]:[STXT] Vorsichtig sein"
+		  multiconflicts="true"
+		  conflictexpression="
+		 my result = List();
+		  my schloss_c_list = FilterList(GetComponentListOfType('schlossgriff'), 'p', `not (Feature(p, 'Schliessung') ~ 'schloss_c');`);
+		  for (my schloss: schloss_c_list) {
+		    my klapptuer = ParentOfType(schloss, 'mainstructure', 'klapptuerset');
+		  	my volume =  klapptuer ? ParentOfType(schloss, 'mainstructure', 'normal_volume') : null; 
+		  	if (volume) {
+		  		my hallerfuss_list = FilterList(GetVolumeRefParts(volume), 'p', `not (IsSubTypeOf(p, 'fuesse'));`);
+		  		if (Size(hallerfuss_list)) {
+		  			ListAdd(result, klapptuer);
+		  		};
+		  	};
+		  };
+		 
+		  return result;
+		  "
+		  >
+  </conflict>
+  
+  <conflict type="gewicht_zu_hoch" problemtext="Möbeleinheite über 80 kg!" text="Achtung! Schwere Möbeleinheiten"
+  		multiconflicts="false"
+  		severity="5"
+  		solutiontext="Fach selektieren und trennen."
+  		conflictexpression="
+if(not VarDefined('_articles')){
+	return List();
+}
+my articles = FilterList(_articles, 'ar', `ar['type'] eq 'ar_qs_article';`);
+my table = CompressTable(CopyTable(articles), 'groupid', 'weight');
+my components = GetComponentListOfType('ct_haller_shelf_component');
+components = FilterList(components, 'c', ` (IsSubTypeOf(c, 'ct_soft_panel'));`); 
+my heavy_list = List();
+my heavy_volume_list = List();
+for(my group: table){
+	if(group['weight'] gt 80){
+		my group_components = FilterList(components, 'element', `not (Feature(element,'_PXi_permanent_group_id') eq group['groupid'] ) ;`);
+		my mounted_group_components = FilterList(components, 'element', `not (Feature(element,'_PXi_permanent_group_id') eq group['groupid'] and Feature(element,'Mounted') eq 'true') ;`);
+		if(Size(mounted_group_components) eq Size(group_components) ){
+			heavy_list = JoinList(heavy_list, FilterList(components, 'element', `not (Feature(element,'_PXi_permanent_group_id') eq group['groupid'] and Feature(element,'Mounted') eq 'true') ;`));
+			my group_volumes = call getAllVolumesOfConnectionId(group_components[0]);
+			heavy_volume_list = JoinList(heavy_volume_list, group_volumes);
+		}
+	}	
+}
+return heavy_volume_list;
+  		"
+  		>
+  		 <solution title="Localize('Weitere Infos');">
+  			<operation>
+  				<operationlist>
+  					<operation>
+  						<executeexpression expression="LowerCase(EnvValue('DYNAMIC.Language'));"
+  							returnvariable="lang"
+  						/>
+  					</operation>
+		  			<operation>
+				         <launchop mode="open" >
+					         <param value="${= 'https://vusm-help.usm.com/' ++ lang ++ '/configurator_build#delivery'; }" 
+					                expandstring="true"
+					                quote= "true"
+					                denormalize= "true"
+					                concatpath= "true"
+					                />
+					      </launchop>
+				    </operation>
+  				</operationlist>
+  			</operation>
+  		</solution>
+  </conflict>
+  
+  <!-- <conflict type="gewicht_zu_hoch" problemtext="Möbeleinheite über 60 kg!" text="Achtung! Schwere Möbeleinheiten 60 kg"
+  		multiconflicts="false"
+  		severity="5"
+  		solutiontext="Fach selektieren und trennen."
+  		conflictexpression="
+if(not VarDefined('_articles')){
+	_articles = List();
+}
+my table = CompressTable(CopyTable(_articles), 'groupid', 'weight');
+my components = GetComponentListOfType('ct_haller_shelf_component');
+my heavy_list = List();
+my heavy_volume_list = List();
+for(my group: table){
+	if(group['weight'] ge 60 and group['weight'] lt 80){
+		my group_components = FilterList(components, 'element', `not (Feature(element,'_PXi_permanent_group_id') eq group['groupid'] ) ;`);
+		my mounted_group_components = FilterList(components, 'element', `not (Feature(element,'_PXi_permanent_group_id') eq group['groupid'] and Feature(element,'Mounted') eq 'true') ;`);
+		if(Size(mounted_group_components) eq Size(group_components) ){
+			heavy_list = JoinList(heavy_list, FilterList(components, 'element', `not (Feature(element,'_PXi_permanent_group_id') eq group['groupid'] and Feature(element,'Mounted') eq 'true') ;`));
+			my group_volumes = call getAllVolumesOfConnectionId(group_components[0]);
+			heavy_volume_list = JoinList(heavy_volume_list, group_volumes);
+		}
+	}	
+}
+return heavy_volume_list;
+  		"
+  		>
+  </conflict> -->
+  
+  <!--  Dummy am Schluss, damit Progressbar upgedatet wird -->
+  <conflict type="dummy" text="" severity="5" 
+     problemtext="" 
+     solutiontext=""
+     multiconflicts="true" 
+     conflictexpression="false;"
+     > 
+  </conflict>
+
+</conflictrepresentation>

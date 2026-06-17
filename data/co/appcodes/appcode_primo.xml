@@ -1,0 +1,2386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression=""
+>
+  <function name="Tischblende">
+    <param name="part" type="Pointer" description="as_primo_halter"/>
+    <param name="pos" type="String" description="fuer linke oder rechte Position"/>
+    <returnvalue description="Berechnet den Halterabstand" type="Bool" />
+    <definition expression="def halterAbstandPrimoBlende(part, pos) { 
+       my typ = Feature(part,'f_primoBlendenBreite');
+       my breite = Number(Feature(part,'f_primoBlendenBreite') + 0.5); 
+       my variante = '';
+       my parent = Parent('mainstructure',part);
+       if (parent) {
+          variante = Feature(parent,'f_primoBlendenVariante');
+       }
+       my offset = 0; 
+       my abstand = 0;
+       if (typ eq 75) {
+          offset = 25;  
+       } else if (typ eq 100) {
+          offset = 37.5; 
+          if (pos eq 'rechts' and variante eq 'b-s') {
+            offset = 12.5;
+          } 
+       } else if (typ eq 125 or typ eq 175) {
+          offset = 50; 
+       } else if (typ eq 150) {
+          offset = 37.5;
+       } else if (typ eq 160) {
+          offset = 32.5;
+          if (pos eq 'links') {
+            offset = 42.5;
+          }
+       } else if (typ eq 180) {
+          offset = 52.5;
+          if (pos eq 'rechts') {
+            offset = 47.5;
+          } 
+       }else if (typ eq 200) {
+          offset = 62.5; 
+       }else if (typ eq 225) {
+          offset = 75; 
+          if (pos eq 'mitte') {
+            abstand = breite/2;
+          }
+       }else if (typ eq 250) {
+          offset = 87.5;
+          if (pos eq 'linksinnen') {
+            abstand = breite/2 + 0.6 - 37.2;
+         }else if (pos eq 'rechtsinnen') {
+            abstand = breite/2 +0.6  + 37.2;
+         }  
+       }else if (typ eq 300) {
+         offset = 112.5;
+         if (pos eq 'linksinnen') {
+            abstand = breite/2 + 0.6 - 37.2;
+         }else if (pos eq 'rechtsinnen') {
+            abstand = breite/2 +0.6  + 37.2;
+         } 
+       }     
+       if (pos eq 'links') {
+         abstand = breite/2 - offset;
+       }else if (pos eq 'rechts') {
+          abstand = breite/2 + offset;
+       }
+       
+       return abstand;
+    }" />
+  </function>
+
+  <function name="Tischblende">
+    <param name="part" type="Pointer" description="as_primo_tischblende"/>
+    <param name="index" type="Number" description="TDA slot index"/>
+    <param name="count" type="Number" description="TDA slot amount"/>
+    <param name="breite" type="Number" description="Breite des screens 25/75"/>
+    <returnvalue description="Gibt die Position des Screen zurueck innerhalb einer Tischblende" type="String" />
+    <definition expression="def screenPos(part,index,count,breite) { 
+       my pos = 'mitte';
+       if (breite eq 25) {
+         if ((index eq 1 or index eq count-2) and count gt 4 ) {
+           pos = 'halter';
+         } else if (index eq 0) {
+           pos = 'start';
+         } else if (index eq count-1) {
+           pos = 'ende';
+           /* Fuer 225er mit s-all */
+         } else if (count eq 9 and index eq 4) {
+           pos = 'halter';
+         }
+         /* Fuer 75 oder 100er Tisch all-25 */
+         if (count le 4) {
+           if (index eq 0 ) {
+             pos = 'start-halter';
+           } else if (index eq count-1) {
+             pos = 'ende-halter';
+           }
+         }
+         /* Fuer 250 oder 300er Tisch all-25 */
+         if (count ge 10) {
+           if (index eq 3 or index eq count-4) {
+             pos = 'halter';
+           }
+         }
+       } else if (breite eq 75) {
+         if (index eq 0 ) {
+           pos = 'start-halter';
+         } else if (index eq count-1) {
+           pos = 'ende-halter';
+         }
+         /* Fuer 225er Tisch all-75 */
+         if (count eq 3) {
+           if (index eq 1) {
+             pos = 'halter';
+           }
+         }
+         /* Fuer 300er Tisch all-75 */
+         if (count eq 4) {
+           if (index eq 1 or index eq 2) {
+             pos = 'halter';
+           }
+         }
+       }   
+       return pos;
+    }" />
+  </function>
+
+  <function name="Tischblende">
+    <param name="fixedpart" type="Pointer" description="Tisch auf dem die Blende montiert wird"/>
+    <returnvalue description="Gibt die Varinate des Tischblenden Halters zurueck" type="String" />
+    <definition expression="def primoHalterVariante(fixedpart) { 
+       my variante = 'adaption'; /* mit Adaptionspunkt */
+       my parentname = GetTypeName(Parent('mainstructure',fixedpart));
+       if (StringContains(parentname, '_adv')) {
+         variante = 'advanced'; /* mit Adaptionspunkt Advanced */
+       } else if (StringContains(parentname, 'tisch_einheit')) {
+         variante = 'universal'; /* Haller Klassik */
+       } else if (StringContains(parentname, 'meeting') or 
+                 StringContains(parentname, 'zweisaeuliger')
+                 or StringContains(parentname, '_basic'))  {
+         variante = 'universal-kitos'; /* Kitos Klassik + Kitos Basic */
+       }
+       return variante;
+    }" />
+  </function>
+  
+  <function name="Tischblende">
+    <param name="as_priomo_tischblende" type="Pointer" description=""/>
+    <returnvalue description="hat es auf der Gegenseite auach eine PPs Tischblende" type="Bool" />
+    <definition expression="def validAddSeitenblende(part) {
+     my valid = true;
+     my zarge = null;
+     my blendelinks = null;
+     my frontzarge = null;
+     my frontblende = null;
+     my dummy = ChildOfTypeDeep(part,'co_primo_dummy');
+     if (dummy) {
+        zarge = FindPart(dummy,'primoblende_2_tisch',1);
+        blendelinks = FindPart(zarge,'zarge2winkel',1,'winkel2zarge',2);
+        frontzarge = FindPart(blendelinks,'zarge2winkel',1,'winkel2zarge',2);
+        frontblende = FindPart(frontzarge,'tisch_2_primoblende',1);
+     }
+     valid = not frontblende;
+     return valid;
+   }" />
+  </function>
+  
+  <function name="Tischblende">
+    <param name="as_priomo_tischblende" type="Pointer" description=""/>
+    <returnvalue description="Sind alle sceens auf reihe 1" type="Bool" />
+    <definition expression="def checkTischblendeRow1(parent) { 
+       my valid = true;
+       my children = ChildrenListOfTypeDeep(parent, 'at_blende');
+       for (my i = 0; i lt Size(children); i = i+1) {
+         valid = Feature(children[i],'f_screenRow_top') eq 1;
+         if (not valid) {
+            break;
+         }
+       }
+       return valid;
+    }" />
+  </function>
+
+  <function name="Tischblende">
+   <param name="part" type="Pointer" description="as_blende"/>
+   <param name="row" type="String" description="screen child-id"/>
+   <returnvalue description="Soll ein Horizontaler Verbinder kreiert werden" type="Boolean" />
+   <definition expression="def createVerbinder(part,row) {
+      my aktive = false;
+      my singlescreen = false;
+      my variante = '';
+      my pos = Property(part,'pr_screenPos');
+      my seitenpos = Property(part,'pr_primoSeitenBlendePos');
+      my parent = null;
+      parent = Parent('mainstructure',part);
+      if (parent) {
+         variante = Property(parent,'pr_primoBlendenVariante');
+      }
+      my frontblende = IsSubTypeOf(parent,'at_primo_front_tischblende_sub_varianten');
+      my screenrow2 = Property(part,'pr_screenRow_top') eq 2;
+      if (frontblende) {
+           if (screenrow2 and row eq 'row-2') {
+             aktive = (StringContains(pos,'ende') or StringContains(pos,'mitte') or pos eq 'halter') and call lastScreen(part);
+           } else if (row eq 'row-1') {
+             aktive = StringContains(pos,'ende') or StringContains(pos,'mitte') or pos eq 'halter';
+           }
+      } else {
+        /* Seitenblenden */
+        aktive = false;
+        if (parent) {
+         variante = Property(parent,'pr_primoSeitenBlendenVariante');
+        }
+        if (parent) {
+          singlescreen = ChildCount(parent, 'at_blende') eq 1;
+        }
+        if (seitenpos eq 'links'){
+            if (variante ne 's-all') {
+              aktive = pos eq 'ende' or pos eq 'start-halter';
+            } else {
+              aktive = not StringContains(pos,'start');
+            }
+         } else if (seitenpos eq 'rechts') {
+         if (variante ne 's-all') {
+              aktive = pos eq 'ende' or pos eq 'start-halter';
+            } else {
+              aktive = not StringContains(pos,'start');
+            }
+         }
+         aktive = aktive and not singlescreen; 
+      }
+      return aktive;
+    }" />
+  </function>
+  
+ <function name="Tischblende">
+   <param name="part" type="Pointer" description="Zarge"/>
+   <returnvalue description="Gibt es noch keine Tischblende am Tisch" type="Boolean" />
+   <definition expression="def notExistTischblende(part) {
+      my exist = false;
+      my parent = MainRoot(part);
+      my zargen = List();
+      if (parent) {
+       zargen = ChildrenListOfTypeDeep(parent, 'tischzarge');
+      }
+      /* Die Target-Zarge wird rausgefiltert */
+      zargen = FilterList(zargen,'element',`element eq part;`);
+      my size = Size(zargen);
+      if (size gt 0) {
+       for (my i = 0; i lt size; i = i + 1) {
+        /* fragt die andern Zargen ab, ob schon eine Tischblende installiert ist */
+        exist = Bool(ConnectedDockCount(zargen[i], 'tisch_2_primoblende'));
+        if (exist) {
+         break;
+        }
+       }
+      }
+      
+      return not exist;
+      }" />
+  </function>
+  
+  
+  <function name="Tischblende">
+   <param name="part" type="Pointer" description="Zarge"/>
+   <returnvalue description="Gibt es noch keine Tischblende am Tisch" type="Boolean" />
+   <definition expression="def zargeValidForTischblende(part) {
+      my valid = true;
+      my blendelinks = null;
+      my blenderechts = null;
+      my zargelinks = null;
+      my zargerechts = null;
+      zargelinks = FindPart(part,'zarge2winkel',1,'winkel2zarge',2);
+      zargerechts = blenderechts = FindPart(part,'zarge2winkel',2,'winkel2zarge',1);
+      /* Wegen Trapeztisch */
+      if (zargelinks eq part) {
+        zargelinks = FindPart(part,'zarge2winkel',1,'winkel2zarge',1);
+      }
+      if (zargerechts eq part) {
+        zargerechts = FindPart(part,'zarge2winkel',2,'winkel2zarge',2);
+      }
+      blendelinks = FindPart(zargelinks,'tisch_2_primoblende',1);
+      blenderechts = FindPart(zargerechts,'tisch_2_primoblende',1);
+      if (Bool(blendelinks) or Bool(blenderechts)) {
+        valid = false;
+      }
+      return valid;
+      }" />
+  </function>
+  
+  <function name="Tischblende">
+   <param name="part" type="at_primo_tischblende_sub_varianten" description="Tischblendenvariante"/>
+   <returnvalue description="Seiten Tischblende Hoehe 2 erlaubt oder Front-Tischblende 1 erlaubt" type="Boolean" />
+   <definition expression="def validTischblendeScreenRow(part,row) {
+      my valid = false;
+      my seite = ''; /* links,rechts */
+      my parent = null;
+      my fronttischblende = null;
+      my frontblendelinks = null;
+      my frontblenderechts = null;
+      my seitenblendelinks = null;
+      my seitenblenderechts = null;
+      my seitenblendevariantelinks  = '';
+      my seitenblendevarianterechts  = '';
+      my seitenHeight = 0;
+      my seitenHeightlinks = 0;
+      my seitenHeightrechts = 0;
+      my validlinks = false;
+      my validrechts = false;
+      my frontHeightrechts = 0;
+      my frontHeightlinks = 0;
+      my frontblenden = List();
+      parent = Parent('mainstructure',part);
+      if (parent) {
+         fronttischblende = ChildOfType(parent,'at_primo_front_tischblende_sub_varianten');
+         seitenblendelinks = ChildWithId(parent,'seitenblende-links');
+         seitenblenderechts = ChildWithId(parent,'seitenblende-rechts');
+         if (fronttischblende) {
+            frontblenden = ChildrenListOfType(fronttischblende,'at_blende');
+            frontblendelinks = FilterList(frontblenden,'element',`not BeginsWith(Feature(element,'f_screenPos'),'start');`)[0];
+            frontblenderechts = FilterList(frontblenden,'element',`not BeginsWith(Feature(element,'f_screenPos'),'ende');`)[0];
+            frontHeightlinks = Feature(frontblendelinks,'f_screenRow_top');
+            frontHeightrechts = Feature(frontblenderechts,'f_screenRow_top');
+         }
+         if (IsSubTypeOf(part,'at_primo_seiten_tischblende_sub_varianten') ) {
+            seitenHeight = Feature(part,'f_screenRow_top');
+            seite = Feature(part,'f_primoSeitenBlendePos');
+            if (seite eq 'links' and frontHeightlinks eq 2) {
+               valid = true;
+            }else if (seite eq 'rechts' and frontHeightrechts eq 2) {
+               /* Message(seite ++ ', ' ++ seitenHeight ++ ', ' ++ frontHeightrechts); */
+               valid = true;
+            }
+          }
+          if (part eq fronttischblende) {
+            if (seitenblendelinks) {
+              seitenblendevariantelinks = Feature(seitenblendelinks,'f_primoSeitenBlendenVariante_top');
+              seitenHeightlinks = Feature(seitenblendelinks,'f_screenRow_top');
+            }
+            if (seitenblenderechts) {
+              seitenblendevarianterechts = Feature(seitenblenderechts,'f_primoSeitenBlendenVariante_top');
+              seitenHeightrechts = Feature(seitenblenderechts,'f_screenRow_top');
+            }
+            validlinks = seitenblendevariantelinks ne 'seitenblende-75' or seitenHeightlinks lt 2;
+            validrechts = seitenblendevarianterechts ne 'seitenblende-75' or seitenHeightrechts lt 2;
+            valid = validlinks and validrechts;
+         }
+      }
+      
+      return valid;
+      }" />
+  </function>
+  
+  <function name="Tischblende">
+   <param name="part" type="at_primo_tischblende_sub_varianten" description="Tischblendenvariante"/>
+   <returnvalue description="dieselbe Row (Hoehe) von Front- und Seitenblende" type="Boolean" />
+   <definition expression="def seitenblendeSameScreenRow(part,frontScreenRow,seite) {
+			 my sameRow = false;
+			 my parent = null;
+			 my id = 'seitenblende-' ++ seite;
+			 my screenRow = 0;
+			 my seitentischblende = null;
+			  parent = Parent('mainstructure',part);
+			  if (parent) {
+			    seitentischblende = ChildWithId(parent,id);
+			    /* Message(seitentischblende); */
+			  if (seitentischblende) {
+			    screenRow = Feature(seitentischblende,'f_screenRow_top');
+			  }
+			  }
+			 sameRow = frontScreenRow le screenRow;
+			 return sameRow;
+			}" />
+  </function>
+
+  <function name="Tischblende">
+    <param name="part" type="Pointer" description="as_blende"/>
+    <param name="row" type="Number" description="auf welcher Reihe steht der Screen"/>
+    <param name="seite" type="String" description="auf welcher Seite muss der Deckelmonatge ueberprueft werden "/>
+    <returnvalue description="Soll ein Deckel kreiert werden" type="Boolean" />
+    <definition expression="def createDeckel(part,row,seite) {
+       my aktive = false;
+       my rechtsaktive = true;
+       my linksaktive = true;
+       my frontblende = false;
+       my seitenblende = false;
+       my seitenblendeexist =false;
+       my tischblende = null;
+       my parent = null;
+       my seitenpos = Property(part,'pr_primoSeitenBlendePos');
+       my pos = Property(part,'pr_screenPos');
+       my screenrow2 = Property(part,'pr_screenRow_top') eq 2;
+       my borderscreen = (StringContains(pos,'start') and seite eq 'links') or (StringContains(pos,'ende') and seite eq 'rechts');
+       my singlescreen = false;
+       my sameRow = false;
+       my seitenblendebreite = 0;
+       my case1 = false;
+       my case2 = false;
+       my case3 = false;
+       parent = Parent('mainstructure',part);
+       if (parent) {
+         /* Parent ist Front- oder Seitenblende */
+         frontblende = IsSubTypeOf(parent,'at_primo_front_tischblende_sub_varianten');
+         seitenblende = IsSubTypeOf(parent,'at_primo_seiten_tischblende_sub_varianten');
+         tischblende = Parent('mainstructure',parent);
+         if (tischblende) {
+           seitenblendeexist = ChildOfType(tischblende,'at_primo_seiten_tischblende_sub_varianten');
+         }
+       }
+       
+       if (frontblende) {
+          
+         if ( row eq 'row-1' and borderscreen ) {
+           aktive = true;
+         } else if (row eq 'row-2' and screenrow2) {
+           if (borderscreen) {
+             aktive = true;
+           } else if (seite eq 'links' and not call lastScreen(part)) {
+             aktive = true;
+           }else if (seite eq 'rechts' and not call nextScreen(part)) {
+             aktive = true;
+           }
+         }
+       }
+        /* Zusatz wegen Seiteblenden */
+       if (aktive and frontblende and seitenblendeexist) {
+            seitenpos = Feature(part,'f_primoSeitenBlende');
+            seitenpos = StringToList(seitenpos, '-')[1];
+            row = StringToList(row, '-')[1];
+            sameRow = call seitenblendeSameScreenRow(parent,row,seite);
+            
+            if (seitenpos eq 'beidseitig'and sameRow and (StringContains(pos, 'start') or StringContains(pos, 'ende')) ) {
+               aktive = false;
+            } else if (seite eq 'links' and sameRow and EndsWith(seitenpos,'links') and StringContains(pos, 'start')) {
+                aktive = false;
+            } else if (seite eq 'rechts' and sameRow and EndsWith(seitenpos,'rechts') and StringContains(pos, 'ende')) {
+                aktive = false;
+            }
+            
+         }
+         if (seitenblende) {             
+            /* check ob seitenblende */
+            aktive = false;
+            if (seitenpos eq 'links'){
+               aktive = pos eq 'start-halter' and seite eq 'links' or 
+                        (row eq 'row-2' and seite eq 'rechts' and BeginsWith(pos,'ende') and not call validTischblendeScreenRow(parent,row));
+            } else if (seitenpos eq 'rechts') {
+               aktive = (pos eq 'ende-halter' and seite eq 'rechts') or 
+                        (row eq 'row-2' and seite eq 'links' and BeginsWith(pos,'start') and not call validTischblendeScreenRow(parent,row));
+            }
+          }
+       return aktive;
+    }" />
+  </function>
+
+<!--   <function name="Tischblende">
+    <param name="part" type="Pointer" description="as_blende"/>
+    <returnvalue description="Existiert ein Screen vorher auf der 2. Reihe" type="Boolean" />
+    <definition expression="def lastScreen(part) {
+        my valid = false;
+        my parent = Parent('mainstructure',part);
+        my multi = Size(ChildrenListOfTypeDeep(parent, 'at_blende')) gt 2;
+        if (multi) {
+	        my pos = Property(part,'pr_screenPos');
+					my id = GetIdOfChild(parent, part);
+					my index = SubStr(id,2);
+					my lastindex = index - 1;
+					my lastid = SubStr(id,0,2) ++ lastindex;
+					my lastblende = null;
+					if (not StringContains(pos,'start')) {
+	           lastblende = ChildWithId(parent, lastid);
+	           valid = Bool(ChildWithId(lastblende, 'row-2'));
+	        } else {
+	           valid = false;
+	        }
+	        valid;
+        }
+        return valid;
+    }" />
+  </function> -->
+  <function name="Tischblende">
+    <param name="part" type="Pointer" description="as_blende"/>
+    <returnvalue description="Existiert ein Screen vorher auf der 2. Reihe" type="Boolean" />
+    <definition expression="def lastScreen(part) {
+        my valid = false;
+        my parent = Parent('mainstructure',part);
+        my multi = Size(ChildrenListOfTypeDeep(parent, 'at_blende')) ge 2;
+        if (multi) {
+	        my pos = Property(part,'pr_screenPos');
+					my id = GetIdOfChild(parent, part);
+					my index = SubStr(id,2);
+					my lastindex = index - 1;
+					my lastid = SubStr(id,0,2) ++ lastindex;
+					my lastblende = null;
+					if (not StringContains(pos,'start')) {
+	           lastblende = ChildWithId(parent, lastid);
+	           valid = Bool(ChildWithId(lastblende, 'row-2'));
+	        } else {
+	           valid = false;
+	        }
+	        valid;
+        }
+        return valid;
+    }" />
+  </function>
+
+  <function name="Tischblende">
+    <param name="part" type="Pointer" description="as_blende"/>
+    <returnvalue description="Existiert ein Screen nachher auf der 2. Reihe" type="Boolean" />
+    <definition expression="def nextScreen(part) {
+        my valid = false;
+        my parent = Parent('mainstructure',part);
+        my multi = Size(ChildrenListOfTypeDeep(parent, 'at_blende')) ge 2;
+        if (multi) {
+	        my pos = Property(part,'pr_screenPos');
+	        my id = GetIdOfChild(parent, part);
+	        my index = SubStr(id,2);
+	        my nextindex = index + 1;
+	        my nextid = SubStr(id,0,2) ++ nextindex;
+	        my nextblende = null;
+	        if (not StringContains(pos,'ende')) {
+	           nextblende = ChildWithId(parent, nextid);
+	           valid = Bool(ChildWithId(nextblende, 'row-2'));
+	        } else {
+	           valid = false;
+	        }
+	        valid;
+        }
+        return valid;
+    }" />
+  </function>  
+
+  <function name="Tischblende">
+  <param name="part" type="Pointer" description="as_primo_tischblende"/>
+    <returnvalue description="Primo Tischblende Standard-Variante" type="String" />
+    <definition expression="def primoBlendenVariante(part) {
+       my breite = Feature(part,'f_primoBlendenBreite_top'); 
+       my variante = 's-all'; /* breite: 75 Aufbaublende */
+       if (breite eq 100) {
+         variante = 'b-s'; 
+         if (_tbh2_fixedpart) {
+	         if (Feature(_tbh2_fixedpart,'f_direction') eq 'links'){
+	           variante = 's-b';
+	         }
+	       variante;
+	       }
+         variante;
+       } else if (breite eq 125) {
+         variante = 's-b-s'; 
+       } else if (breite lt 175 and breite ge 150) {
+         variante = 'b-all';
+       } else if (breite lt 200 and breite ge 175) {
+         variante = 'b-s-b';
+       } else if (breite eq 200) {
+         variante = 'b-s-s-b'; 
+       } else if (breite eq 225) {
+         variante = 'b-all'; 
+       } else if (breite eq 250) {
+         variante = 'b-s-s-s-s-b'; 
+       } else if (breite eq 300) {
+         variante = 'b-all'; 
+       }
+       return variante;
+    }" />
+  </function>
+
+<!-- ########################### Stellwand ############################################# -->
+
+  <function name="Index-Calculation" description="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Feature value of f_panelIndex" type="Integer" />
+    <definition expression="def panelIndex(part) {
+      my dock = Dock('left_2_right');
+      my val = 1;
+      my leftpart = Null;
+      my partnerdock = DockGetConnectedDock(dock);
+      my leftconnection = call leftPanelConnected(part,'frontback');
+      my leftwinkel = leftconnection[0];
+      if (GetDockType(partnerdock) eq 'right_2_next') {
+         leftpart = DockGetConnectedPart(dock);
+      }
+      if ( leftpart and not leftwinkel) {
+        val = Feature(leftpart,'f_index') + 1;
+      }
+      return val;
+      }" />
+  </function>
+  
+  <function name="Fuss-Index-Calculation (Stellwand)" 
+            description="indexiert ueber mehrere hintereineander verbunden Waende hinweg">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Feature value of f_panelFussIndex" type="Integer" />
+    <definition expression="def panelFussIndex(part) {   
+      my val = 1;
+      my fussflag = Feature(part,'f_fussFlag');
+      my leftpart = Null;
+      my winkelpart = Null;
+      my winkeldock = Null;
+      my dock = Null;
+      my partnerdock = Null;
+      if (BeginsWith(fussflag,'main-')) {
+        /* Hauptpanelrichtungen */
+        dock = Dock(part,'left_2_right',1);
+        partnerdock = DockGetConnectedDock(dock);
+        if (GetDockType(partnerdock) eq 'right_2_next') {
+         leftpart = DockGetConnectedPart(dock);
+        }
+	      if (leftpart) {
+	        val = Feature(leftpart,'f_fussIndex') + 1;
+	      }else{
+	       val = Feature(part,'f_index');
+	      }
+	      val;
+	    } else {
+	      /* Seitenpanelrichtungen */
+	      if (EndsWith(fussflag,'-back')) {
+	        /* Seitenpanel back */
+	        dock = Dock(part,'right_2_next',1);
+	        partnerdock = DockGetConnectedDock(dock);
+	        if (GetDockType(partnerdock) eq 'left_2_right') {
+	         leftpart = DockGetConnectedPart(dock);
+	        }
+	        if (leftpart) {
+	          val = Feature(leftpart,'f_fussIndex') + 1;
+	        }
+	        val;
+        } else if (EndsWith(fussflag,'-front')) {
+          /* Seitenpanel front */
+	        dock = Dock(part,'left_2_right',1);
+	        partnerdock = DockGetConnectedDock(dock);
+	        leftpart = DockGetConnectedPart(dock);
+	        if (GetDockType(partnerdock) eq 'right_2_front') {
+	         dock = Dock(leftpart,'right_2_back',1);
+           leftpart = DockGetConnectedPart(dock);
+	        }
+	        if (leftpart) {
+	          val = Feature(leftpart,'f_fussIndex') + 1;
+	        }
+	        val;
+	      }
+	      val;
+	    }
+      return val;
+      }" />
+  </function>
+  
+  <function name="FussFlag-Calculation" description="Stellwand beginnt mit Winkel und 25er Panel">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Values:
+                              main-small-next,main-small-left,side-small-back,side-small-front
+                              main-wide-next,main-wide-left,side-wide-back,side-wide-front" 
+                              type="String" />
+    <definition expression="def panelFussFlag(part) {
+      my dock = Dock('left_2_right');
+      my index = Feature(part,'f_index');
+      my fussindex = Feature(part,'f_fussIndex');
+      my breite = Feature(part,'f_primoPanelBreite'); 
+      my val = '';
+      my leftpart = Null;
+      my partnerdock = DockGetConnectedDock(dock);
+      my leftconnection = call leftPanelConnected(part,'frontback');
+      my leftwinkel = leftconnection[0];
+      if (GetDockType(partnerdock) eq 'right_2_next') {
+         leftpart = DockGetConnectedPart(dock);
+      }
+      if (leftpart and not leftwinkel) {
+        val = Feature(leftpart,'f_fussFlag');
+      }
+      if (index eq 1 and breite eq 25) {
+         val = call panelFussFlagDirection(part,'small');
+      } else if (index eq 1 and breite eq 75) {
+         val = call panelFussFlagDirection(part,'wide');
+      }
+      return val;
+      }" />
+  </function>
+  
+  <function name="FussFlag-Calculation" description="Stellwand Richtung und Breite des 1. Panels">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <param name="breite" type="String" description="small,wide"/>
+    <returnvalue description="Values:
+                              main-small-next,main-small-left,side-small-back,side-small-front
+                              main-wide-next,main-wide-left,side-wide-back,side-wide-front" 
+                              type="String" />
+    <definition expression="def panelFussFlagDirection(part,breite) {
+       my val = 'main-' ++ breite ++ '-left';
+       my front = call leftPanelConnected(part,'front');
+       my back = call leftPanelConnected(part,'back');       
+       my next = call leftPanelConnected(part,'next');
+       if (front[0]) {
+          val = 'side-' ++ breite ++ '-front';
+       } else if (back[0]) {
+          val = 'side-' ++ breite ++ '-back';
+       } else if (next[0]) {
+          val = 'main-' ++ breite ++ '-next';
+       }
+       return val;
+       }" />
+  </function>
+  
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Welches Panel hat den hoechsten Index?" type="Integer" />
+    <definition expression="def maxPanelCount(part) {
+        my index = Feature(part,'f_index');
+        my maxindex = index;
+        my found = true;
+        my panel = part;
+        my startpanel = part;
+        my nextpanel = Null;
+        
+        while (found) {
+          nextpanel = FindPart(panel, 'right_2_next',1);
+          if (nextpanel and Feature(nextpanel,'f_index') gt maxindex) {
+             maxindex = Feature(nextpanel,'f_index');
+             panel = nextpanel;
+          } else {
+            found = false;
+          }
+          if (panel eq startpanel) {
+            break;
+          }
+        }
+        return maxindex;
+     }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Wieviel Panels hat die gesamte Wand in einer Richtung, hoechsten Index?" type="Integer" />
+    <definition expression="def maxPanelFussCount(part) {
+       my fussflag = Feature(part,'f_fussFlag');
+       my index = Feature(part,'f_fussIndex');
+       my maxindex = index;
+       my found = true;
+       my panel = part;
+       my startpanel = part;
+       my nextpanel = Null;
+       my dock = Null;
+       my partnerdock = Null;
+       if (BeginsWith(fussflag, 'main-')) {
+           /* Hauptpanelrichtung */
+          while (found) {
+            dock = Dock(panel, 'right_2_next',1);
+            nextpanel = DockGetConnectedPart(dock);
+            if (nextpanel and Feature(nextpanel,'f_fussIndex') gt maxindex) {
+               maxindex = Feature(nextpanel,'f_fussIndex');
+               panel = nextpanel;
+            } else {
+              found = false;
+            }
+            if (panel eq startpanel) {
+              break;
+            }
+          }
+          maxindex;
+      } else {
+        /* Seitenpanelrichtungen */
+        if (EndsWith(fussflag,'-back')) {
+          while (found) {
+            dock = Dock(panel, 'left_2_right',1);
+            partnerdock = DockGetConnectedDock(dock);
+            nextpanel = DockGetConnectedPart(dock);
+            if (GetDockType(partnerdock) eq 'right_2_back') {
+             /* right_2_back = erste Panel hinten (gleich nach dem Winkel) */
+             dock = Dock(nextpanel,'right_2_front',1);
+             nextpanel = DockGetConnectedPart(dock);
+             /* holt vom ersten Panel vorne (gleich nach dem Winkel) den f_maxPanelFussCount*/
+             maxindex = Feature(nextpanel,'f_maxPanelFussCount');
+             found = false;
+          }else{
+              if (nextpanel and Feature(nextpanel,'f_fussIndex') gt maxindex) {
+               maxindex = Feature(nextpanel,'f_fussIndex');
+               panel = nextpanel;
+              }else{
+                found = false;
+              }
+              maxindex;
+            }
+            if (panel eq startpanel) {
+	            break;
+	          }
+            maxindex;
+          }
+          maxindex;
+        } else if (EndsWith(fussflag,'-front')) {
+          while (found) {
+            dock = Dock(panel, 'right_2_next',1);
+            nextpanel = DockGetConnectedPart(dock);
+            if (nextpanel and Feature(nextpanel,'f_fussIndex') gt maxindex) {
+               maxindex = Feature(nextpanel,'f_fussIndex');
+               panel = nextpanel;
+            } else {
+              found = false;
+            }
+	          if (panel eq startpanel) {
+	            break;
+	          }
+          }
+          
+          maxindex;
+        }
+        maxindex;
+      } 
+      return maxindex;
+     }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Gibt die Wand-ID zurueck?" type="String" />
+    <definition expression="def wandId(part) {        
+        my index = Number(Feature(part,'f_index'));
+        my id = 'undef';
+        my found = true;
+        my codock = part;
+        my lastcodock = Null;
+        
+        if (index eq 1) {
+          id = PartUuid(codock);
+          id = SubStr(id,0,8);
+        } else {  
+          lastcodock = FindPart(codock, 'left_2_right',1);
+          if (lastcodock) {
+            id = Feature(lastcodock,'f_wandId');
+          }
+        }
+        return id;
+     }" />
+  </function>
+  
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_primo_panel"/>
+    <param name="id" type="String" description="Screen child-id"/>
+    <returnvalue description="Primo Panel Level Aktiv" type="Boolean" />
+    <definition expression="def panelLevelAktiv(part,id) {
+       my level = Feature(part,'f_primoPanelLevel_top'); 
+       my tuerlevel = Feature(part,'f_primoPanelDoorLevel_top'); 
+       my list = StringToList(id, '-');
+			 id = list[1];
+			return id le level and id gt tuerlevel;
+    }" />
+  </function>
+  
+  <function name="panelConnected"  description="Stellwand">
+    <param name="part" type="Pointer" description="as_screen, as_primo_panel"/>
+    <param name="direction" type="String" description="next,back,front"/>
+    <returnvalue description="Ist ein Panel in dieser Richtung gedockt?" type="Boolean" />
+    <definition expression="def rightPanelConnected(part,direction) {
+       my exist = false;
+       my connection = List();
+       my pos = ''; 
+       my panel = Null;
+       my codock = Null;
+       my dock = Null;
+       my connectedpart = Null;
+       if (GetTypeName(part) eq 'as_screen') {
+             pos = Property(part,'pr_panelScreenPos');
+             panel = Parent('mainstructure', part);
+       } else {
+           panel = part;
+           pos = Property(panel,'pr_panelScreenPos_top');
+       }
+       
+       if (not EndsWith(pos,'rand')) {
+         codock = ChildWithId(panel,'dock');
+         direction = 'right_2_' ++ direction;
+         dock = Dock(codock, direction, '1');
+         exist = DockGetConnectedDock(dock);
+         connectedpart = DockGetConnectedPart(dock);
+       }
+       connection[0] = exist;
+       connection[1] = dock;
+       connection[2] = connectedpart;
+       connection[3] = false;
+       if (exist) {
+          connection[3] = Feature(connectedpart,'f_primoPanelDoorLevel');
+       } 
+       return connection;
+    }" />
+  </function>
+
+  <function name="rightPanelScreen" description="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Number" description="auf welcher Reihe steht der Screen"/>
+    <param name="direction" type="String" description="in welche Richtung soll geprueft werden, all, next, back, front"/>
+    <returnvalue description="Existiert ein Screen nachher auf der x. Reihe" type="Boolean" />
+    <definition expression="def rightPanelScreen(part,row,direction) {
+       my exist = false;
+       my panel = Null;
+       my codock = NUll;
+       my levels = List();
+       my doorlevels = List();
+       my level = 0;
+       my doorlevel = 0;
+       my dock = Null;
+       my right = Null;
+       my next = Null;
+       my back = Null;
+       my front = Null;
+       my rightconnection = List();
+       my nextconnection = List();
+       my backconnection = List();
+       my frontconnection = List();
+       /* einzelne Richtungen für Verbinder */
+       if (direction ne 'all') {
+         rightconnection = call rightPanelConnected(part,direction);
+         if (rightconnection[0]) {
+           dock = rightconnection[1];
+           right = Parent('mainstructure', DockGetConnectedPart(dock));
+           level = Property(right,'pr_primoPanelLevel_top');
+           doorlevel = Property(right,'pr_primoPanelDoorLevel_top');
+         }
+       } else {  
+         /* alle Richtungen für Deckel */
+	       nextconnection = call rightPanelConnected(part,'next');
+	       backconnection = call rightPanelConnected(part,'back');
+	       frontconnection = call rightPanelConnected(part,'front');
+	       if (nextconnection[0]) {
+	         dock = nextconnection[1];
+	         next = Parent('mainstructure', DockGetConnectedPart(dock));
+	       }
+	       if (backconnection[0]) {
+	         dock = backconnection[1];
+	         back = Parent('mainstructure', DockGetConnectedPart(dock));
+	       }
+	       if (frontconnection[0]) {
+	         dock = frontconnection[1];
+	         front = Parent('mainstructure', DockGetConnectedPart(dock));
+	       }
+	       if (next) {
+	         levels[0] = Property(next,'pr_primoPanelLevel_top');
+	         doorlevels[0] = Property(next,'pr_primoPanelDoorLevel_top');
+	       }
+	       if (back) {
+	         levels[1]  = Property(back,'pr_primoPanelLevel_top');
+	         doorlevels[1] = Property(back,'pr_primoPanelDoorLevel_top');
+	       }
+	       if (front) {
+	         levels[2]  = Property(front,'pr_primoPanelLevel_top');
+	         doorlevels[2] = Property(front,'pr_primoPanelDoorLevel_top');
+	       }
+	       level = ListMax(levels);
+	       doorlevel = ListMax(doorlevels);
+       }
+       exist = row le level and row gt doorlevel;
+       return exist;
+    }" />
+  </function> 
+  
+  <function name="leftPanelScreen" description="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Number" description="auf welcher Reihe steht der Screen"/>
+    <param name="direction" type="String" description="in welche Richtung soll geprueft werden, all, next, back, front"/>
+    <returnvalue description="Existiert ein Screen nachher auf der x. Reihe" type="Boolean" />
+    <definition expression="def leftPanelScreen(part,row,direction) {
+       my panel = Null;
+       my codock = NUll;
+       my dock = Null;
+       my right = Null;
+       my next = Null;
+       my back = Null;
+       my front = Null;
+       my levels = List(0,0,0);
+       my doorlevels = List(0,0,0);
+       my exist = false;
+       my leftconnection = List();
+       my nextconnection = List();
+       my backconnection = List();
+       my frontconnection = List(); 
+       nextconnection = call leftPanelConnected(part,'next');
+       backconnection = call leftPanelConnected(part,'back');
+       frontconnection = call leftPanelConnected(part,'front');
+       
+       if (nextconnection[0]) {
+           next = Parent('mainstructure', nextconnection[2]);
+           if (next) {
+           levels[0]  = Property(next,'pr_primoPanelLevel_top');
+           doorlevels[0]  = Property(next,'pr_primoPanelDoorLevel_top');
+           }
+       }
+       if (backconnection[0]) {
+             back = Parent('mainstructure', backconnection[2]);
+             if (back and next) {
+             levels[1]  = Property(back,'pr_primoPanelLevel_top');
+             doorlevels[1]  = Property(next,'pr_primoPanelDoorLevel_top');
+             }
+       }
+       if (frontconnection[0]) {
+             front = Parent('mainstructure', frontconnection[2]);
+             if (front and next) {
+             levels[2]  = Property(front,'pr_primoPanelLevel_top');
+             doorlevels[2]  = Property(next,'pr_primoPanelDoorLevel_top');
+             }
+       }
+       if (direction eq 'frontback') {
+             exist =  row le ListMax(List(levels[1],levels[2])) and row gt ListMax(List(doorlevels[1],doorlevels[2]));
+         } else if (direction eq 'next') {
+             exist = row le levels[0] and row gt doorlevels[0];
+         } else if (direction eq 'back') {
+             exist = row le levels[1] and row gt doorlevels[1];
+         } else if (direction eq 'front') {
+             exist = row le levels[2] and row gt doorlevels[2];
+         } else if (direction eq 'all') {
+             exist =  row le ListMax(levels) and row gt ListMax(doorlevels);
+         }
+       return exist;
+    }" />
+  </function> 
+  
+  
+  <function name="leftpanelConnected"  description="Stellwand">
+    <param name="part" type="Pointer" description="panel oder as_screen"/>
+    <param name="direction" type="String" description="next,back,front"/>
+    <returnvalue description="Ist ein Panel in dieser Richtung gedockt?" type="Boolean" />
+    <definition expression="def leftPanelConnected(part,direction) {
+       my exist = false;
+       my connection = List(0,0,0);
+       my pos = Property(part,'pr_panelScreenPos');
+       my initscreen = Property(part,'pr_trigger') eq 'init';
+       my panel = part;
+       my codock = Null;
+       my dock = Null;
+       my connectedpart = Null;
+       my connecteddock = Null;
+       my backdock = false;
+       my frontdock = false;
+       my nextdock =false;
+       my partnerdock = Null;
+       my partnerdocklist = List();
+       my partnerdocktype = 'right_2_' ++ direction;
+       if ( not initscreen) {
+         if (not BeginsWith(pos,'rand')) {
+           if (GetTypeName(panel) ne 'as_primo_panel') {
+             panel = Parent('mainstructure', part);
+           }
+           codock = ChildWithId(panel,'dock');
+           dock = Dock(codock, 'left_2_right', 1);
+           connecteddock = DockGetConnectedDock(dock);
+           connectedpart = DockGetConnectedPart(dock);
+           if (connecteddock) {
+              nextdock = GetDockType(connecteddock) eq 'right_2_next';
+           }
+           
+           if (nextdock) {
+              /* now on leftpanel */
+              if (direction eq 'frontback') {
+                /* irgendwelche seitlich gedockte Panele */
+                partnerdocklist = FreeDocksOfType(connectedpart,'dt_winkel');               
+                exist = Size(partnerdocklist) lt 2;
+              } else if (direction ne 'next') {
+                /* back oder front panele */
+                partnerdock = Dock(connectedpart,partnerdocktype,1);
+                connecteddock = DockGetConnectedDock(partnerdock);
+                connectedpart = DockGetConnectedPart(partnerdock);
+                exist = Bool(connectedpart);
+              } else {
+                /* nur Hauptpanel next */
+                exist = true;
+                connecteddock = connecteddock;
+                connectedpart = DockGetConnectedPart(dock);
+              }
+            }else {
+              
+              /* direct connected */
+              if (direction eq 'frontback') {  
+                if (GetDockType(connecteddock) eq 'right_2_front') {
+                    frontdock = connecteddock;
+                }
+                 if (GetDockType(connecteddock) eq 'right_2_back') {
+                  
+                    backdock = connecteddock;
+                }
+                exist = backdock or frontdock;
+              } else {
+                /* Message(partnerdocktype); */
+                partnerdock = Dock(connectedpart,partnerdocktype,1);
+                connecteddock = DockGetConnectedDock(dock);
+                connectedpart = DockGetConnectedPart(dock);
+                exist = Bool(connectedpart);
+              }
+              
+           } 
+          }
+      }
+       connection[0] = exist;
+       connection[1] = connecteddock;
+       connection[2] = connectedpart;
+       connection[3] = false;
+       if (exist) {
+          connection[3] = Feature(connectedpart,'f_primoPanelDoorLevel');
+       }
+       return connection;
+    }" />
+  </function>
+
+  
+  <function name="Stellwand" description="Wird gebraucht für Sichtbarkeit des add_up Handle">
+    <param name="part" type="Pointer" description="as_screen"/>  
+    <returnvalue description="Existiert nicht ein Screen vorher/nacher, der ein Level tiefer ist, als der aktuelle?
+                              und ist der aktuelle screnn auch oberste? " type="Boolean" />
+    <definition expression="def addUpPanelScreen(part) {
+        my exist = false;
+        my leftexist = false;
+        my rightexist = false;
+        /* Z-, T-, U-Form Level  */
+        my kombimax = 6;
+        /* Closed-Form Regel gilt auch fuer Level 7 */
+        my closedmax = 7;
+        my row = Property(part,'pr_screenRow');
+        my pos = Property(part,'pr_panelScreenPos');
+        my level = Property(part,'pr_primoPanelLevel');
+        my leftpanel = Null;
+        my leftpanel2 = Null;
+        my rightpanel = Null;
+        my rightpanel2 = Null;
+        my leftconnection = List();
+        my leftconnection2 = List();
+        my rightconnection = List();
+        my rightconnection2 = List();
+        my leftlevel = level;
+        my rightlevel = level; 
+        my corner = StringContains(pos, 'winkel') and row eq kombimax;
+        if (row eq level and row lt closedmax and not corner) {
+          /* muss der oberste sein und darf nicht 6 hoch sein*/
+          leftpanel = call leftPanelScreen(part,row,'all');
+          rightpanel = call rightPanelScreen(part,row,'all');
+          exist = leftpanel or rightpanel;
+          if (not exist) {
+            leftconnection = call leftPanelConnected(part,'next');
+            rightconnection = call rightPanelConnected(part,'next');
+            if (leftconnection[0]) {
+             leftpanel = leftconnection[2];
+             leftlevel = Property(leftpanel,'pr_primoPanelLevel');
+             leftpanel = Parent('mainstructure', leftpanel);
+             leftconnection2 = call leftPanelConnected(leftpanel,'next');
+             leftpanel2 = leftconnection2[2];
+            }
+            if (rightconnection[0]) {
+             rightpanel = rightconnection[2];
+             rightlevel = Property(rightpanel,'pr_primoPanelLevel');
+             rightpanel = Parent('mainstructure', rightpanel);
+             rightconnection2 = call rightPanelConnected(rightpanel,'next');
+             rightpanel2 = rightconnection2[2];
+            }
+            exist = not (leftlevel lt level and rightlevel lt level);
+            if (exist) {
+               if (leftpanel2 and rightpanel2) {
+                 leftexist = leftlevel ge (level - 1);
+                 rightexist = rightlevel ge (level - 1);
+                 }
+             }
+            exist = leftexist and rightexist;
+          }
+        } 
+        return exist;
+    }" />
+  </function> 
+  
+  <function name="Stellwand" description="Wird gebraucht für Sichtbarkeit des add_down Handles">
+    <param name="part" type="Pointer" description="as_screen"/>  
+    <returnvalue description="Existiert  ein Screen links/rechts, der ein Level hoeher ist, als der aktuelle?
+                              und ist der aktuelle screen auch oberste? 
+                              und ist der 2. naechste Screen links/rechts, gleich hoch oder hoeher als der aktuelle " 
+                 type="Boolean" />
+    <definition expression="def addDownPanelScreen(part) {
+        my exist = false;
+        my leftexist = false;
+        my rightexist = false;
+        /* Z-, T-, U-Form Level  */
+        my kombimax = 6;
+        /* Closed-Form Regel gilt auch fuer Level 7 */
+        my closedmax = 7;
+        my row = Property(part,'pr_screenRow');
+        my testrow = Property(part,'pr_screenRow');
+        my pos = Property(part,'pr_panelScreenPos');
+        my level = Property(part,'pr_primoPanelLevel');
+        my leftpanel = Null;
+        my leftpanel2 = Null;
+        my rightpanel = Null;
+        my rightpanel2 = Null;
+        my leftconnection = List();
+        my leftconnection2 = List();
+        my rightconnection = List();
+        my rightconnection2 = List();
+        my leftlevel = level;
+        my rightlevel = level;
+        my leftlevel2 = 0;
+        my rightlevel2 = 0;
+        my corner = StringContains(pos, 'winkel') and row eq kombimax;
+        if (row eq level and row lt closedmax and not corner) {
+          /* muss der oberste sein und darf nicht 6 hoch sein*/
+          leftconnection = call leftPanelConnected(part,'next');
+          rightconnection = call rightPanelConnected(part,'next');
+          if (leftconnection[0]) {
+           leftpanel = leftconnection[2];
+           leftlevel = Property(leftpanel,'pr_primoPanelLevel');
+           leftpanel = Parent('mainstructure', leftpanel);
+           leftconnection2 = call leftPanelConnected(leftpanel,'next');
+           leftpanel2 = leftconnection2[2];
+           if (leftpanel2) {
+             leftlevel2 = Property(leftpanel2,'pr_primoPanelLevel');
+           }
+          }
+          if (rightconnection[0]) {
+           rightpanel = rightconnection[2];
+           rightlevel = Property(rightpanel,'pr_primoPanelLevel');
+           rightpanel = Parent('mainstructure', rightpanel);
+           rightconnection2 = call rightPanelConnected(rightpanel,'next');
+           rightpanel2 = rightconnection2[2];
+           if (rightpanel2) {
+             rightlevel2 = Property(rightpanel2,'pr_primoPanelLevel');
+           }
+          }
+          /* check naechsten links/rechts */
+          leftexist = leftlevel le level;
+          rightexist = rightlevel le level;
+          /* check naechsten links/rechts */
+          /* wenn links/rechts level+1 muss auch das uebernaechste level abgefragt werden */
+          if (leftpanel2 and rightpanel2) {             
+             leftexist = leftlevel le (level);
+             if (leftlevel eq (level + 1)) {
+                leftexist = leftlevel2 ge (level);
+             }
+             rightexist = rightlevel le (level);
+             if (rightlevel eq (level + 1)) {
+               rightexist = rightlevel2 ge (level);
+             }
+          } else if (leftpanel2 and not rightpanel2) { 
+             leftexist = leftlevel le (level);
+             if (leftlevel eq (level + 1)) {
+                leftexist = leftlevel2 ge (level);
+             }
+          } else if (not leftpanel2 and rightpanel2) { 
+             rightexist = rightlevel le (level);
+             if (rightlevel eq (level + 1)) {
+               rightexist = rightlevel2 ge (level);
+             }
+          }
+          exist = leftexist and rightexist;
+          
+             
+        } 
+        return exist;
+    }" />
+  </function> 
+  
+  <function name="Stellwand" description="Wird gebraucht für Sichtbarkeit der add_right Handles">
+    <param name="panel" type="Pointer" description="as_primo_panel"/>
+    <param name="direction" type="Pointer" description="moegliche Werte sind:
+                  Anbau rechte Seite: next, back, front
+                  Anbau linke Seite: left, leftback, leftfront"/>  
+    <returnvalue description="ist das Dock in diese Richtung noch frei und kein einzelnes Panel" type="Boolean" />
+    <definition expression="def addSidePanel(panel,direction) {
+       my partnerdockname = '';
+       my codock = ChildWithId(panel,'dock');
+       my valid = true; 
+       if (direction ne 'next' and  direction ne 'left') {
+         /* keine Abwinklung, wenn einzelnes Panel */
+         valid = Feature(panel,'f_panelScreenPos_top') ne 'rand-rand';
+       }  
+       if (BeginsWith(direction,'left')) {
+         direction = 'left_2_right';
+       } else {
+         direction = 'right_2_' ++ direction;
+       }
+       my dock = Dock(codock, direction, '1');
+       my free  = not DockGetConnectedDock(dock);
+       
+       return free and valid;
+    }" />
+  </function> 
+  
+  <!-- 
+        my index = Number(Property(part, 'pr_index_top'));
+       my panelcount = Number(Property(part, 'pr_maxPanelCount_top'));
+       my pos = Property(part, 'pr_panelScreenPos');
+       
+   -->
+  
+
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="Panel"/>
+    <returnvalue description="Wo befindet sich das Panel innerhalb der Stellwand" type="Boolean" />
+    <definition expression="def panelScreenPos(part) {
+       my pos = 'mitte-mitte'; /* mittleres Element in gerader Wand */
+       my index = Number(Property(part, 'pr_index_top'));
+       my count = Number(Property(part, 'pr_maxPanelCount_top'));
+       my dock = ChildWithId(part,'dock');
+       my right = Bool(Size(ConnectedDocksOfType(dock, 'dt_right')));
+       my winkel = Bool(Size(ConnectedDocksOfType(dock, 'dt_winkel')));
+       my next = Bool(Size(ConnectedDocksOfType(dock, 'right_2_next')));
+       my left = Bool(Size(ConnectedDocksOfType(dock, 'left_2_right')));
+       if (index eq 1 and count eq 1) {
+         /* einziges Element einer Wand (nur wenn ein Panel oder ein Panel zwischen zwei Winkeln) */
+         if (not left and not right) {
+           pos = 'rand-rand';
+         } else if (not left and winkel) {
+           pos = 'rand-winkel';
+         } else if (left and not right) {
+           pos = 'winkel-rand';
+         } else if (left and winkel) {
+           pos = 'winkel-winkel';
+         }
+       } else if (index eq 1 and count gt 1) {
+         /* erstes Element einer Wand */
+         if (not left) {
+           pos = 'rand-mitte';
+         } else if (left) {
+           pos = 'winkel-mitte';
+         }
+       } else if (index eq count and count gt 1) {
+         /* letztes Element einer Wand */
+         if (not right) {
+           pos = 'mitte-rand';
+	       } else if (winkel) {
+	         pos = 'mitte-winkel';
+	       } 
+       }
+       return pos;
+    }" />
+  </function>
+
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Number" description="auf welcher Reihe steht der Screen"/>
+    <param name="seite" type="String" description="auf welcher Seite muss der Deckelmontage ueberprueft werden "/>
+    <returnvalue description="Soll ein Deckel kreiert werden" type="Boolean" />
+    <definition expression="def createPanelDeckel(part,row,seite) {
+       my aktive = false;
+       my pos = '';
+       my initscreen = true;
+       if (part) {
+	       pos = Property(part,'pr_panelScreenPos');
+	       initscreen = Property(part,'pr_trigger') eq 'init';
+	       if (not initscreen) {
+	         if (seite eq 'links' and not call leftPanelScreen(part,row,'all')) {
+	           aktive = true;
+	         } else if (seite eq 'rechts' and not call rightPanelScreen(part,row,'all')) {
+	           aktive = true;
+	         } 
+	         if (aktive) {
+	           aktive = not call panelScreenClosePos(part,row,seite);
+	         }
+	       } else {
+	         aktive = true;
+	       }
+       }
+       return aktive;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Number" description="auf welcher Reihe steht der Screen"/>
+    <param name="direction" type="String" description="next, back, front"/>
+    <returnvalue description="Soll ein Verbinder kreiert werden" type="Boolean" />
+    <definition expression="def createPanelVerbinder(part,row,direction) {
+       my aktive = false;
+       my pos = Property(part,'pr_panelScreenPos');
+       my borderscreen = EndsWith(pos,'rand');
+       my initscreen = Property(part,'pr_trigger') eq 'init';
+       if (initscreen or EndsWith(pos,'winkel')) {
+           aktive = false;
+       } else {
+         if (not borderscreen) {
+		       if (direction eq 'next' and call rightPanelScreen(part,row,'next')) {
+		         aktive = true;
+			       } else if (direction eq 'back' and call rightPanelScreen(part,row,'back')) {
+			         aktive = true;
+			       } else if (direction eq 'front' and call rightPanelScreen(part,row,'front')) {
+			         aktive = true;
+			     }
+		     } else if (borderscreen and call panelScreenClosePos(part,row,direction)) {
+           aktive = true;
+         }
+       }
+       return aktive;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Number" description="auf welcher Reihe steht der Screen"/>
+    <param name="direction" type="String" description="Richtung all (für Kugel), back, front"/>
+    <returnvalue description="Soll ein EckVerbinder kreiert werden" type="Boolean" />
+    <definition expression=" def createPanelEckVerbinder(part,row,direction) {
+       my active = false;
+       my closed = true;
+       my back = Null;
+       my front = Null;
+       my next = Null;
+       my pos = Property(part,'pr_panelScreenPos');
+       my borderscreen = EndsWith(pos,'rand');
+       my initscreen = Property(part,'pr_trigger') eq 'init';
+       if (initscreen) {
+          active = false;
+       } else if (not borderscreen) {
+          back = call rightPanelScreen(part,row,'back');
+          front = call rightPanelScreen(part,row,'front');
+          next = call rightPanelScreen(part,row,'next');
+          if (direction eq 'all') {
+             active =  back or front or (EndsWith(pos,'winkel') and next);
+          } else if (direction eq 'back') {
+             active = back;
+          } else if (direction eq 'front') {
+             active = front;
+          } else if (direction eq 'next')  {
+             active = next and (front or back or EndsWith(pos,'winkel'));
+          }
+       } else if (borderscreen and call panelScreenClosePos(part,row,direction)) {
+            if (EndsWith(pos,'rand') or BeginsWith(pos,'rand')) {
+                active =  direction eq 'all' or direction eq 'front' or direction eq 'back';
+            }
+       } else {
+          active = false;            
+       }
+       return active;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Number" description="auf welcher Reihe steht der Screen"/>
+    <param name="direction" type="String" description="Richtung all (für Kugel), back, front"/>
+    <returnvalue description="Soll ein EckVerbinder kreiert werden" type="Boolean" />
+    <definition expression="def createPanelLeftEckVerbinder(part,row,direction) {
+       my active = false;
+       my pos = Property(part,'pr_panelScreenPos');
+       my borderscreen = BeginsWith(pos,'rand');
+       my initscreen = Property(part,'pr_trigger') eq 'init';
+       if (borderscreen or initscreen) {
+          active = false;
+       } else if (call leftPanelConnected(part,'next') and not call leftPanelScreen(part,row,'next')) {
+          active = call leftPanelScreen(part,row,direction);
+       }
+      return active;
+    }" />
+  </function>
+   
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_panel, fuer Nivellierfussberechnung"/>
+    <returnvalue description="Ist das eine Panelsituation, die geschlossen werden kann" type="Boolean" />
+    <definition expression="def panelCloseWinkelPos(part) {
+       my screen = ChildWithId(part,'row-1');
+       my back = call panelScreenClosePartner(screen,1,'back');
+       my front = call panelScreenClosePartner(screen,1,'front');
+       return back or front;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Integer" description="pr_screenRow"/>
+    <param name="direction" type="String" description="EckVerbinder: front,back,all oder Verbinder: links,rechts"/>
+    <returnvalue description="Ist das eine Panelsituation, die geschlossen werden kann" type="Boolean" />
+    <definition expression="def panelScreenClosePos(part,row,direction) {
+       my closepos = false;
+       my userclose = Feature(part, 'f_kombiWandClosed');
+       my single = true;
+       my rootpart = Null;
+       my wandcount = 0;
+       if (userclose) {
+          rootpart = MainRoot(part);
+          single = GetTypeName(rootpart) eq 'as_primo_wand';
+          if (single) {
+            closepos = false;
+          } else if (ChildCount(rootpart) lt 4) {
+            closepos = false;
+          } else {  
+            closepos = call panelScreenClosePartner(part,row,direction);
+          }
+       }
+       return closepos;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_panel"/>
+    <param name="row" type="Integer" description="pr_screenRow"/>
+    <param name="direction" type="String" description="EckVerbinder: front,back oder Verbinder: links,rechts"/>
+    <returnvalue description="Ist das eine Panelsituation, die geschlossen werden kann" type="Boolean" />
+    <definition expression="def panelClosePos(part) {
+       my closepos = false;
+       my userclose = Feature(part, 'f_kombiWandClosed');
+       my single = true;
+       my rootpart = Null;
+       my wandcount = 0;
+       if (userclose) {
+          rootpart = MainRoot(part);
+          single = GetTypeName(rootpart) eq 'as_primo_wand';
+          if (single) {
+            closepos = false;
+          } else if (ChildCount(rootpart) lt 4) {
+            closepos = false;
+          } else {  
+            closepos = call panelScreenClosePartner(part,row,direction);
+          }
+       }
+       return closepos;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="row" type="Integer" description="pr_screenRow"/>
+    <param name="case" type="String" description="Deckel: links, rechts, Verbinder: front, back"/>
+    <returnvalue description="gibtes ein Partner-Panel, das Verbunden werden kann umd die Wandkombination zu schliessen" type="Boolean" />
+    <definition expression="def panelScreenClosePartner(part,row,case) {
+       my active = false;
+       my screen = Null;
+       my rotation = 99;
+       my offset = 'none'; /* minus, plus */
+       my pos = 0;
+       my diff = 0;
+       my diffx = Feature(part,'f_primoPanelBreite');
+       my diffy = 0;
+       my parent = Parent('mainstructure',part);
+       my list = ChildrenListOfTypeDeep(MainRoot(part),'as_screen');
+       list = FilterList(list,'element',`Feature(element,'f_screenRow') ne row;`);
+       list = FilterList(list,'element',`element eq part;`);
+       /* Message(list); */
+       my globpos = GlobalPos(part, Vector(0, 0, 0));      
+       if (case eq 'all') {
+         /* z6: Eckverbinder rechts */
+         globpos = GlobalPos(part, Vector(diffx, 0, 0));
+         list = FilterList(list,'element',`Abs(RelativePartRot(element, part)['z']) ne 90;`);
+         active = call checkDiffScreenPos(globpos,list,case,diffx,'none'); 
+       } else if (case eq 'front') {
+       /* z9: Eckverbinder-Zapfen nach vorne */
+         globpos = GlobalPos(part, Vector(diffx, 0, 0));
+         list = FilterList(list,'element',`RelativePartRot(element, part)['z'] ne 90;`);
+         /* call checkRelativeDistScreen(part,list,'rot','z'); */
+         active = call checkDiffScreenPos(globpos,list,case,diffx,'none');       
+       } else if (case eq 'back') {
+         /* z8: Eckverbinder nach hinten */
+         globpos = GlobalPos(part, Vector(diffx, 0, 0));
+         list = FilterList(list,'element',`RelativePartRot(element, part)['z'] ne -90;`);
+         active = call checkDiffScreenPos(globpos,list,case,diffx,'none');
+       } else if (case eq 'rechts') {
+         /* z4: kein Deckel rechts */
+         globpos = GlobalPos(part, Vector(diffx, 0, 0)); 
+         active = call checkDiffScreenPos(globpos,list,case,diffx,'none');
+       } else if (case eq 'links') {
+         /* z3: kein Deckel links */
+         globpos = GlobalPos(part, Vector(0, 0, 0));
+         active = call checkDiffScreenPos(globpos,list,case,diffx,'plus');  
+       } else if (case eq 'next') {
+         /* z5: dann Verbinder (next) */
+         globpos = GlobalPos(part, Vector(diffx, 0, 0));
+         list = FilterList(list,'element',`pos = LocalPos(part,PartPos(element));diffy = Abs(pos['y']);diffy gt 0.5;`);
+         active = call checkDiffScreenPos(globpos,list,case,diffx,'none');
+       }  
+
+      return active;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="list" type="Liste" description="Liste der moeglichen Screens"/>
+    <param name="offset" type="Bool" description="Soll die Position des gesuchten Screens vor dem Vergleich noch verschoben werde"/>
+    <returnvalue description="Soll ein EckVerbinder kreiert werden" type="Boolean" />
+    <definition expression="def checkDiffScreenPos(globpos,list,case,diffx,offset) {
+      my diffmax = 10;
+      my diff = 0;
+      my diffx = 0;
+      my active = false;
+      my partnerglobpos = Vector();
+      for (my screen : list) {
+           diffx = Feature(screen,'f_primoPanelBreite');
+           if (offset eq 'minus' ) {
+              partnerglobpos = GlobalPos(screen, Vector(-diffx, 0, 0));
+           } else if (offset eq 'plus') {
+              partnerglobpos = GlobalPos(screen, Vector(diffx, 0, 0));
+           } else {
+             partnerglobpos = GlobalPos(screen, Vector(0, 0, 0));
+           }
+           diff = VectorLength(VectorSub(globpos, partnerglobpos));
+           /* Message(diff); */
+           if (diff lt diffmax) {
+             active = true;
+             /* Message(diff); */
+             break;
+           }
+        }
+        return active;
+    }" />
+  </function>
+  
+  <function name="Stellwand" description="just for testing">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="list" type="Liste" description="Liste der moeglichen Screens"/>
+    <param name="pos" type="String" description="trans,rot"/>
+    <param name="koord" type="String" description="x,y,z"/>
+    <definition expression="def checkRelativeDistScreen(part,list,pos,koord) {
+      my screen = Null;
+      my position = Vector();
+      my diff = 0;
+      for (my i = 0; i lt Size(list); i = i +1) {
+        screen = list[i];
+        if (pos eq 'trans') {
+           position = LocalPos(part,PartPos(screen));
+           diff = position[koord];
+        } else {
+          position = RelativePartRot(screen, part);
+          diff = position[koord];
+        }
+        /* Message(pos ++ ', ' ++ koord ++ ', ' ++ diff); */
+      }
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_screen"/>
+    <param name="side" type="String" description="back, front"/>
+    <returnvalue description="montageMaterialString" type="String" />
+    <definition expression="def montageMaterialText() {
+       my string = '';
+       my material = Feature(Child(0),'f_primoMaterial'); 
+       my materialBi = Feature(Child(0),'f_primoMaterialBi');
+       if (material eq call wandMaterial(Child(0),'both')) {
+          string = '   ';
+       } else {
+         string = material;
+       }
+       if (materialBi eq call wandMaterial(Child(0),'both')) {
+          materialBi = '';
+       }
+       if(StrLen(materialBi) gt 0) {
+         string = string ++ ' / ' ++ materialBi;
+       }  
+       return string;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_wand oder ct_screen"/>
+    <param name="side" type="String" description="front, back, both side of a screen"/>
+    <returnvalue description="Material" type="String" />
+    <definition expression="def wandMaterial(part,side) {
+      /* Gibt das am haeufigste verwendete Material innerhalb einer Wand zurueck  */
+      my material = '71';
+      my trigger = Feature(part,'f_trigger');
+      my screens = List();
+      my materiallist = List('70','71','72','73','74','75','76','77','78');
+      my frontmaterials = List();
+      my backmaterials = List();
+      my counted = List(0,0,0,0,0,0,0,0);
+      my materials = List();
+      my max = counted[0];
+      my parent = Null;
+      
+      if (trigger ne 'init') {
+        parent = Parent('mainstructure',Parent('mainstructure',part));
+        parent = Parent('mainstructure',parent);
+	      screens = ChildrenListOfTypeDeep(parent, 'as_screen');
+	      frontmaterials = FeatureValuesFromPartList(screens, 'f_primoMaterial_top');
+	      backmaterials = FeatureValuesFromPartList(screens, 'f_primoMaterialBi_top');
+        if (side eq 'front') {
+           materials = frontmaterials;   
+        } else if (side eq 'back') {
+           materials = backmaterials;
+        } else if (side eq 'both') {
+           materials = JoinList(frontmaterials, backmaterials);
+        }
+        for (my i= 0; i lt Size(materiallist); i= i+1) {
+          for (my j= 0; j lt Size(materials); j= j+1) {
+            if (materials[j] eq materiallist[i]) {
+             counted[i] = counted[i] + 1;
+            }
+          }
+        }
+        for (my i= 0; i lt Size(materiallist); i= i+1) {
+         if (max lt counted[i]) {
+          max = counted[i];
+          material = materiallist[i];
+         }
+         
+         
+        }
+      }
+      return material;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <param name="side" type="String" description="front, back"/>
+    <returnvalue description="Material" type="String" />
+    <definition expression="def panelTopMaterial(part,side) {
+      /* Gibt das am oberste verwendete Material innerhalb einer Wand zurueck  */
+      my trigger = Feature(part,'f_trigger');
+      my material = '71';
+      my parent = Null;
+      my toplevel = Feature(part,'f_maxPanelLevel');
+      my topid = 'row-' ++ toplevel;
+      parent = Parent('mainstructure',part);
+      
+      if (parent and trigger ne 'init') {
+        if (side eq 'front') {
+	       material = Feature(ChildWithId(parent,topid),'f_primoMaterial_top');
+		    } else if (side eq 'back') {
+		      material = Feature(ChildWithId(parent,topid),'f_primoMaterialBi_top');
+		    }
+		  }
+      return material;
+    }" />
+  </function>
+  
+  <function name="Stellwand" description="Gibt Rest einer Zahl mit der Division base zurueck">
+    <param name="base" type="Number" description="Basis (Divisor) der Modula-Berechnung"/>
+    <param name="number" type="Number" description="Zahl fuer die Modula-Berechnung"/>
+    <returnvalue description="Rest der Division" type="Number" />
+    <definition expression="def modula(base,number) {
+      /* Gibt Rest einer Division mit base zurueck */
+      my result = 0;
+       if (base ne 0) {
+        result = number / base;
+        result = Trunc(result);
+        result = number - (result * base);
+       }
+      return result;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Assembly" description="as_primo_panel"/>
+    <returnvalue description="Nivellierfuss" type="Bool" />
+    <definition expression="def nivellierFuss(part) {
+     /* fuer Seitenpanel front,back */
+      my fussflag = Feature(part,'f_fussFlag_top');
+      my door = Feature(part,'f_primoPanelDoorLevel_top') gt 0;
+      my index = Feature(part,'f_index_top');
+      my maxindex = Feature(part,'f_maxPanelCount_top');
+      /* fuer Hauptpanel right-next-left */
+      my fussindex = Feature(part,'f_fussIndex_top');
+      my fussmaxindex = Feature(part,'f_maxPanelFussCount_top');
+      my nivellier = false;
+      my base = 2; /* gemaesss Bugzilla 16058 */
+      if (not door) {
+        if (BeginsWith(fussflag,'side-small')) {
+           /* Normalfall, wenn mehrere Seitenpanele */
+           if (call modula(base,index) eq 1) {
+               nivellier = true;
+           } else {
+              nivellier = false;
+           }
+           /* Grenzfall, wenn nur ein Seitenpanel */
+           if (index eq 1) {
+             nivellier = true;
+           }
+           /* Grenzfall, wenn letztes Seitenpanel */
+           if (index eq maxindex and maxindex ne 1) {
+             if (call panelCloseWinkelPos(part)) {
+               nivellier = true;
+             } else {
+               nivellier = false;
+             }
+           }
+        } else { 
+          /* Normalfall, wenn mehrere Hauptpanele */
+          if (call modula(base,fussindex) ne 1) {
+               nivellier = true;
+          } else {
+              nivellier = false;
+          }
+          
+          /* Grenzfall, wenn nur ein Hauptpanel */
+             if (fussmaxindex eq 1) {
+               nivellier = false;
+             }
+             
+          /* Grenzfall, wenn letztes Hauptpanel, achtung bei 25er Panelen */
+          if (fussindex eq fussmaxindex and fussmaxindex ne 1 and (call modula(base,fussindex) ne 1)) {
+              if (call panelCloseWinkelPos(part)) {
+               nivellier = true;
+             } else {
+               nivellier = false;
+             }
+          }
+          
+        }
+        /** Wenn Tuere links oder rechts **/
+        if (call nextDoorPos(part)) {
+           nivellier = false;
+        } 
+      }
+      return nivellier;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="as_primo_panel"/>
+    <returnvalue description="Gibt es eine Tuere links oder rechts ?" type="List()" />
+    <definition expression="def nextDoorPos(panel) {
+        my door = false;
+        /* PanelConnected has to be on screen/docking level */
+        my docking = ChildWithId(panel,'dock');
+			  door = call rightPanelConnected(docking,'next');
+			  door = Bool(door[3]);
+			  if (not door) {
+			    door = call leftPanelConnected(docking,'next');
+          door = Bool(door[3]);
+        }
+			  return door;
+			}"/>
+  </function>  
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Welches Panel max[0] hat den hoechsten Level max[1] ?" type="List()" />
+    <definition expression="def maxPanelLevel(part) {
+			  my level = Feature(part,'f_primoPanelLevel');
+			  my maxlevel = level;
+			  my index = Feature(part,'f_index');
+			  my maxindex = index;
+			  my max = List();
+			  max[0] = maxindex;
+			  max[1] = maxlevel;
+			  my found = true;
+			  my panel = part;
+			  my startpanel = part;
+			  my nextpanel = Null;
+			  my nextdock = Null;
+			
+				while (found) {
+				  nextpanel = FindPart(panel, 'right_2_next',1);
+				  if (nextpanel) {
+				     level = Feature(nextpanel,'f_primoPanelLevel');
+				    if ( level gt maxlevel ) {
+				      maxlevel = level;
+				      maxindex = Feature(panel,'f_index');
+				    }
+				    panel = nextpanel;  
+				  } else {
+				    found = false;
+				  }
+				  if (panel eq startpanel) {
+            break;
+          }
+				}
+				/* nach links muss auch gesucht werden */
+				found = true;
+				while (found) {
+				  nextpanel = FindPart(panel, 'left_2_right',1);
+				  nextdock = DockGetConnectedDock(Dock('left_2_right'));
+				  nextdock = GetDockType(nextdock);
+          if (nextpanel and nextdock eq 'right_2_next') {
+             level = Feature(nextpanel,'f_primoPanelLevel');
+            if ( level gt maxlevel ) {
+              maxlevel = level;
+              maxindex = Feature(nextpanel,'f_index');
+            }
+            panel = nextpanel;  
+          } else {
+            found = false;
+          }
+          if (panel eq startpanel) {
+            break;
+          }
+        }
+				max[0] = maxindex;
+				max[1] = maxlevel;
+				return max;
+		 }" />
+  </function>
+  
+   <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Gesamtlaenge der Wand" type="String" />
+    <definition expression="def maxWandLaenge(part) {
+        my laenge = 0;
+        my index = Feature(part,'f_index');
+        my maxindex = Feature(part,'f_maxPanelCount');
+        my found = true;
+        my panel = Null;
+        my nextpanel = Null;
+        my nextdock = Null;
+        my next = Null;
+        
+        if (index eq 1) {
+        laenge = Feature(part,'f_primoPanelBreite');
+        panel = part;
+        next = FindPart(panel, 'right_2_next',1);
+        if (next) {
+          while (index lt maxindex) {
+            nextpanel = FindPart(panel, 'right_2_next',1);
+            laenge = laenge + Feature(nextpanel,'f_primoPanelBreite');
+            index = Feature(nextpanel,'f_index');
+            panel = nextpanel;  
+          } 
+         laenge;
+        } else {
+          laenge = Feature(part,'f_primoPanelBreite');
+          panel = part;
+          while (index lt maxindex) {
+            nextpanel = FindPart(panel, 'left_2_right',1);
+            nextdock = DockGetConnectedDock(Dock('left_2_right'));
+            nextdock = GetDockType(nextdock);
+            if (nextpanel and nextdock eq 'right_2_next') {
+              laenge = laenge + Feature(nextpanel,'f_primoPanelBreite');
+
+            }
+            index = Feature(nextpanel,'f_index');
+            panel = nextpanel; 
+          }
+          laenge;
+        }
+        }
+        return laenge;
+     }" />
+  </function>
+  
+  <function name="Stellwand + Tischblende">
+    <param name="part" type="Pointer" description="artikel"/>
+    <param name="screen" type="String" description="Screentyp: ct_screen_25/75"/>
+    <returnvalue type="String" description="Farbcode des Artikels" />
+    <definition expression="def screenArticleNumber(part,screen) {
+      my color = Feature(ChildOfType(part,screen),'f_primoMaterial');
+      my bicolor = Feature(ChildOfType(part,screen),'f_primoMaterialBi');
+      my colorcode = color;
+      if (color ne bicolor) {
+        colorcode = color ++ bicolor;
+        if (bicolor lt color) {
+          colorcode = bicolor ++ color;
+        }
+      }
+      return colorcode;
+    }" />
+  </function>
+  
+  <function name="Stellwand">
+    <param name="part" type="Pointer" description="co_panel_docking"/>
+    <returnvalue description="Die Laenge der Wand" type="String" />
+    <definition expression="def wandLaenge(part) {
+      my dock = Dock('left_2_right');
+      my index = Feature(part,'f_index');
+      my maxindex = Feature(part,'f_maxPanelCount');
+      my val = Feature(part,'f_primoPanelBreite');
+      my leftpart = Null;
+      my partnerdock = DockGetConnectedDock(dock);
+      my leftconnection = call leftPanelConnected(part,'frontback');
+      my leftwinkel = leftconnection[0];
+      if (GetDockType(partnerdock) eq 'right_2_next') {
+         leftpart = DockGetConnectedPart(dock);
+      }
+      if ( leftpart and not leftwinkel) {
+        val = val + Feature(leftpart,'f_primoPanelBreite');
+      }
+      return val;
+      }" />
+  </function>
+  
+  <function description="Kann diese Wandkombination geschlossen werden?">
+	<returnvalue description="wenn zwei Panels in Verbindungsposition sind, ja" type="BOOL"/>
+	 <definition expression="def checkCloseWall() {
+      my kombi =  part;
+			my panels = ChildrenListOfTypeDeep(kombi, 'as_primo_panel');
+			my endpanels = List();
+			my screen = Null;
+			my docks = List();
+			my deckel = Null;
+			my deckellist = List();
+			my deckeltable = List();
+			my pos = List();
+			for (my i = 0; i lt Size(panels); i = i + 1) {
+			   screen = ChildWithId(panels[i],'row-1');
+			   if (screen) {
+			     deckel = ChildOfType(screen,'co_primo_deckel');
+			     if (deckel) {
+			        deckellist = ListAdd(deckellist,deckel);
+			        endpanels = ListAdd(endpanels, panels[i]);
+			     }
+			   }
+			}
+			return endpanels;
+      } "/>
+  </function>
+  
+ <function description="Welches ist ein Randpanel">
+  <param name="part" type="Pointer" description="as_primo_wand"/>
+	<returnvalue description="Start- oder End-Panel einer Wand" type="Pointer"/>
+	<definition expression="def randPanel(wand,position) {
+		  my randpanel = null;
+		  my lastpanelindex = 0;
+		  my wandpanels = ChildrenListOfType(wand, 'as_primo_panel');
+		  if (position eq 'start') {
+		    randpanel = ChildWithId(wand,'1');
+		    if (not randpanel) {
+		      /* Fall  75-75-75 */
+		      randpanel = wandpanels[0];
+		    }
+		  } else if (position eq 'end') {
+		     lastpanelindex = Size(wandpanels);
+		     wandpanels = FilterList(wandpanels,'element',`Feature(element,'f_index_top') ne lastpanelindex;`);
+		     randpanel = wandpanels[0];
+		     if (not randpanel) {
+		       /* Fall  75-75-75 */
+			       randpanel = wandpanels[0];
+			   }
+			}
+			return randpanel;
+		  } "/>
+  </function>
+  
+ <function description="Ist das eine Mittelwand">
+  <param name="part" type="Pointer" description="as_primo_wand"/>
+	<returnvalue description="Mittelwand ja/nein" type="BOOL"/>
+	<definition expression="def mittelWand(wand) {
+		  my mittelwand = false;
+		  my wandpanels = ChildrenListOfType(wand, 'as_primo_panel');
+		  wandpanels = FilterList(wandpanels,'element',`not StringContains(Feature(element, 'f_panelScreenPos_top'), 'winkel');`);
+		  if (Size(wandpanels) gt 1) {
+		    mittelwand = true;
+		  }
+		  return mittelwand;
+		} "/>
+	</function>
+  
+  <function description="Regeln fuer 6 Level hohe Wandkombinationen">
+  <param name="part" type="Pointer" description="as_primo_wandkombination"/>
+	<returnvalue description="Darf Level 6 gebaut werden" type="BOOL"/>
+	 <definition expression="def validWandkombination(wandkombi) {
+      my valid = false;
+      my max = 0;
+      my max1 = 0;
+      my max2 = 0;
+      my min = 0;
+      my maxlength = 150; /* einfach gewinkelt */
+      my maxlengthmitte = 450; /* zwei und mehrfach gewinkelt */
+      my minlength = 75;
+      my lengthlist = List();
+      my endlengthlist = List();
+      my middlelengthlist = List();
+      my wandlist = ChildrenListOfType(wandkombi,'as_primo_wand');
+      my wandanzahl = Size(wandlist);
+      my wand = null;
+      my startpanel = null;
+      for (my i = 0; i lt wandanzahl; i = i +1 ) {
+          wand = wandlist[i];
+          startpanel = call randPanel(wand,'start');
+          lengthlist = ListAdd(lengthlist,Number(Feature(startpanel,'f_wandLaenge_top'))); 
+      }
+      /* min und max Laenge über alle Waende */
+      max = ListMax(lengthlist);
+      min = ListMin(lengthlist);
+      if (wandanzahl eq 2) {
+        /* regel fuer 2 waende */
+        /* min. anzahl waende ist 2 und eine davon muss zwei Panels haben, ansonsten keine Kombination */
+        valid = min ge minlength and max le maxlength;
+      } else if (wandanzahl gt 2) {
+          /* regeln fuer mehrere waende */
+          /* regel 1: muss eine Z-Form sein */
+          /* regel 2: Laenge Waende min 75 */
+          /* regel 3: Laenge mittlere Waende max 450 */
+          /* regel 4: Laenge End Waende max 150 */
+          for (my i = 0; i lt wandanzahl; i = i +1 ) {
+            wand = wandlist[i];
+            startpanel = call randPanel(wand,'start');
+            if (call mittelWand(wand)) {
+              /* Ermittlung der Laenge von den mittleren Waenden */
+              middlelengthlist = ListAdd(middlelengthlist,Feature(startpanel, 'f_wandLaenge_top'));
+            } else {
+              /* Ermittlung der Laenge von den End-Waenden, sind immer zwei */
+              endlengthlist = ListAdd(endlengthlist,Feature(startpanel, 'f_wandLaenge_top'));
+            }
+          }
+          /* Check: min. Laenge aller Waende,  die max. Laenge der Mittelwaende und die max. Laenge der zwei End-Waende */
+          max1 = ListMax(middlelengthlist);
+          max2 = ListMax(endlengthlist);
+          valid = min ge minlength and max1 le maxlengthmitte and max2 le maxlength;
+      }
+      return valid;
+    }"/>
+  </function>
+  
+  
+  <function description="Selektion darf nur eine Wandkombination enthalten">
+  <param name="partlist" type="List" description="Partlist"/>
+  <param name="feature" type="String" description="Feature of a part"/>
+	<returnvalue description="List of Feature Values" type="List"/>
+	 <definition expression="def featureValueList(partlist,feature) {
+      /* Check ob WandKombination gueltig ist */
+      /* Check Tuere schon vorhanden und Level der Tuerhoehe OK */
+      my valuelist = List();
+      my values = '';
+      my value = '';
+      my size = Size(partlist);
+      for (my i = 0; i lt size; i = i +1) {
+           value = Feature(partlist[i], feature);
+           if (i eq 0) {
+             values = value;
+           } else {
+             values = values ++ ';' ++ value;
+           }
+      }
+      valuelist = StringToList(values,';');
+      return valuelist;
+      } "/>
+  </function>
+  
+  <function description="Darf hier eine Tuere reingemacht werden">
+  <param name="part" type="Pointer" description="as_primo_panel"/>
+	<returnvalue description="Tuere reinmachen moeglich?" type="BOOL"/>
+	 <definition expression="def validDoorWandkombination(panel,level) {
+      /* Check ob WandKombination gueltig ist */
+      /* Check Tuere schon vorhanden und Level der Tuerhoehe OK */
+      my valid = false;
+      my wandkombi = null;
+      my eigenetuere = false;
+      my panellist = List();
+      my tuerhoehenliste = List();
+      if (panel) {
+        wandkombi = MainRoot(panel);
+        /* Check ob WandKombination gueltig ist */
+        valid = call validClosedWandkombination(wandkombi);
+        if (valid and level gt 0) {
+          /* Check Tuere schon vorhanden */
+          panellist = ChildrenListOfTypeDeep(wandkombi, 'as_primo_panel');  
+          tuerhoehenliste = call featureValueList(panellist,'f_primoPanelDoorLevel_top');
+          valid = ListMax(tuerhoehenliste) eq 0;
+        }
+        if (valid) {
+          /* Check Tuerhoehe OK */
+          valid = Property(panel,'pr_maxPanelLevel_top') ge (level + 2);
+        }
+        if (not valid) {
+          /* Hat selektiertes Panel schon eine Tuere? Level 0 aktiv, damit sie wieder zurueckgesetzt werden kann */
+          eigenetuere = Feature(panel,'f_primoPanelDoorLevel_top') gt 0;
+          valid = eigenetuere and level eq 0;
+        }
+      }
+      return valid;
+      } "/>
+  </function>
+  
+  <function description="Darf hier eine Tuere stehen">
+  <param name="part" type="Pointer" description="as_primo_wandkombination"/>
+	<returnvalue description="Falls Tuere, Tuere OK?" type="BOOL"/>
+	 <definition expression="def clauseNotValidDoor(part) {
+      my conflict = false;
+      my tuere = null;
+      my closed = false;
+      my tuerlevel = 1;
+      my panellevel = 1;
+      my list = ChildrenListOfTypeDeep(part, 'as_primo_panel');
+      my tuerlist = FilterList(list,'element',`Feature(element,'f_primoPanelDoorLevel_top') eq 0;`);
+      my size = Size(tuerlist);
+      if ((size) eq 1) {
+         tuere = tuerlist[0];
+      } else if (size gt 1) {
+         conflict = true;
+      }           
+      if (tuere) {
+         if ( Size(ChildrenListOfType(part,'as_primo_wand')) lt 4) {
+           conflict = true;
+         } else {
+           closed = call validClosedWandkombination(part);
+           tuerlevel = Feature(tuere,'f_primoPanelDoorLevel_top');
+           panellevel = Feature(tuere,'f_primoPanelLevel_top');
+           conflict =  ((tuerlevel + 2 ) gt panellevel) or not closed;
+         }  
+      }
+      return conflict;
+      } "/>
+  </function>
+  
+  <function description="Darf hier eine Tuere reingemacht werden">
+  <param name="part" type="Pointer" description="as_primo_wandkombination"/>
+  <param name="level" type="Number" description="pr_primoPanelLevel_top"/>
+	<returnvalue description="Falls Tuere, level tiefer stellen moeglich?" type="BOOL"/>
+	 <definition expression="def checkDoorHeight(wandkombi,level) {
+      /* Check Tuere schon vorhanden und Level der Tuerhoehe OK */
+      my valid = false;
+      my maxdoorlevel = 0;
+      my panellist = List(); 
+      my tuerhoehenliste = List();
+      if (wandkombi) {
+        panellist = ChildrenListOfTypeDeep(wandkombi, 'as_primo_panel');
+        if (level gt 1) {
+          /* Check Tuere schon vorhanden */
+          tuerhoehenliste = call featureValueList(panellist,'f_primoPanelDoorLevel_top');
+          maxdoorlevel = ListMax(tuerhoehenliste);
+          valid = level ge maxdoorlevel + 2;
+        } else {
+          valid = maxdoorlevel eq 0;
+        }
+      }
+      return valid;
+      } "/>
+  </function>
+  
+  <function description="Ist das ein gueltiger Winkel, gilt fuer alle Level">
+  <param name="part" type="Pointer" description="as_primo_wandkombination"/>
+	<returnvalue description="Winkel Regel eingehalten. min. ein Schenkel eines Winkels muss 2 Panels haben" type="BOOL"/>
+	 <definition expression="def validWinkel(wandkombi) {
+	    /* 1) Innerhalb einer Wandkombi muss ein Winkelschenkel mindestens 2 Panels haben */
+	    /* 2) Kurzcheck: eine Wandkombi muss mindestens 3 Panels haben */
+      my valid = true;
+      my wandlist = List();
+      my singlewandlist = List();
+      my panellist = List(); 
+      my singlepanel = null;
+      my front = List();
+      my back = List();
+      my leftfrontpanelcount = 0;
+      my leftbackpanelcount = 0;
+      my rightfrontpanelcount = 0;
+      my rightbackpanelcount = 0;
+      if (wandkombi) {
+         wandlist = ChildrenListOfType(wandkombi,'as_primo_wand');
+         panellist = ChildrenListOfTypeDeep(wandkombi,'as_primo_panel');
+        if (Size(panellist) lt 3) {
+          valid = false;
+        } else {
+          /* Wenn es Waende mit nur einem Panel gibt, dann werde diese untersucht, ob beide verbundenen Waende nur ein Panel haben */
+          singlewandlist = FilterList(wandlist,'element',`Size(ChildrenListOfType(element,'as_primo_panel')) ne 1;`);
+          for (my i = 0; i lt Size(singlewandlist); i = i +1) {
+            singlepanel = ChildOfType(singlewandlist[i],'as_primo_panel');
+            front = call leftPanelConnected(singlepanel,'front');
+            back = call leftPanelConnected(singlepanel,'back');
+            if (front[0]) {   
+              leftfrontpanelcount = Feature(front[2],'f_maxPanelCount');
+            }
+            if (back[0]) {
+              leftbackpanelcount = Feature(back[2],'f_maxPanelCount');
+            }
+            front = call rightPanelConnected(singlepanel,'front');
+            back = call rightPanelConnected(singlepanel,'back');
+            if (front[0]) {   
+              rightfrontpanelcount = Feature(front[2],'f_maxPanelCount');
+            }
+            if (back[0]) {
+              rightbackpanelcount = Feature(back[2],'f_maxPanelCount');
+            }
+            if ((leftfrontpanelcount eq 1 and leftbackpanelcount eq 1) or (rightfrontpanelcount eq 1 and rightbackpanelcount eq 1)) {
+             valid = false;
+             /* Message(leftfrontpanelcount ++ ', ' ++ leftbackpanelcount); */
+             break;
+            }
+          }
+        }
+        
+      }
+      return valid;
+      } "/>
+  </function>
+  
+  <function description="Selektion darf nur eine Wandkombination enthalten">
+  <param name="level" type="Number" description="Aktueller Level: 1-8"/>
+  <param name="maxlevel" type="Number" description="Sicherheits-Level: 5,6,8"/>
+	<returnvalue description="wenn mehr als eine Wandkombination dann false" type="BOOL"/>
+	 <definition expression="def validSelectionWandkombination(level,maxlevel) {
+      my valid = true;
+      my wandkombi = null;
+      my wandlist = List();
+      my partlist = GetSelectedPartList('mainstructure');
+      partlist = FilterList(partlist,'element',`GetTypeName(element) ne 'as_primo_wandkombination';`);
+      my size = Size(partlist); 
+      if (size gt 1) {
+        valid = false; 
+      } else if (size eq 1) {   
+        wandkombi = partlist[0];
+        if (not call validWinkel(wandkombi)) {
+           valid = false;
+        } else {
+		      if (maxlevel eq 'maxlevel5') {
+			       valid = call checkDoorHeight(partlist[0],level);
+			    } else if (maxlevel eq 'maxlevel6') {
+		        wandkombi = partlist[0];
+		        valid = call validWandkombination(wandkombi) and call checkDoorHeight(wandkombi,level);       
+		      } else if (maxlevel eq 'maxlevel8') {
+	          wandkombi = partlist[0];
+	          if ( Size(ChildrenListOfType(wandkombi,'as_primo_wand')) ne 4) {
+	            valid = false;
+	          } else {
+	            valid = call validClosedWandkombination(wandkombi) and call checkDoorHeight(wandkombi,level); 
+	          }      
+		      }
+			  }
+			} else if (size eq 0) {
+		    valid = level le 5;
+		  }      
+      return valid;
+      } "/>
+  </function>
+  
+  <function description="Selektion darf nur eine Wandkombination enthalten">
+	<returnvalue description="wenn mehr als eine Wandkombination dann false" type="BOOL"/>
+	 <definition expression="def validClosedWandkombination(wandkombi) {
+      my valid = false;
+      /* Lists of parts */
+      my panellist = List();
+      my firstpanellist = List();
+      my screenlist = List();
+      my eckverbinderlist = List();
+      /* Geometry constrains */
+      my maxlength = 450;
+      my maxlengthlist = List();
+      /* bottom, level 1 */
+      my eckverbinderlist1 = List();
+      my screenlist1 = List();
+      my poslist = List();
+      my bottom = false;
+      /* Top row */
+      my eckverbindertoplist = List();
+      my screentoplist = List();
+      my postoplist = List();
+      my postopstring =  '';
+      my top = false;
+      my size = 0;
+      my screenpos = '';
+      panellist = ChildrenListOfTypeDeep(wandkombi, 'as_primo_panel');
+      firstpanellist = FilterList(panellist,'element',`Feature(element,'f_index_top') ne 1;`);
+      maxlengthlist = call featureValueList(firstpanellist,'f_wandLaenge_top');
+      if (maxlength ge ListMax(maxlengthlist)) {
+	      screenlist = ChildrenListOfTypeDeep(wandkombi, 'as_screen');
+	      eckverbinderlist = ChildrenListOfTypeDeep(wandkombi, 'co_primo_eckverbinder');
+	      /* Check Eckverbinder level 1 und top */
+	      eckverbinderlist1 = FilterList(eckverbinderlist,'element',`Feature(Parent('mainstructure',element),'f_screenRow') ne 1;`);
+	      eckverbindertoplist = FilterList(eckverbinderlist,'element',`Feature(Parent('mainstructure',element),'f_screenRow') ne Feature(Parent('mainstructure',element),'f_primoPanelLevel');`);
+	      /* Check Screenposition Bottom level 1*/
+	      screenlist1 = FilterList(screenlist,'element',`Feature(element,'f_screenRow') ne 1;`);
+	      poslist = call featureValueList(screenlist1,'f_panelScreenPos');
+	      poslist = FilterList(poslist,'element',`not StringContains(element,'winkel');`);
+	      bottom = Size(eckverbinderlist1) eq 4 and Size(poslist) ge 6;
+	      /* Check Screenposition Top level top*/
+	      screentoplist = FilterList(screenlist,'element',`not (Number(Feature(element,'f_screenRow')) eq Number(Feature(element,'f_primoPanelLevel')));`);
+	      postoplist = call featureValueList(screentoplist,'f_panelScreenPos');
+	      postoplist = FilterList(postoplist,'element',`not StringContains(element,'winkel');`);
+	      top = Size(eckverbindertoplist) eq 4 and Size(postoplist) ge 6;
+	      /* Should be a closed one */
+	      if (top or bottom) {
+	        valid = true;
+	      }
+	    }  
+      return valid;
+      }"/>
+  </function>
+  
+  <function description="Selektion darf nur eine Wandkombination enthalten">
+	<returnvalue description="ist ein Sub Element einer PPs Konfiguration selektiert" type="BOOL"/>
+	 <definition expression="def subPartPrimo() {
+		 my subelement = false;
+		 my selection = null;
+     my name = '';
+     if (VarDefined('tope')) {
+       if (tope) {
+         selection = GetSelectedPart('mainstructure');
+			   if (IsSubTypeOf(selection,'at_primo_package')) {
+		       name = GetTypeName(selection); 
+		       if (not StringContains(name,'wand')) {
+		         subelement = true;
+		       }
+		       if (EndsWith(name,'wand')) {
+		         if (Parent('mainstructure',selection)) {
+		           subelement = true;
+		         }
+		       } 
+	       }
+	     }
+	   }
+	   return subelement;
+		}"/>
+  </function>
+  
+  <function description="Selektion darf nur eine Wandkombination enthalten">
+	<returnvalue description="wenn mehr als eine Wandkombination dann false" type="BOOL"/>
+	 <definition expression="def dummyTischNeeded(part) {
+			my dummy = true;
+			my list = GetComponentListOfConnectionId(ConnectionId(part));
+			list = FilterList(list, 'element',`IsSubTypeOf(element,'ct_primopackage');`);
+			for (my co : list) {
+			  if (Feature(co,'calculated')) {
+			    dummy = false;
+			    break;
+			  }
+			}
+			return dummy;
+			}"/>
+  </function>
+  
+
+</code>

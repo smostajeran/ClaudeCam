@@ -1,0 +1,2265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code version="2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd" 
+expression="global _sftparams = List();global _sftGUIparams = List();"
+
+>
+	
+<function description="Safety-Conflict Rot">
+  <returnvalue description="Volumes with Safety-Conflicts" type="LIST of Volumes" />
+  <definition expression="def checkShelfSafetyRed(groupids,mode) {
+    my conflicts = List();
+    my conflict_groupids = List();
+    my check = true; /* zuwenig hoch oder L-Konfig oder Safety schon erfogreich bestaden und keine Artikelaenderung mehr */
+    /* my articles = List();
+    my group_articles = List();
+    */
+    my group_parts = List();
+    my groupvolumes = List();
+    my dim = List();
+    my height = 0;
+    my depth = 0;
+    my width = 0;
+    my hash = '';
+    my hash_legacy = '';
+    my hash_today = '';
+    my safety_hash = '';
+    my hash_ok = false;
+    
+    my store = null;
+    my safety_assigned = false;
+    my dimensionfactor = safetyparams['name','statics']['static']['name','dimensionfactor']['value'];
+    for (my groupid : groupids) {
+      check = true;
+      group_parts = call groupIdPartList(groupid);
+      store =  call safetyDummy(group_parts);
+      dim = call groupIdDimemsions(group_parts,'both');
+      height = dim[0];
+      width = dim[1]; /* kurze Seite */
+      depth = dim[2]; /* lange Seite */
+      
+
+      /********** CHECK safety_confirmation **************/
+      if (store) {
+        if (Feature(store,'safety_confirmation')) {
+          check = false;
+        }
+      }
+      /********** CHECK Form constrains **************/
+      if (check) {
+        check = not call winkelRegal(group_parts);
+      }
+      /********** CHECK Korpus **************/
+      if (check) {
+        my schubladen = Bool(Size(FilterList(group_parts,'element',`not IsSubTypeOf(element,'schublade');`)));
+        if (schubladen) {
+          my dim1 = width eq 395 and depth eq 500 and height lt 745;
+     	 /* wdith wird zu depth, da breiter als tiefe */
+     	  my dim2 = width eq 500 and depth eq 750 and height le 789;
+          if (dim1 or dim2) {
+            check = false;
+          }
+        }
+      }
+      
+      /********** CHECK Part Changes **************/     
+      if (check) {
+        hash = call hashParts(group_parts,'innerparts'); /* without innerparts */
+        hash_today = call hashParts(group_parts,'today'); /* without Fuesse und Rollen */
+        hash_legacy = call hashParts(group_parts,'legacy'); /* all parts */
+        my complete = call safetyParamStore(store,'complete') eq 1;
+        safety_assigned = call safetyParamStore(store,'safetyAssigned') eq 1;
+        safety_hash = call safetyParamStore(store,'hashParts');
+        hash_ok = safety_hash eq hash or safety_hash eq hash_legacy or safety_hash eq hash_today;
+        if (safety_assigned and hash_ok) {
+          if ( call safetyParamStore(store,'safetyLevel') le 1) {
+            check = false;
+          }
+        } else if (safety_assigned and not hash_ok) {
+           check = true;
+          if (mode eq 'save' and complete) {
+            /* wenn complete, dann ist ein safety-tool angewandt worden */
+            /* dann kann das save-safety-check das nicht selbst bewerten */
+            /* sondern safety-check muss interaktiv gemacht werden */
+            check = false;
+          }
+       }
+      } 
+      
+      /********** CHECK COMPLETE NON CALCULATED PARTS **************/     
+      if (check) {
+        group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element, 'co_safety_dummy');`);
+        my values = FeatureValuesFromPartList(group_parts, 'calculated');
+        values = UniqueList(values);
+        if (not InList(values,'true')) {
+            check = false;
+        }
+        check;
+      } 
+      
+       /********** CHECK co_safety_dummy noch nicht vorhanden **************/
+      
+      /* neu erstellt im interaktiven modus: Roter Konflikt, aber nur als Hinweis */
+      
+      if (mode ne 'save') {
+        if (not safety_assigned and mode ne 'hint' or (mode eq 'hint' and safety_assigned and not hash_ok)) {
+          check = false;
+        }
+      }
+
+      
+      if (check) {
+        groupvolumes = call groupIdVolumeList(groupid);
+        groupvolumes = ListReverse(groupvolumes);
+        conflicts = JoinList(conflicts, groupvolumes);
+        conflict_groupids = ListAdd(conflict_groupids,groupid);
+      }
+    }
+    if (mode eq 'save') {
+      conflicts = conflict_groupids;
+    }
+    /* WriteInfoLog('SAFETY: ' ++ DumpToString(groupids)); */
+    return conflicts;
+   }"/>
+</function>	
+
+<function description="Safety-Conflict Orange">
+  <param name="groupids" description="List of Group-IDs"/>
+  <returnvalue description="Volumes with Safety-Conflicts" type="LIST of Volumes" />
+  <definition expression="def checkShelfSafetyOrange(groupids) {
+    my conflicts = List();
+    my check = false; /* Korpus oder L-Konfig oder Safety schon erfogreich bestanden und keine Artikelaenderung mehr */
+    my values = List();
+    my group_articles = List();
+    my group_parts = List();
+    my store = null;
+    my groupvolumes = List();
+    my hash = '';
+    my hash_legacy = '';
+    my hash_safety = '';
+    my hash_today = '';
+    my safety_hash = '';
+    my hash_ok = false;
+
+    for (my groupid : groupids) {
+      check = false;
+      group_parts = call groupIdPartList(groupid);
+      store =  call safetyDummy(group_parts);
+      hash = call hashParts(group_parts,'innerparts'); /* without innerparts */
+      hash_today = call hashParts(group_parts,'today'); /* without Fuesse und Rollen */
+      hash_legacy = call hashParts(group_parts,'legacy'); /* all parts */
+      safety_hash = call safetyParamStore(store,'hashParts');
+      hash_ok = safety_hash eq hash or safety_hash eq hash_legacy or safety_hash eq hash_today;
+      if ( call safetyParamStore(store,'safetyLevel') eq 1 and hash_ok) {
+        check = true;
+      }
+      if (check) {
+        /* Besteht das ganze Moebel auch nicht-kalkulierte Teilen, fassl ja muss es nicht geprueft werden */
+        group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element, 'co_safety_dummy');`);
+        my values = FeatureValuesFromPartList(group_parts, 'calculated');
+        values = UniqueList(values);
+        if (not InList(values,'true')) {
+            check = false;
+        }
+      }
+      if (check) {
+        groupvolumes = call groupIdVolumeList(groupid);
+        groupvolumes = ListReverse(groupvolumes);
+        conflicts = JoinList(conflicts, groupvolumes);
+      }
+    }
+    /* WriteInfoLog('SAFETY: ' ++ DumpToString(groupids)); */
+    return conflicts;
+   }"/>
+</function>	
+	
+<function description="Bereitstellung aller Safety Parameter ">
+  <param name="groupid" description="groupid: Moebel" type="INT" />
+  <param name="articles " description="Alle Artikel der gesamten Konfiguration" type="LIST" />
+  <param name="mode" description="update, create" type="STRING" />
+  <returnvalue description="Alle notwendigen Bwerechnungsparameter" type="LIST" />
+  <definition expression="def allSafetyParams(groupid,articles,mode) {
+    my params = List(); 
+    my kippgefahr = List();
+    my kippgefahr_extern = List();
+    my dimensions = List();
+    my group_parts = call groupIdPartList(groupid);
+    my noncalulatedparts = false;
+    my group_articles = FilterList(articles,'element',`element['groupid'] ne groupid;`);
+    my hasAZE = Bool(FilterList(group_parts,'element',`not IsSubTypeOf(element,'teleskopauszug');`)[0]);
+    my hasSLA = Bool(FilterList(group_parts,'element',`not IsSubTypeOf(element, 'schubladenauszug');`)[0]);
+    my hasDOOR = Bool(FilterList(group_parts,'element',`not IsSubTypeOf(element, 'tuerelement');`)[0]); 
+    my kugeln = FilterList(group_parts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+    my boden_kugeln = Size(FilterList(kugeln,'element',`PartPos(element)['z'] gt 14;`));
+    my hasCharge = hasAZE or hasSLA;
+    my hasMovable = hasAZE or hasSLA or hasDOOR;
+    
+    
+    my ggw_count_userinput = 99999; /* gewuenschte Anzahl GGPL */
+    my ggw_weight_userinput = 0; /* Gewicht basierend auf gewuenschte Anzahl GGPL */
+    my kippgefahrExtern = List();
+    my haskippgefahrExtern = false;
+    my haskippgefahrMovable = false;
+    my calcAZE = false;
+    my griffe = call shelfGriffList(group_parts);
+    my hasGriffe = Bool(griffe[0]);
+    my hasRollen = call shelfHasRollen(group_articles);
+    my count_ggw_articles = Size(FilterList(group_articles,'element',`not InRange(18600,18604,element['key']);`));
+    my safetyAssigned = 0;
+    
+    my diffweightExtern = List();
+    my diffweightMovable = List();
+    my charge = List();
+    my charge_azt = safetyparams['name','forces']['force']['name','charge_azt']['value'];    
+    my charge_schublade = safetyparams['name','forces']['force']['name','charge_schublade']['value'];
+    my charge_azt_gui = charge_azt;
+    
+    /* Werte aus dem gespeicherten Mobel */
+    /* if (mode eq 'create' and existSafetyAssigned) {
+
+    } */
+    /* Werte aus Benutzer-Eingabe braucht Neuberechnung*/
+    if (mode eq 'update') {
+      if (Bool(NamedNode('safety_gui'))) {
+        my node = NamedNode('safety_gui');
+        if (NodeValue(node,'ggw_insertion_userinput')) {
+          my blecheGGW = call groupBlechListGGW(group_parts);
+          ggw_count_userinput = NodeValue(node,'ggw_count_userinput');
+          my assigned_ggws = call assignGGW(blecheGGW,99999,ggw_count_userinput);
+          ggw_weight_userinput = assigned_ggws[2];
+        } else if (NodeValue(node,'ggw_insertion')) {
+          my blecheGGW = call groupBlechListGGW(group_parts);
+          ggw_count_userinput = NodeValue(node,'ggw_count');
+          my assigned_ggws = call assignGGW(blecheGGW,99999,ggw_count_userinput);
+          ggw_weight_userinput = assigned_ggws[2];
+          
+        }
+      }
+    }
+    
+    /* Zuerst wird das externe GegenGewicht berechnet */
+    dimensions = call groupIdDimemsions(group_parts,'extern');      
+    diffweightExtern = call diffGewichtExtern(group_parts,group_articles,hasRollen,dimensions,ggw_weight_userinput,mode);
+    kippgefahr = call kippGefahrRegal('extern',diffweightExtern);
+    kippgefahr_extern = kippgefahr;
+    haskippgefahrExtern = kippgefahr[0] gt 0;  
+    if (hasMovable) {    
+       /* Nun wird das Ueberladungs-Gewicht berechnet */
+       dimensions = call groupIdDimemsions(group_parts,'aze');
+       diffweightMovable = call diffGewichtMovable(group_parts,group_articles,dimensions,ggw_weight_userinput,hasAZE,hasSLA,hasDOOR,mode);
+       /* Message('gp ; ' ++ group_parts ++ ' ga ; ' ++ group_articles ++ ' mw ; ' ++ minwidth ++ ' ggwuser ; ' ++ ggw_weight_userinput ++ ' hasAZE ; ' ++ hasAZE ++ ' hasSLA ; ' ++ hasSLA ++ ' hasDOOR ; ' ++ hasDOOR); */
+       kippgefahr = call kippGefahrRegal('aze',diffweightMovable);
+       haskippgefahrMovable = kippgefahr[0] gt 0;
+       charge_azt_gui = diffweightMovable[6];
+      if (-diffweightExtern[0] lt -diffweightMovable[0]) {
+        /* Wenn mehr AZE Gegengewicht notwendig, dann ist AZE fuehrend */
+        calcAZE = true;
+      } else {
+         kippgefahr = kippgefahr_extern;
+      }
+    }
+    params[0] = safetyAssigned; /* safety already assigned, BOOL */
+    params[1] = haskippgefahrMovable; /* tilt danger cause of pull-out elements , BOOL */
+    params[2] = kippgefahr; /* safetylevel 0,1,2 and names of level */
+    params[3] = count_ggw_articles;
+    params[4] = boden_kugeln; /* how many sphere at the bottom of a shelf */ 
+    params[5] = kippgefahr[0]; /* safetylevel 0,1,2*/
+    params[6] = group_parts; /* list of parts inside a group (shelf complete) */
+    params[7] = mode; /* create, update */
+    params[8] = ggw_count_userinput; /* gewuenschte Anzahl GGPL */
+    params[9] = diffweightExtern[2]; /* Gesamtgewicht */
+    params[10] = hasRollen; /* has rolls, BOOL */
+    params[11] = group_articles; /* list of articles inside a group (shelf complete) */
+    params[12] = haskippgefahrExtern; /* tilt danger cause of human force , BOOL */
+    params[13] = hasCharge; /* has weight on pull-out shelfs , BOOL */
+    params[14] = dimensions; /* [0]: Hoehe + [1] : minTiefe + Breite [2] in mm*/
+    params[15] = diffweightExtern; /* Gewichtsberechnungen Anlehnen */
+    params[16] = charge_schublade; /* weight on pull-out drawer , kg */
+    params[17] = charge_azt; /* weight on pull-out shelfs , kg */
+    params[18] = calcAZE;  /* calculation cause pull-out elements, BOOL */
+    params[19] = charge_azt_gui; /* weight on pull-out elements, changeable by user in GUI, kg */
+    params[20] = diffweightMovable[7]; /* Anzahl AZTs, count pull-out shelfs */
+    params[21] = diffweightMovable[8]; /* Anzahl Schubladen, count pull-out drawer */
+    params[22] = diffweightMovable; /* Gewichtsberechnungen AZT */
+    params[23] = ggw_weight_userinput; /* Gewicht GGPL, weight of contre-weight elements*/
+    params[24] = hasSLA and not hasAZE; /* hat nur Schubladen und keine AZTs, has only drawers*/
+    params[25] = griffe; /* vorhandene Griffe,  list of handles*/
+    params[26] = hasGriffe; /* sind  Griffe vorhanden, are handles used ? */
+    /* call allSafetyParams(0,_articles,'create'); */
+    return params;
+  }
+"/>
+</function>
+	
+<function description="Differenz Gewicht AZE">
+  <param description="Group Parts" type="LIST" />
+  <param description="group_articles" type="LIST" />
+  <param description="dimension" type="Hoehe, Breite, Tiefe" />
+  <param description="ggw_weight_userinput" type="Definierte GGPLs durch Benutzer" />
+  <param description="hasAZE" type="Hat Auszieh-Tablare/tueren" />
+  <param description="hasSLA" type="Hat Schubladen" />
+  <param description="hasDOOR" type="Hat Tuerlemente, AZT- oder Klapptueren" />
+  <param description="mode" type="create, update" />
+  <returnvalue description="Difference Weight" type="Number" />
+  <definition expression="def diffGewichtMovable(group_parts,group_articles,dimensions,ggw_weight_userinput,hasAZE,hasSLA,hasDOOR,mode) {
+    /* WriteInfoLog(minwidth ++ ', ' ++ ggw_weight_userinput ++ ', ' ++ hasAZE ++ ', ' ++ hasSLA ++ ', ' ++ hasDOOR ++ ', ' ++ mode); */
+    my diffs = List();
+    my diff_gewicht = 0;
+    my diff_moment = 0;
+    my charge = 0;
+    my minwidth = dimensions[1];
+    my telelength = dimensions[3];
+    my weight_static = 0;
+    
+    my charge_azt = safetyparams['name','forces']['force']['name','charge_azt']['value'];  
+    charge_azt = (telelength eq 500 or telelength eq 750) ? safetyparams['name','forces']['force']['name','charge_azt500-750']['value']:charge_azt;  
+    my charge_schublade = safetyparams['name','forces']['force']['name','charge_schublade']['value'];
+    my sec_weightfactor = safetyparams['name','statics']['static']['name','securityweightfactor']['value'];
+    my selfmomentfactor = safetyparams['name','statics']['static']['name','selfmomentfactor']['value'];
+    
+    my belastung = call groupIdCharge(group_parts,charge_azt,charge_schublade);    
+    my shelf_weight_full = call groupIdWeight(group_articles,'full');
+    my weight_full = shelf_weight_full[0];
+    my weight_movable = 0;
+    my weight_door = 0;
+    my weight_doors = 0;
+    my weight_aze = 0;
+    my weight_sla = 0;
+    my count_azt = 0;
+    my count_doors = 0;
+    
+      
+    if (hasDOOR) {
+       my count_max_doors = Size(FilterList(group_parts,'element',`not IsSubTypeOf(element, 'tuerelement');`));
+       my azt_doors = Size(FilterList(group_parts,'element',`not IsSubTypeOf(element, 'tablarwinkel');`)) / 2;
+       my weight_doors = call groupIdWeight(group_articles,'door');
+       weight_doors = weight_doors[0];
+       if (count_max_doors gt 0) {
+         weight_door = weight_doors / count_max_doors;
+       } else if (azt_doors gt 0) {
+         weight_door = weight_doors / azt_doors;
+       }
+       count_doors = count_max_doors - azt_doors;
+       weight_doors = weight_door * count_doors;
+       weight_movable = 0; /* Klapptuere wird nicht berechnet */
+
+    }    
+    if (hasAZE) {
+       count_azt = belastung[3];
+
+    /* max_azt wird gebraucht um auf ein AZT runterzubrechen bei den Artikelgewichten */
+       my max_azt = count_azt + belastung[5]; /* plus static AZTs */
+
+       my weight_aze = call groupIdWeight(group_articles,'aze');
+       weight_aze = weight_aze[0];
+
+       weight_aze = weight_aze / max_azt * count_azt;
+
+       weight_aze = weight_aze + (weight_door * count_azt);
+
+       /* Message('m ; ' ++ weight_movable ++ ' aze ; ' ++ weight_aze ++ ' doors ; ' ++ weight_doors * count_azt ++ ' charge ; ' ++ belastung[0]); */
+       weight_movable = weight_movable + weight_aze + belastung[0];
+
+    }
+    if (hasSLA) {
+       my count_sla = belastung[4];
+    /* max_sla wird gebraucht um auf einn AZT runterzubrechen bei den Artikelgewichten */
+       my max_sla = count_sla + belastung[6];
+       weight_sla = call groupIdWeight(group_articles,'sla');
+       weight_sla = weight_sla[0];
+       weight_sla = weight_sla / max_sla * count_sla;
+       weight_movable = weight_movable + weight_sla + belastung[1];
+    }
+
+    /* Message(weight_full ++ ', ' ++ weight_doors ++ ', ' ++ weight_aze ++ ', ' ++ weight_sla); */
+    weight_static = weight_full - weight_aze - weight_sla;
+    weight_static = weight_static / sec_weightfactor;
+    my charge_azt_gui = charge_azt;
+    selfmomentfactor = selfmomentfactor * minwidth;  
+     
+    /****** choosen security feature will be applied ******/
+    my addition_moment = 0;
+    my addition_weight = 0;
+    my node = null;   
+    if (mode eq 'update') {
+      if (Bool(NamedNode('safety_gui'))) {
+        node = NamedNode('safety_gui');
+        if (NodeValue(node,'wall_anchoring') or NodeValue(node,'floor_anchoring') or NodeValue(node,'shelf_connector')) {
+         /* addition_moment = NodeValue(node,'missing_moment') * -1 ; 
+          addition_weight = NodeValue(node,'missing_weight'); 
+         */
+          addition_moment = - NodeValue(node,'missing_moment') + 10000; 
+          addition_weight = (- NodeValue(node,'missing_moment') + 10000) / selfmomentfactor;
+        }
+        if (NodeValue(node,'ggw_insertion')) {
+          addition_moment = ggw_weight_userinput * selfmomentfactor; 
+          addition_weight = ggw_weight_userinput; 
+        }
+        if (NodeValue(node,'ggw_insertion_userinput')) {
+          addition_moment = ggw_weight_userinput * selfmomentfactor; 
+          addition_weight = ggw_weight_userinput; 
+          
+        }
+      }
+    }
+
+    /****** security will be  calculated ******/
+    diff_gewicht = weight_static - weight_movable + addition_weight;
+    /* Hier wurde gemaess Excel das Gesamtgewicht genommen */
+    my own_moment = weight_static * selfmomentfactor + addition_moment;
+    my moveable_moment = weight_movable * selfmomentfactor;
+    my diff_moment = own_moment - moveable_moment;
+    /* Message(diff_moment); */
+    /* Wieviel Gewicht darf noch auf den Tablaren sein, damit Moment positiv wird */
+    if (hasAZE and InRange(-10001,1,diff_moment)) {
+      my weight_movable_gui = weight_static - weight_movable + ggw_weight_userinput;
+      /* Message(weight_static ++ ' - ' ++ weight_movable); */
+      my charge_azt_gui = weight_movable_gui /count_azt;
+      charge_azt_gui = charge_azt_gui + charge_azt;  
+      if (charge_azt_gui gt charge_azt) {
+        /* wenn Tablar mehr tragen koennte als dessen max. Belastung */
+        charge_azt_gui = charge_azt;
+      } else if (charge_azt_gui lt 0) {
+         /* wenn Tablar weniger als nichts tragen kann */
+         charge_azt_gui = 0;
+      }
+    }  
+    
+    diffs[0] = diff_gewicht;
+    diffs[1] = diff_moment;
+    diffs[2] = belastung[0]; /* AZT */
+    diffs[3] = belastung[1]; /* Schubladen */
+    diffs[4] = weight_static;
+    diffs[5] = weight_movable;
+    diffs[6] = charge_azt_gui; /* reduzierte Belastung */
+    diffs[7] = belastung[3]; /* count AZT */
+    diffs[8] = belastung[4]; /* count schubladen */
+    diffs[9] = shelf_weight_full[1]; /* moveable articles */
+    diffs[10] = count_doors; /* Normale Tueren */
+    /* call diffGewichtMovable(group_parts,group_articles,minwidth,ggw_weight_userinput,hasAZE,hasSLA,hasDOOR,mode); */
+    /* call diffGewichtMovable(_sftparams[6],_sftparams[11],350,3,1,0,0,'create'); */
+    return diffs;
+    }
+  "/>
+</function>
+	
+<function description="Differenz Gewicht Extern (Anlehen, dynamisch)">
+  <param description="Group Parts" type="LIST" />
+  <param description="group_articles" type="LIST" />
+  <param description="rollen" type="Hat Rollen" />
+  <param description="dimension" type="Hoehe, Breite, Tiefe" />
+  <param description="ggw_weight_userinput" type="Definierte GGPLs durch Benutzer" />
+  <param description="mode" type="create, update" />
+  <returnvalue description="Difference Weight" type="Number" />
+  <definition expression="def diffGewichtExtern(group_parts,group_articles,rollen,dimensions,ggw_weight_userinput,mode) {
+    my diffs = List();
+    my diff_gewicht = 0;
+    my ext_force = safetyparams['name','forces']['force']['name','anlehnen']['value'];
+    if (rollen) {
+       ext_force = safetyparams['name','forces']['force']['name','anlehnen_rollen']['value'];
+    }
+    my dimensionfactor = safetyparams['name','statics']['static']['name','dimensionfactor']['value'];
+    my selfmomentfactor = safetyparams['name','statics']['static']['name','selfmomentfactor']['value'];
+    my securityweightfactor = safetyparams['name','statics']['static']['name','securityweightfactor']['value'];
+    my own_moment = 0;
+    my ext_moment = 0;
+    my diff_moment = 0;
+    my height = dimensions[0];
+    if (height le 1000) {
+    	ext_force = height/100;
+    	if (rollen) {
+    		ext_force = ext_force * 1.5;
+    	};	
+    };
+    my depth = dimensions[1];
+    selfmomentfactor = selfmomentfactor * depth;
+    if (securityweightfactor gt 0) {
+      selfmomentfactor = selfmomentfactor/securityweightfactor;
+    }
+    my weight = call groupIdWeight(group_articles,'full');
+    weight = weight[0];
+    /****** choosen security feature will be applied ******/
+    my addition_moment = 0;
+    my addition_weight = 0;
+    my node = null;
+    if (mode eq 'update') {
+      if (Bool(NamedNode('safety_gui'))) {
+        node = NamedNode('safety_gui');
+        if (NodeValue(node,'wall_anchoring') or NodeValue(node,'floor_anchoring') or NodeValue(node,'shelf_connector')) {
+          addition_moment = - NodeValue(node,'missing_moment') + 10000;
+          addition_weight = NodeValue(node,'missing_weight'); 
+        }
+        if (NodeValue(node,'ggw_insertion')) {
+          addition_moment = ggw_weight_userinput * selfmomentfactor; 
+          addition_weight = ggw_weight_userinput; 
+        }
+        if (NodeValue(node,'ggw_insertion_userinput')) {
+          addition_moment = ggw_weight_userinput * selfmomentfactor; 
+          addition_weight = ggw_weight_userinput; 
+        }
+      }
+    }
+    /********** Calculate Diff Weight **************/
+    own_moment = Round(weight * selfmomentfactor) + addition_moment;
+    ext_moment = ext_force * height;
+    diff_moment = own_moment - ext_moment;
+    if (selfmomentfactor ne 0) {
+      /* notwendiges Gewicht um das Eigenmoment gleich gross zu machen, wie das externe Moment */
+      diff_gewicht = diff_moment / selfmomentfactor;
+    }
+    diffs[0] = diff_gewicht;
+    diffs[1] = diff_moment;
+    diffs[2] = weight; /* Gesamt Gewicht */
+    return diffs;
+ }"/>
+</function>
+	
+<function description="Traglasten, Belastungen im Moebel">
+  <param description="Group Parts" type="LIST" />
+  <param description="charge_azt" type="Traglast Austiehtablar/tuere" />
+  <param description="charge_schublade" type="Traglast Schublade" />
+  <returnvalue description="Berechnete Traglasten" type="List" />
+  <definition expression="def groupIdCharge(group_parts,charge_azt,charge_schublade) {
+    my charge = 0; /* kg */
+    my azts = call countAZT(group_parts);
+    my movable_azts = azts[0];
+    my static_azts = azts[1];
+    my schubs = call countSchubladen(group_parts);
+    my movable_schubs = schubs[0];
+    my static_schubs = schubs[1];
+    my schub_charge = movable_schubs * charge_schublade;
+    my azt_charge =  movable_azts * charge_azt;
+    charge[0] = azt_charge;
+    charge[1] = schub_charge;
+    charge[2] = azt_charge + schub_charge;
+    charge[3] = movable_azts;
+    charge[4] = movable_schubs;
+    charge[5] = static_azts;
+    charge[6] = static_schubs;
+    return charge;
+   }"/>
+	</function>
+
+<function description="Kippgefahr Regal">
+  <param description="type: extern oder aze" type="STRING" />
+  <returnvalue description="Safety-Level,Diff-Gewicht,Diff-Moment" type="LIST" />
+  <definition expression="def kippGefahrRegal(type,charge) {
+    my kippgefahr = List();
+    my level_0 = safetyparams['name','kippgefahr']['level']['code','level_0'];
+    my level_1 = safetyparams['name','kippgefahr']['level']['code','level_1'];
+    my level_2 = safetyparams['name','kippgefahr']['level']['code','level_2'];
+    
+    /********** Calculate Extern **************/
+    my diffweight = charge[0];
+    my diffmoment = charge[1];
+    kippgefahr[1] = diffweight;
+    kippgefahr[3] = diffmoment;
+    my weight = charge[2];
+    if (diffmoment ge level_0['lower']) {
+    	kippgefahr[0] = 0;
+       kippgefahr[2] = level_0['name'];
+    } else if (diffmoment lt level_0['lower'] and diffmoment ge level_1['lower']) {  
+       kippgefahr[0] = 1;
+       kippgefahr[2] = level_1['name']; 
+    } else if (diffmoment lt level_1['lower']) {
+          kippgefahr[0] = 2;
+          kippgefahr[2] = level_2['name'];
+    }
+        /*
+        /*
+        o Unbedenklich = nur wenn WV, BV oder RV + alle positiven Werte Restkippmoment
+        o Bedingt benutzbar = Werte von 0 bis -10000 
+        o kippgefährdet = Werte von -10000 bis -999999 
+        */
+      kippgefahr[1] = -1 * kippgefahr[1]; /* positiv setzen fuer GGPL Berechnung */
+    return kippgefahr;
+ }"/>
+</function>
+
+  
+<function description="Hat das regal Rollen">
+  <param description="Group Articles" type="LIST" />
+  <returnvalue description="hasRolle" type="BOOL" />
+  <definition expression="def shelfHasRollen(group_articles) {
+    my hasRollen = false; 
+    my rollen_std = FilterList(group_articles,'element',`not InRange(10761,10762,element['key']);`);
+    my rollen_brems = FilterList(group_articles,'element',`not InRange(12066,12067,element['key']);`);
+    my rollen_gross = FilterList(group_articles,'element',`not InRange(18880,18881,element['key']);`);
+    my rollen = JoinList(JoinList(rollen_std,rollen_brems),rollen_gross);
+    hasRollen = Bool(Size(rollen));
+    return hasRollen;
+  }"/>
+</function>
+  
+<function description="Liste mit den verschiedenen Griffen">
+  <param description="Group Articles" type="LIST" />
+  <returnvalue description="griffList" type="LIST" />
+  <definition expression="def shelfGriffList(group_parts) {
+    my griffList = List();
+    my griffe = FilterList(group_parts,'element',`not IsSubTypeOf(element,'schlossgriff');`);
+    griffList[0] = Bool(Size(griffe));
+    griffList[1] = FilterList(griffe,'element',`not IsSubTypeOf(element,'griff_normal');`);
+    griffList[2] = FilterList(griffe,'element',`not IsSubTypeOf(element,'schnapp_griff_normal');`);
+    griffList[3] = FilterList(griffe,'element',`not IsSubTypeOf(element,'griff_m_nummer');`);
+    griffList[4] = FilterList(griffe,'element',`not IsSubTypeOf(element,'schnapp_griff_m_nummer');`);
+    return griffList;
+  }"/>
+</function>
+
+<function description="AnzeigeSteuerung GegenGewichts-Platten">
+  <param name="part" description="Bleche" type="Pointer"/>
+  <param name="pos" description="1,2,3,4,5,6 Position der Platte" type="Integer"/>
+  <returnvalue type="Bool" description="Soll GG-Platte angezeigt werden?"/>
+  <definition expression="def showPlattenGGW(part,pos) {
+  
+  	if (not IsSubTypeOf(part, 'co_gewichtplatte')) {
+  		return false;
+  	} else {
+  		part = FindPart(part, 'ggw_2_blech',1);
+  	};
+  	
+    my show = false;
+    my max = List();
+    my positions = 0;
+    my frontseitenormal = true;
+    if (part) {
+      positions = Feature(part,'f_ggwPositionen');
+      /* frontseitenormal = call frontSeiteNormal(part);
+      /* if (call plattenRichtungNormalGGW(part) or frontseitenormal[1]) { */
+      if (not call yDirectionGGW(part)) {
+        if (positions ge pos) {
+          show = true;
+        }
+      } else {
+        max = call maxPlattenGGW(part);
+        /* Message(max[0] ++ ', ' ++ pos ++ ', ' ++ positions); */
+        if ((pos le max[0]) and (pos gt (max[0] - positions))) {
+         show = true;
+        }
+      }
+    }
+    return show;   
+  }"/>
+</function>
+
+<function description="Anzahl GegenGewichts-Platten">
+  <param name="part" description="Artikel" type="Pointer"/>
+  <returnvalue type="Bool" description="Wieviel GGPL sind verbaut?"/>
+  <definition expression="def countPlattenGGW(part) {
+    my count = 0;
+     my child = null;
+    if (part) {
+      child = ChildWithId(part,'10');
+      if (child) {
+       count = Feature(child,'f_ggwPositionen');
+      }
+    }
+    return count;   
+  }"/>
+</function>
+
+<function description="Dimensionen eines Regals">
+  <param name="parts" description="alle selektierten Teile" type="List" />
+  <param name="mode" description="both oder aze" type="STRING" />
+  <returnvalue description="Hoehe, Kipptiefe, Breite" type="List" />
+  <definition expression="def groupIdDimemsions(parts,mode) {
+    my dimensions = List();
+    my dim = List();
+    my unit = 'mm';
+    my imperialfactor = 25.4;
+    my maxheight = 1;
+    my minwidth = 1;
+    my maxwidth = 1;
+    my kugeln = FilterList(parts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+    my teleskope = FilterList(parts,'element',`not IsSubTypeOf(element,'teleskopauszug');`);
+    my teleskop = teleskope[0];
+    my teleskop_length = 1;
+    my zlist = List();
+    for (my i : IndexList(Size(kugeln))) {
+      zlist[i] = PartPos(kugeln[i])['z'];
+    }
+    maxheight = ListMax(zlist);
+    maxheight = Round( (maxheight * 10) + 10 ) ;
+    /* lowest Kugelreihe is filtered out */
+    kugeln = FilterList(kugeln,'element',`PartPos(element)['z'] gt 14;`); 
+    if (Size(kugeln) gt 2) {
+      /* min. 3 kugeln are needed */
+      dim = call findDepth(kugeln);
+      minwidth = dim[0];
+      maxwidth = dim[1];
+    }
+    if (mode eq 'aze' and Bool(teleskop)) {
+      teleskop_length = PartAttr(teleskop,'length');
+      if (teleskop_length gt minwidth) {
+        minwidth = teleskop_length;
+      }
+    }
+    dimensions[0] = Round(maxheight);
+    dimensions[1] = Round(minwidth);
+    dimensions[2] = Round(maxwidth);
+    dimensions[3] = Round(teleskop_length); /* Teleskop Laenge */
+    
+    if (mode eq 'measure') {
+			if (UnitSystem() eq 'imperial') {
+				unit = '&quot;';
+				for (my i : IndexList(Size(dimensions))) {
+					dimensions[i] = Round(dimensions[i] / imperialfactor, 0.01);
+				}
+			}
+		}
+		dimensions[4] = unit;    
+    return dimensions; /* in mm or inches*/
+   }"/>
+</function>
+
+<function description="Dimensionen eines Regals">
+  <param name="parts" description="alle selektierten Kugeln unerhalb 14 cm" type="List" />
+  <returnvalue description="Hoehe und Tiefe des Moebels" type="List" />
+  <definition expression="def findDepth(kugeln) {
+    
+    my dim = List(1,1);
+    if (Size(kugeln)) {
+      my ref = kugeln[0];
+      my min = Vector(0,0,0);
+      my max = Vector(0,0,0);
+      
+      for (my kugel : kugeln) {
+       my pos = RelativePartPos(ref, kugel);
+       min['x'] = Min(min['x'], pos['x']);
+       min['y'] = Min(min['y'], pos['y']);
+       min['z'] = Min(min['z'], pos['z']);
+       max['x'] = Max(max['x'], pos['x']);
+       max['y'] = Max(max['y'], pos['y']);
+       max['z'] = Max(max['z'], pos['z']);
+      }
+      my delta = VectorSub(max, min);
+      my dims = SortByValue(List(Round(delta['x'],0.01),Round(delta['y'],0.01),Round(delta['z'],0.01)),'Round(element,0.01);');
+      my depth = Round(dims[1] * 10);
+      my width = Round(dims[2] * 10);
+      dim[0] = depth;
+      dim[1] = width;
+    }
+    return dim;
+    }"/>
+</function>
+
+<function description="Position Wandanker-Anzeige in der Montage-Ansicht">
+  <param description="groupid oder parts" type="Integer, List(parts)" />
+  <returnvalue description="Kugel" type="Object" />
+  <definition expression="def lowerLeftKugel(parts) {
+    my lowerLeftKugel = null;
+    if (not IsObject(parts[0])) {
+      parts = call groupIdPartList(parts);
+    }
+    my kugeln = FilterList(parts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+    kugeln = FilterList(kugeln,'element',`PartPos(element)['z'] gt 14;`);
+    my dist = 0;
+    my mindist = 99999;
+    my pos = Vector();
+    for (my kugel : kugeln) {
+      pos = PartPos(kugel);
+      dist = pos['x'] + pos['y'];
+      if (dist lt mindist) {
+        mindist = dist;
+        lowerLeftKugel = kugel;
+      }
+    }
+    return lowerLeftKugel;
+  }"/>
+</function>
+<function description="linkes bodenelement">
+  <param description="groupid oder parts" type="Integer, List(parts)" />
+  <returnvalue description="bodenelement" type="Object" />
+  <definition expression="def lowerLeftBodenelement(parts) {
+    my lowerLeftBodenelement = null;
+    if (not IsObject(parts[0])) {
+      parts = call groupIdPartList(parts);
+    }
+    my bodenelement = FilterList(parts,'element',`not IsSubTypeOf(element,'bodenelement');`);
+    bodenelement = Size(bodenelement) eq 0 ? FilterList(parts,'element',`not IsSubTypeOf(element,'tischbein');`) : bodenelement;
+    bodenelement = FilterList(bodenelement,'element',`PartPos(element)['z'] gt 14;`);
+    my dist = 0;
+    my mindist = 99999;
+    my pos = Vector();
+    for (my b : bodenelement) {
+      pos = PartPos(b);
+      dist = pos['x'] + pos['y'];
+      if (dist lt mindist) {
+        mindist = dist;
+        lowerLeftBodenelement = b;
+      }
+    }
+    return lowerLeftBodenelement;
+  }"/>
+</function>
+
+<function description="Gibt co_safety_dummy zurueck">
+  <param name="group_parts" description="groupid oder parts" type="Integer, List(parts)" />
+  <returnvalue description="co_safety_dummy" type="Object" />
+  <definition expression="def safetyDummy(group_parts) {
+    my safetydummy = '';
+    if (not IsObject(group_parts[0])) {
+      group_parts = call groupIdPartList(group_parts);
+    }
+    my dummy = FilterList(group_parts,'element',`not IsSubTypeOf(element,'co_safety_dummy');`)[0]; 
+    if(dummy) {
+      safetydummy = dummy;
+    }
+    return safetydummy;
+  }"/>
+</function>
+
+
+<function description="List of all volumes inside a partgroup">
+  <param description="groupid" type="INT" />
+  <returnvalue description="all volumes with specific groupid" type="LISTE" />
+  <definition expression="def groupIdVolumeList(groupid) {
+    my volumes = List();
+    my partlist = call groupIdPartList(groupid);
+    for (my element : partlist) {
+      ListExtend(volumes, GetRefVolumes(element,'mainstructure')); 
+      
+    }
+    return UniqueList(volumes);
+  }"/>
+</function>
+
+<function description="Prepares a List of all groupids which have selected volumes">
+  <returnvalue description="Groupids which have a selected volume" type="LISTE" />
+  <definition expression="def selectedPartGroupIdList() {
+		my selectedgroupids = List();
+		my volumes = List();
+		my selectedvolumes = GetSelectedPartList('mainstructure');
+		my groupids = call partGroupIdList('usm_haller');
+		for (my groupid : groupids) {
+		 volumes = call groupIdVolumeList(groupid);
+		 if (InList(selectedvolumes,volumes[0])) {
+		   selectedgroupids = ListAdd(selectedgroupids, groupid);
+		 }
+		}
+		return selectedgroupids;
+		}"/>
+</function>
+
+<function description="Ist dieses Regal eine Winkelkombination">
+  <param description="Alle selektierten Teile" name="parts" type="LIST"/>
+  <returnvalue description="true oder false" type="boolean"/>
+  <definition expression="def winkelRegal(parts) {
+    my winkel = false;
+    my kugeln = FilterList(parts,'element',`not IsSubTypeOf(element,'kugel');`);
+    /* nur die Bodenkugeln */
+    kugeln = FilterList(kugeln,'element',`Size(ConnectedDocksOfType(element,'kugel2bodenelement')) eq 0;`);
+    /* nur die Kugeln mit 3 Ref. Volumen */
+    kugeln = FilterList(kugeln,'element',`Size(GetRefVolumes(element, 'mainstructure')) ne 3;`);
+    winkel = Bool(Size(kugeln));
+    return winkel;
+  }"/>
+</function>
+
+<function description="Generiert einen Hash für die aktuell verbauten Teile eines Regals">
+  <param description="Alle Teile eines Regals" name="parts" type="LIST"/>
+  <returnvalue description="Hash der verbauten Teile" type="String"/>
+  <definition expression="def hashParts(group_parts,mode) {
+    my hash = '';
+    my partsstring = '';
+    my parts = List();
+    group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'volcontconnector');`);
+    group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'co_safety_dummy');`);
+    group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'co_qs_article');`);
+    group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'co_gewichtplatte');`);
+    group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'ct_soft_panel');`);
+    if (mode eq 'today') {
+	    group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'fuesse');`);
+	    group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'ct_griff');`);
+    } else if (mode eq 'innerparts') {
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'ausruestung');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'ct_kastenset');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'frontblende');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'ct_trennwaende');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'ct_inosBoxKonzept');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'einsatz');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'schubladen_profil');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'schubladenrahmen');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'karteikasten');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'schraegfach');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'schalenzubehoer');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'gleitprofil');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'rillenplatte');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'schieberelement');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'disthalter_register');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'ct_trennwaende');`);
+      group_parts = FilterList(group_parts,'element',`IsSubTypeOf(element,'schubladen_profil');`);
+    }
+    my sortex = 'StrAlphabeticalCompare(GetTypeName(element1), GetTypeName(element2));';
+    group_parts = Sort(group_parts, sortex);
+    
+    for (my i : IndexList(Size(group_parts))) {
+      parts[i]['name'] = GetTypeName(group_parts[i]);
+      parts[i]['quantity'] = 1;
+    }
+    
+    parts = CompressTable(parts, List('name'), List('quantity'));
+    for (my part : parts) {
+      partsstring = partsstring ++ part['quantity'] ++ part['name'];
+    }
+    hash = HashMD5(partsstring);
+    return hash;
+    }"/>
+</function>
+
+<function description="Wie gross ist das Gewicht der ausziehbaren der statischen und das Total-Gewicht der Artikel">
+  <param description="Alle Artikel eines Möbels" name="group_articles" type="LIST"/>
+  <param description="aze,static,total" name="mode" type="String"/>
+  <returnvalue description="Gewicht in kg" type="NUMERIC"/>
+  <definition expression="def groupIdWeight(group_articles,mode) {
+    my weightInfo = List();
+    my weight = 0;
+    my weightSLA = 0;
+    my weightAZE = 0;
+    my weightDOOR = 0;
+    my weightStatic = 0;
+    my weightArticle = 0; 
+    my weightFull = 0;
+    
+    my movetag = ''; /* 1 = general incl. Schubladen, 2 = AZT, 3 = Klap- und AZT-Tueren */
+    my key = '';
+    my basenr = '';
+    my securitylist = List();
+    my nonweightlist = List();
+    my securityarticles = List();
+    
+    for (my securityarticle : safetyMovArticles) {
+       securitylist = ListAdd(securitylist, securityarticle['key']);
+    }
+    for (my noneweightarticle : safetyNoneWeightArticles) {
+       nonweightlist = ListAdd(nonweightlist, noneweightarticle['key']);
+    }
+    for (my article : group_articles) {
+        key = article['key'];
+        weightArticle = 0;
+        if (not InList(nonweightlist,key)) {
+            weightArticle = BASE['Anr',key]['Gewicht'];
+            weightFull = weightFull + weightArticle;
+        }
+        if (InList(securitylist,key)) {
+        /* safetyMovArticles = Liste aller ausziehbaren Artikel durch USM verwaltet */
+          movetag = safetyMovArticles['key',key]['movable'];
+          /* safetyMovArticles written to log) */
+          my i = Size(securityarticles) + 1;
+          securityarticles = ListAdd(securityarticles, movetag ++ ' ' ++ i ++ '  ' ++ key);
+          if (movetag eq 1) {
+            weightSLA = weightSLA + weightArticle;
+          } else if (movetag eq 2) {
+            weightAZE = weightAZE + weightArticle;
+          } else if (movetag eq 3) {
+            weightDOOR = weightDOOR + weightArticle; 
+          }
+        } else {
+            weightStatic = weightStatic + weightArticle;
+        }
+      }
+      
+      if (mode eq 'sla') {
+         weight = weightSLA;       
+      } else if (mode eq 'aze') {
+        weight = weightAZE;
+      } else if (mode eq 'door') {
+         weight = weightDOOR;
+      } else if (mode eq 'static') {
+        weight = weightStatic;
+      } else if (mode eq 'full'){
+        weight = weightFull;
+      }
+      /* WriteInfoLog('movables: ' ++ DumpToString(securityarticles)); */
+      weightInfo[0] = weight;
+      weightInfo[1] = securityarticles;
+    return weightInfo;
+  }"/>
+</function>
+
+<!--  GGPL -->
+<function description="Maximal Gewicht der GGPLs fuer ein horizontales Blech">
+  <param description="GGPL Laenge in mm" name="xlength" type="Integer"/>
+  <param description="Anzahl von 0-3" name="max" type="Integer"/>
+  <param description="Ist das Blech ein HallerE zu unterst, wegen Trafo" name="hallerE" type="Bool"/>
+  <param description="Ist das Blech ein Kurzblech" name="kurzblech" type="Bool"/>
+  <returnvalue description="Anzahl von 0-6" type="Integer"/>
+  <definition expression="def maxWeightGGW(xlength,max,hallerE,kurzblech) {
+    my maxweight = 0;
+    my weight = 0;
+    my length = 0;
+    my aplweight = 0.02; /* Anschlussplatten */
+    my headings = List('length','weight');
+    my values = List('750',7.7,'500',4.8,'395E',3.5,'350',3.0,'395',5.7);
+    my ggpls = CreateTable(headings, values);
+    if (xlength eq 395) {
+       if (hallerE) {
+         length = '395E';
+       } else if (kurzblech) {
+         length = '350';
+       } else {
+        length = xlength;
+       }
+    } else {
+      length = NumberToString(xlength,0);
+    }
+    weight = ggpls['length',length]['weight'];
+    weight = weight + 2 * aplweight;
+    maxweight = max * weight;
+    return maxweight;
+  }"/>
+</function>
+
+<function description="Maximale GGPL fuer ein horizontales Blech">
+  <param description="Blech" name="part" type="Object-Pointer"/>
+  <returnvalue description="Anzahl von 0-3, das maximale Gewicht pro Blech, Laenge der Gewichtsplatte" type="List(Integer,Number)"/>
+  <definition expression="def maxPlattenGGW(part) {
+    my max = List();
+    my ggplwidth = 10 + 1;
+    my count = 2; /* Anzahl der Gewichtsplatten ausser der 750er, max. 2 Stk */
+    my rawcount = count; /* Berechnente Anzahl der Gewichtsplatten */
+    my ylength = 0;
+    my xlength = 0;
+    my vol = null;
+    my hallerE = Feature(part,'f_hallerE');
+    my kurzblech = BeginsWith(GetTypeName(part),'kurzblech');
+    if (part) {
+      ylength = PartAttr(part,'width')/10;
+      xlength = PartAttr(part,'length')/10;
+      if (call yDirectionGGW(part)) {
+        ylength = PartAttr(part,'length')/10;
+        xlength = PartAttr(part,'width')/10;
+      }
+    }
+    rawcount = Floor(ylength/ggplwidth);
+    if (rawcount gt 4) {
+      count = 3;
+    }
+    max[0] = count; /* max. zugelassene Gewichtsplatten */
+    max[1] = call maxWeightGGW(xlength,max[0],hallerE,kurzblech); /* MaximalGewicht der Gewichtsplatten fuer dieses Blech */
+    max[2] = xlength * 10; /* Laenge der Gewichtsplatten */
+    max[3] = rawcount; /* max. physisch moegliche Platten fuer geometrische Positionierung */
+    return max;
+  }"/>
+</function>
+  
+<function description="Die zwei Hoehen, wo GGPLs montiert werden dürfen">
+  <param description="Selektiert Regal Teile" name="parts" type="List(component-Pointers)"/>
+  <returnvalue description="die zwei Hoehen der untersten 2 Reihen" type="List(Hohen)"/>
+  <definition expression="def lowerTwoRowsHeight(parts) {
+    my heightlist = List();
+    my kugeln = FilterList(parts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+    my zList = List();
+    my pos = Vector();
+    for (my i : IndexList(Size(kugeln))) {
+      pos = PartPos(kugeln[i]);
+      zList = ListAdd(zList, Round(pos['z']));
+    }
+    zList = UniqueList(zList);
+    zList = SortByValue(zList, `element;`);
+    /* die zwei Hoehen der untersten 2 Reihen */
+    heightlist = List(zList[0],zList[1]);
+    return heightlist;
+  }"/>
+</function>
+
+<function description="Bleche eine Regals, wo GGPLs montiert werden koennen">
+  <param description="Selektiert Regal Teile" name="parts" type="List(component-Pointers)"/>
+  <returnvalue description="Liste von Blechen" type="List(Blech-Pointers)"/>
+  <definition expression="def groupBlechListGGW(parts) {
+	  my ggwbleche = List();
+	  my bleche = List();
+	  my rowheights = call lowerTwoRowsHeight(parts);
+	  my lowest  = rowheights[0];
+	  my second = rowheights[1];
+	  my lowestrow = List();
+	  my secondrow = List();
+	  bleche = FilterList(parts,'element',`not IsSubTypeOf(element,'metallverkleidung');`);
+	  bleche = FilterList(bleche,'element',`call vertikalBlech(element);`);
+	  my bleche2ggw = List('blech750_395_ggw','blech350_750_ggw','blech500_395_ggw','blech500_750_ggw','blech350_350_ggw','blech350_395_ggw','blech350_500_ggw','blech500_500_ggw');
+    my kurzbleche2ggw = List('kurzblech750_395_ggw','kurzblech350_750_ggw','kurzblech500_395_ggw','kurzblech500_750_ggw','kurzblech350_395_ggw','kurzblech350_500_ggw','kurzblech500_500_ggw');
+    my sperrbleche2ggw = List('sperrblech350_750_ggw','sperrblech500_750_ggw','sperrblech500_500_ggw','sperrblech350_500_ggw','sperrblech750_395_ggw','sperrblech500_395_ggw','sperrblech350_395_ggw');     
+   
+    bleche2ggw = JoinList(bleche2ggw,kurzbleche2ggw);
+    bleche2ggw = JoinList(bleche2ggw,sperrbleche2ggw);
+    
+    for (my blech : bleche) {
+      my posz = Round(PartPos(blech)['z']);
+      if (InList(bleche2ggw,GetTypeName(blech) ++ '_ggw')) {
+     	  if (InRange(lowest - 1,lowest + 1, posz)) {
+     	 	 lowestrow = ListAdd(lowestrow,blech);
+     	  } else if (InRange(second - 1,second + 1, posz)) {
+     	 	 secondrow = ListAdd(secondrow,blech);
+     	  }
+      }
+    }
+    /* Schubladenauszug laesst keine GGPL Montage zu */
+    secondrow = FilterList(secondrow,'element',`ConnectedDockCount(element, 'blech2schubladenauszug') gt 0;`);
+    /* Unterhalb Einschuebtuere koennen keine GGPLs montiert werden */
+    secondrow = FilterList(secondrow,'element',`call einschubTuereGGW(element,parts);`);
+    ggwbleche[0] = SortByValue(lowestrow,'-Number(SubStr(GetTypeName(element),StrLen(GetTypeName(element))-3));');
+    ggwbleche[1] = SortByValue(secondrow,'-Number(SubStr(GetTypeName(element),StrLen(GetTypeName(element))-3));');
+    ggwbleche[2] = JoinList(ggwbleche[0],ggwbleche[1]);
+	  return ggwbleche;
+	}"/>
+</function>
+ 
+<function description="Holt die Anzahl der errechneten GGWs">
+  <param description="errechneten GGWs" name="reihen" type="List()"/>
+  <returnvalue description="Anzahl GGWs" type="Integer"/>
+  <definition expression="def countGGW(reihen) {
+		my count = 0;
+		my ggwliste = List();
+		for (my reihe : reihen) {
+		  for (my i : IndexList(Size(reihe))) {
+		     ggwliste = ListAdd(ggwliste,reihe[i]);
+		  } 
+		}		
+		for (my i : IndexList(Size(ggwliste))) {
+		     count =count + ggwliste[i][1];
+		  } 
+		return count;
+		}"/>
+</function>
+ 
+<function description="hat GGW Blech eine Einschubtuere unter sich">
+  <param description="GGW Blech" name="part" type="Object"/>
+  <param description="alle Moebel Parts" name="parts" type="List"/>
+  <returnvalue description=" Einschubtuere unter sich?" type="Bool"/>
+  <definition expression="def einschubTuereGGW(part,parts) {
+    my hasEinschubTuere = false;
+    my list = List();
+    my gelenke = FilterList(parts,'element',`not IsSubTypeOf(element,'einschubtuergelenk_l');`);        
+    for (my gelenk : gelenke) {
+      my relpos = RelativePartPos(part,gelenk);
+      my x  = Abs(Round(relpos['x']));
+      my y  = Abs(Round(relpos['y']));
+      my z  = Abs(Round(relpos['z']));
+      list = List(x,y,z);
+      list = SortByValue(list, 'element;');
+      my einschub500 = list[0] eq 1 and list[1] eq 8;
+      my einschub750 = list[0] eq 0 and list[1] eq 1;
+      if (einschub500 or einschub750) {
+         hasEinschubTuere = true;
+         break;
+      }
+    }
+    return hasEinschubTuere;
+  }"/>
+</function>
+
+<function description="Berechnet die Anzahl der maximal platzierbaren GGPLs">
+  <param description="alle Bleche die HHWs haben koennen: call groupBlechListGGW(group_parts)" name="bleche" type="List()"/>
+  <returnvalue description="Anzahl GGPLs die platziert werden koenenn" type="Integer"/>
+  <definition expression="def maxShelfGGW(bleche) {
+		my maxGGW = 0; 
+		my allbleche = JoinList(bleche[0], bleche[1]);
+		my infoGGW = List();
+		for (my blech : allbleche) {
+		   infoGGW = call maxPlattenGGW(blech);
+		   maxGGW = maxGGW + infoGGW[0];
+		}
+		
+		return maxGGW;
+		}"/>
+</function>
+
+
+<function description="Berechnet die Frontseite eines Regals aufgrund der Blechverkleidung">
+  <param description="alle Bleche die HHWs haben koennen: call groupBlechListGGW(group_parts)" name="part" type="Object"/>
+  <returnvalue description="Frontseite an normaler Stelle" type="Bool"/>
+  <definition expression="def frontSeiteNormal(part) {
+    my direction = List();
+    my normal = true;
+    my rohrdocks = List();
+    my hoeheGGW = PartPos(part)['z'];
+    my tiefeGGW = Feature('f_ggwOrientierungTiefe');    
+    my rohre = List();
+    my rohr = null;
+    my blech = null;
+    my bleche = List();
+    my offeneSeiten = List();
+    my blechdocks = ConnectedDocksOfType(part, 'blech2rohr');
+    for (my dock : blechdocks) {
+      rohre = ListAdd(rohre,DockGetConnectedPart(dock));
+    }
+    for (my rohr : rohre) {
+      rohrdocks = ConnectedDocksOfType(rohr, 'rohr2blech');
+      bleche = List();
+      for (my rohrdock : rohrdocks) {
+        bleche = ListAdd(bleche,DockGetConnectedPart(rohrdock));
+      }
+      bleche = FilterList(bleche,'element',`element eq part;`);
+      bleche = FilterList(bleche,'element',`PartPos(element)['z'] le hoeheGGW;`);
+      if (not bleche[0]) {
+        offeneSeiten = ListAdd(offeneSeiten, rohr);
+      }
+    }
+    offeneSeiten;
+    if (Size(offeneSeiten) gt 0) {
+      rohr = offeneSeiten[0];
+      /* bei quadratisch gedrehten Bodenblechen, da hier das  tiefen Tiefen Feature nicht genuegt */
+      /* wird gebraucht auch bei showPlattenGGW */
+      direction[1] = call rotateToFront(part,rohr);
+      if (not tiefeGGW) {  
+        normal = RelativePartPos(part, offeneSeiten[0])['y'] lt 0 and not direction[1];
+      } else {
+        normal = RelativePartPos(part, offeneSeiten[0])['x'] lt 0;
+      }
+    }
+    direction[0] = normal;
+    return direction;
+    }
+     "/>
+</function>
+
+<function description="In  welcher Richtung (laengs oder quer) sollen die Platten auf dem Blech montiert werden">
+  <param description="Blech" name="part" type="Pointer"/>
+  <returnvalue description="Normaldrehung in der Breite des Regals 1/0" type="Bool"/>
+  <definition expression="def yDirectionGGW(part) {
+    my ydirection = false;
+    my rohrdocks = List();
+    my rohre = List();
+    my rohr = null;
+    my blech = null;
+    my length = PartAttr(part, 'length');
+    my width = PartAttr(part, 'width');
+    my hc_length = 0;
+    my bleche = List();
+    my ohneMetallseiten = List();
+    my offeneSeiten = List();
+    
+    offeneSeiten = call findOffeneSeiten(part);
+    my count = Size(offeneSeiten);
+    
+    if (count gt 0 and count lt 4) {
+     rohr = offeneSeiten[0];
+     hc_length = PartAttr(offeneSeiten[0],'hc_length');
+     /* Wenn Rohrlaenge gleich Blechlaenge */
+     if (hc_length eq length) {
+      ydirection = false;
+     } else {     
+      ydirection = true;
+     }
+    }
+    if (width eq 395) {
+       /* Ausnahme Korpus 395 */
+      my group_parts = GetComponentListOfConnectionId(ConnectionId(part));
+      my auszug395 = Bool(Size(FilterList(group_parts,'element',`not IsSubTypeOf(element,'schubladenauszug395');`)));
+      if (auszug395) {
+         ydirection = true;
+      }
+      
+    }
+    return ydirection;
+    }
+  "/>
+</function>
+
+<function description="Auf welcher Seite ist das Regal offen">
+  <param description="Blech" name="part" type="Pointer"/>
+  <returnvalue description="Rohre, wo keine Verkleidung dran ist" type="List"/>
+  <definition expression="def findOffeneSeiten(part) {
+    my offeneSeiten = List();
+    my rohrdocks = List();
+    my rohre = List();
+    my rohr = null;
+    my blech = null;
+    my bleche = List();
+    my ohneMetallseiten = List();
+    my blechhoehe = PartPos(part)['z'];
+    my verkleidung_oberhalb = false;
+    my glaeser = List();
+    
+    my sortex = `PartAttr(element1,'hc_length') lt PartAttr(element2,'hc_length');`;
+    
+    /* Berechnung ob Rohre eine Metallverkleidung haben sind */
+    my blechdocks = ConnectedDocksOfType(part, 'blech2rohr');
+    for (my dock : blechdocks) {
+      rohre = ListAdd(rohre,DockGetConnectedPart(dock));
+    }
+    for (my rohr : rohre) {
+      rohrdocks = ConnectedDocksOfType(rohr, 'rohr2blech');
+      bleche = List();
+      for (my rohrdock : rohrdocks) {
+        bleche = ListAdd(bleche,DockGetConnectedPart(rohrdock));
+      }
+      bleche = FilterList(bleche,'element',`element eq part;`);
+      verkleidung_oberhalb = Bool(Size(FilterList(bleche,'element',`PartPos(element)['z'] lt blechhoehe;`)));
+      if (verkleidung_oberhalb) {
+      bleche = FilterList(bleche,'element',`PartPos(element)['z'] lt blechhoehe;`);
+      }
+      bleche = FilterList(bleche,'element',`element eq part;`);
+      if (not bleche[0]) {
+        ohneMetallseiten = ListAdd(ohneMetallseiten, rohr);
+      }
+    }
+    /* Berechnung ob restliche Rohre verglast sind */
+    rohre = ohneMetallseiten;
+    /* Message(Size(ohneMetallseiten) ++ ', ' ++ verkleidung_oberhalb); */
+    for (my rohr : rohre) {
+      rohrdocks = ConnectedDocksOfType(rohr, 'rohr2glashalter');
+      glaeser = List();
+      for (my rohrdock : rohrdocks) {
+        glaeser = ListAdd(glaeser,DockGetConnectedPart(rohrdock));
+      }
+
+      verkleidung_oberhalb = Bool(Size(FilterList(glaeser,'element',`PartPos(element)['z'] lt blechhoehe;`)));
+      if (verkleidung_oberhalb) {
+      glaeser = FilterList(glaeser,'element',`PartPos(element)['z'] le blechhoehe;`);
+      }
+      if (not glaeser[0]) {
+        offeneSeiten = ListAdd(offeneSeiten, rohr);
+      }
+    }
+    /* Sortierung der offenen Rohre nach Laenge, die lange Seite zuerst */
+    offeneSeiten = Sort(offeneSeiten,sortex);
+
+    return offeneSeiten;
+    }
+  "/>
+</function>
+
+<function description="Richtung der GGPlatten in bezug auf AZT">
+  <param description="Kurzblech" name="part" type="Pointer)"/>
+  <returnvalue description="Normalrichtung wie in geomrep. 1/0" type="Bool"/>
+  <definition expression="def plattenRichtungNormalGGW(part) {
+    my normalrichtung = true;
+    my normalrichtungcheck = true;
+    my rotz = 0;
+    my vol = GetRefVolumes(part, 'mainstructure')[0];
+    my teleskopauszugliste = List();
+    my teleskopauszug = null;
+    my schublade = false;
+    if (vol) {
+      if (BeginsWith(GetTypeName(part),'kurzblech')) {
+        teleskopauszugliste = ChildrenListOfTypeDeep(vol,'teleskopauszug_l');
+        teleskopauszug = FilterList(teleskopauszugliste,'element',`Round(Abs(RelativePartPos(part, element)['z'])) gt 4;`)[0];
+        if (teleskopauszug) {
+          if (Round(RelativePartRot(part, teleskopauszug)['z']) eq -90) {
+            normalrichtung = false;
+          }
+        }
+      } else {
+        normalrichtungcheck = call frontSeiteNormal(part);
+        normalrichtung = normalrichtungcheck[0];
+      }
+    }
+    return normalrichtung;
+  }"/>
+</function>
+
+
+
+<function description="Richtung der GGPlatten in Bezug auf Front">
+  <param description="Blech 500x500" name="blech" type="Pointer"/>
+  <param description="1. unteres Rohr, wo kein Blech vorhanden ist" name="rohr" type="Pointer"/>
+  <returnvalue description="Muss GGPlatten rotiert werden " type="Bool"/>
+  <definition expression="def rotateToFront(blech,rohr) {
+		my rotate = false;
+		my blechline = call globalNormalY(blech);
+		my rohrline = call globalNormalY(rohr);
+		my parallel = LinesAreParallel(blechline, rohrline);
+		rotate = parallel;
+		return rotate;
+		}"/>
+</function>
+
+<function description="Liste der Safety-Paramtern fuer das GUI">
+  <param description="Liste aller Satefy-Params" name="_sftparam" type="LIST"/>
+  <returnvalue description="List of Params" type="LIST"/>
+  <definition expression="def paramCalculationSafetyGUI(_sftparams) {
+     my sftGUIparams = List();
+     my kippgefahr = _sftparams[2];
+     my count_ggw_articles = _sftparams[3];
+     my group_parts = _sftparams[6];
+     my mode = _sftparams[7];
+     my haskippgefahrExtern = _sftparams[12];
+     my haskippgefahrMovable = _sftparams[1];
+     my missingcount = _sftparams[8];
+     my missingweight = kippgefahr[1];
+     my missingmoment = kippgefahr[3];
+     my blecheGGW = call groupBlechListGGW(group_parts);
+     my maxbleche = call assignGGW(blecheGGW,missingweight,missingcount);
+     my allbleche = call assignGGW(blecheGGW,9999999,999999);
+     my rest_weight = maxbleche[0];
+     my countGGW = call countGGW(maxbleche[1]);
+     my countAllGGW = call countGGW(allbleche[1]);
+     my weightGGW = maxbleche[2];
+     /* muessen immer gerechnet werden: my wall_anchoring_count = call calculateWandVerankerung(_sftparams);
+     my floor_anchoring_count = call calculateBodenVerankerung(_sftparams); */
+     sftGUIparams[0] = ''; /* reserve */
+     sftGUIparams[1] = blecheGGW; /* blecheGGW */
+     sftGUIparams[2] = countGGW;  /* countGGW */
+     sftGUIparams[3] = (Bool(Size(blecheGGW[2])) and count_ggw_articles lt countGGW) or missingweight le 0 or mode eq 'show'; /* using_blecheGGW */
+     sftGUIparams[4] = weightGGW; /* Gewicht der moeglichen GGPLs */
+     sftGUIparams[5] = rest_weight;
+     sftGUIparams[6] = rest_weight lt 3; /* kann alles mit GGPL abgedeckt werden */
+     sftGUIparams[7] = call calculateWandVerankerung(_sftparams); /* Anzahl Wandanker */
+     sftGUIparams[8] = call calculateBodenVerankerung(_sftparams); /* Boden  Wandanker */
+     sftGUIparams[9] = countAllGGW; /* Alle GGPLs, die moeglich sind */
+     sftGUIparams[10] = haskippgefahrExtern; /* Fuer Grafikanzeige */
+     sftGUIparams[11] = haskippgefahrMovable; /* Fuer Grafikanzeige */
+     return sftGUIparams;
+     }"/>
+</function>
+
+<function description="Distanzberechnung fuer Safety_Zeiger">
+  <param description="Kippmoment" name="tilt_moment" type="kgmm"/>
+  <returnvalue description="Distanz in ViewerPoints" type="INT"/>
+  <definition expression="def tiltDangerPointerDistance(tilt_moment) {
+    my distance = 0;
+    my start = 5;
+    my max = 505;   
+    my middle = 172;
+    my minmoment = 10000;
+    my maxmoment = -20000;
+    my range = minmoment + maxmoment * -1;
+    my factor = max / range;
+    if ( tilt_moment eq 0 ) {
+      distance = start + middle;
+    } else if (tilt_moment gt 0) {
+      if (tilt_moment gt minmoment) {
+        tilt_moment = minmoment;
+      }
+      distance = middle - (factor * tilt_moment) + start;
+    } else if (tilt_moment lt 0) {
+       if (tilt_moment le maxmoment) {
+        tilt_moment = maxmoment;
+      }
+      distance = middle + (factor * tilt_moment * -1) + start;  
+    }
+    return distance;  
+    }
+  "/>
+</function>
+
+<function description="Anzahl Schubladen">
+  <param description="Alle Regal Komponenten" name="group_parts" type="LIST"/>
+  <returnvalue description="Anzahl Schubladen" type="INTEGER"/>
+  <definition expression="def countSchubladen(group_parts) {
+    my countSL = List(0,0);
+    my countSLvorne = 0; /* Anzahl Schubladen nach vorne */
+    my countSLhinten = 0; /* Anzahl Schubladen nach vorne */
+    /* Schubladenauszuege sind immer statisch */
+    my listSLA = FilterList(group_parts,'element',`not IsSubTypeOf(element, 'schubladenauszug');`);
+    my referenceAuszug = listSLA[0];
+    my SLA1 = FilterList(listSLA,'element',`PartRot(element)['z'] eq PartRot(referenceAuszug)['z'];`);
+    my SLA2 = FilterList(listSLA,'element',`PartRot(element)['z'] ne PartRot(referenceAuszug)['z'];`);
+    
+    for (my i : IndexList(Size(SLA1))) {
+      my sla1 = SLA1[i];
+      /* Schubladen zaehlen */
+      countSLvorne = countSLvorne + ConnectedDockCount(sla1,'schubladenauszug_l2schublade_l');
+    }
+    for (my i : IndexList(Size(SLA2))) {
+      my sla2 = SLA2[i];
+      /* Schubladen zaehlen */
+      countSLhinten = countSLhinten + ConnectedDockCount(sla2,'schubladenauszug_l2schublade_l');
+    }
+    
+    my countSLmovable = countSLvorne;
+    my countSLstatic = countSLhinten;
+    if (countSLhinten gt countSLvorne) {
+       countSLmovable = countSLhinten;
+       countSLstatic = countSLvorne;
+    }  
+    countSL[0] = countSLmovable; /* movable Schubladen */
+    countSL[1] = countSLstatic; /* Schubladen  statisch*/
+    return countSL;
+  }"/>
+</function>
+
+<function description="Moegliche Zusatz AZTs bei AZT-Tuere">
+  <param description="AZT-Tueren innerhalb eines Fachstapels, Kolonne" name="korb" type="List"/>
+  <returnvalue description="Anzahl AZT-Tueren mit Tablar im selben Fach" type="INTEGER"/>
+  <definition expression="def countSpezAZT(korb) {
+    my spezcount = 0;
+    my column = List();
+    my columncount = Size(korb);
+    for (my j : IndexList(columncount)) {
+      column = korb[j];
+      for (my i : IndexList(Size(column))) {
+        my parent = Parent('mainstructure',column[i]);
+        my aztuere = ParentOfType(parent,'mainstructure','ausziehtuertablarset');
+        /* aztuerschubladenset koennen keine Tablare innerhalb haben: stimmt nicht deshalb auskommentiert */
+        /* if (aztuere and not ParentOfType(aztuere,'mainstructure','aztuerschubladenset')) { */
+        if (aztuere) {         
+          my vol = MainRoot(aztuere);
+          if (vol) {
+            my teles = FilterList(column,'element',`MainRoot(element) ne vol;`);
+            if (Size(teles) gt 1) {
+              spezcount = spezcount + 1;
+            }
+          }
+        }
+      }
+    }
+    if (spezcount gt columncount) {
+      /* AZ-Tablar mit AZ-Tuere kann pro Fach-Kolonne nur 1x auftreten */
+      spezcount = columncount;
+    }
+    return spezcount;
+    }
+  "/>
+</function>
+
+<function description="Moegliche Zusatz AZTs bei AZT-Tuere">
+  <param description="Teleskopauszug in Kolonnen vorsortiert" name="part" type="List"/>
+  <returnvalue description="Zusatz AZTs bei AZT-Tuere" type="INTEGER"/>
+  <definition expression="def countSideAZT(aztfrontlist) {
+    my posfrontlist = List();
+    for (my azt : aztfrontlist) {
+	    my pos = PartPos(azt);
+	    my hpos = Round(pos['x']) ++ '_' ++ Round(pos['y']);
+	    posfrontlist = ListAdd(posfrontlist,hpos);
+	 }
+   /* How many different columns exists */
+	 posfrontlist = UniqueList(posfrontlist);
+	 my frontazt = Size(posfrontlist);
+	 my spezAZT = 0;
+	 my posfrontrowlist = List();
+	 for ( my i : IndexList(Size(posfrontlist))) {
+     /* assign each azt to a column */
+	 	 for (my azt : aztfrontlist) {
+	     my pos = PartPos(azt);
+	     my hpos = Round(pos['x']) ++ '_' ++ Round(pos['y']);
+	     if (posfrontlist[i] eq hpos) {
+	       posfrontrowlist[i] = ListAdd(posfrontrowlist[i],azt);
+	     }
+	   }
+	 }
+   /* check how many aztablar are in same volume above aztuere */
+   spezAZT = call countSpezAZT(posfrontrowlist);
+   frontazt = frontazt + spezAZT;	
+   return frontazt;
+   }
+  "/>
+</function>
+
+<function description="AZTs in Kolonnen vorsortiert">
+  <param name="part" type="group_parts"/>
+  <returnvalue description="Teleskopauszug in Kolonnen sortier" type="List"/>
+  <definition expression="def countAZT(group_parts) {
+    my bestcountAZT = List();
+    my countAZT = List();
+    my spezAZT = 0;
+    my move_countAZT = 0;
+    my static_countAZT = 0;
+    my aztbaselist = FilterList(group_parts,'element',`not IsSubTypeOf(element, 'teleskopauszug_l');`);
+    my countAZT = Size(aztbaselist);
+    my aztfrontlist =  List();
+    my aztbacklist =  List();
+    my baserotz = 0;
+    /* separate front/back first by rotation */
+    for (my i : IndexList(countAZT)) {
+      my azt = aztbaselist[i];
+      my rotz = Round(PartRot(azt)['z']);
+      if ( i eq 0) {
+        baserotz = rotz;
+       }
+      if (rotz eq baserotz) {
+        aztfrontlist = ListAdd(aztfrontlist,azt); 
+      } else {
+        aztbacklist = ListAdd(aztbacklist,azt);
+      }
+    }
+    /* count on each side */
+    my frontAZTcount = call countSideAZT(aztfrontlist);
+    my backAZTcount = call countSideAZT(aztbacklist);
+    if (frontAZTcount ge backAZTcount) {
+    	move_countAZT = frontAZTcount;
+    } else {
+      move_countAZT = backAZTcount;
+    }
+    static_countAZT = countAZT - move_countAZT;
+    bestcountAZT[0] = move_countAZT;
+    bestcountAZT[1] = static_countAZT;
+    return bestcountAZT;
+  }"/>
+</function>
+
+<function description="Verteilung der GGPLs auf die korrekten Bleche">
+  <param description="Alle Bleche" name="parts" type="List(component-Pointers)"/>
+  <param description="Fehlendes Gewicht in kg" name="missingweight" type="Number"/>
+  <param description="Geforderte ANZahl GGPLs" name="missingcoun" type="Number"/>
+  <returnvalue description="Liste von Blechen mit jeweiliger Anzahl von GGPL" type="List(List(Blech-Pointers,Anzahl))"/>
+  <definition expression="def assignGGW(allbleche,missingweight,missingcount) {
+    my completion = List();
+    completion[0] = 0;
+    my assignment = List();
+    my bleche = List();
+    my hallerE = false;
+    my kurzblech = false;
+    my new_weight = 0;
+    my finished = false;
+    my ggwblech = List();
+    my rowweigth = 0;
+    my totalweight = 0;
+    my count =  0;
+    
+    /* Iteration ueber die 2 untersten Blech-Reihen */
+    for (my row : IndexList(2)) {
+      bleche = allbleche[row];
+      /* Iteration ueber max. Anzahl meoeglicher GGW pro Blech */
+      for (my i : List(1,2,3)) {
+        /* Iteration ueber Anzahl bleche pro Reihe */
+        for (my j : IndexList(Size(bleche))) {
+          ggwblech = call maxPlattenGGW(bleche[j]);
+          if (i le ggwblech[0] and missingweight gt totalweight) {
+            hallerE = Feature(bleche[j],'f_hallerE');
+            kurzblech = BeginsWith(GetTypeName(bleche[j]),'kurzblech');
+            if (missingcount gt count) {
+              new_weight = call maxWeightGGW(ggwblech[2],1,hallerE,kurzblech);
+              totalweight = totalweight + new_weight;
+              /* Message(GetTypeName(bleche[j]) ++ ', ' ++ ggwblech[2] ++ ', ' ++ new_weight ++ ', ' ++ totalweight); */
+              if (totalweight ge missingweight) {
+                assignment[row][j] = List(bleche[j],i);
+                count = count + 1;
+                finished = true;
+                break;
+              } else {             
+                 
+                 assignment[row][j] = List(bleche[j],i);
+                 count = count + 1;
+              } 
+            } else {
+              finished = true;
+              break;
+            }    
+          }
+          if (finished) {
+            break;
+          }
+        }
+        if (finished) {
+          break;
+        }
+      } 
+    }    
+    /* after all bleche are full assigned and weight is still left */
+     if (totalweight lt missingweight) {
+       completion[0] = missingweight - totalweight;
+     }
+     completion[1] = assignment;
+     completion[2] = totalweight;
+     return completion;
+   }" />
+</function>
+
+<function description="Gibt namen der Grafik fuer die Anzeige">
+  <param description="_sftparams, Rolle" name="_sftparams" type="LIST"/>
+  <param description="extern (Anlehnen) oder AZE " name="case" type="STRING"/>
+  <returnvalue description="Grafik-Name" type="STRING"/>
+  <definition expression="def tiltIconName(_sftparams,case) {
+     my iconname = 'tilt_icon_extern.png';
+     if (case eq 'aze') {
+       iconname = 'tilt_icon_aze.png';
+       if (_sftparams[10]) {
+         iconname = 'tilt_icon_rollen_aze.png';
+       }
+     } else if (_sftparams[10]) { 
+        iconname = 'tilt_icon_extern_rollen.png';
+     }
+     return iconname;
+  }"/>
+</function>
+  
+<function description="Berechnet Anzahl Bodenverankerungen">
+  <param description="Globale Safety-Params" name="_stfparams" type="List"/>
+  <returnvalue description="Anzahl Bodenverankerungen" type="INT"/>
+  <definition expression="def calculateBodenVerankerung(_sftparams) {
+    my count = 0; 
+    my anz_raw = 0;
+    my force = safetyparams['name','forces']['force']['name','bodenanker']['value'];
+    my floorfactor = safetyparams['name','statics']['static']['name','floor_calcfactor']['value'];
+    my kippgefahr = _sftparams[2];
+    my missingmoment = 0;
+    my diffgewicht = 0;
+    my depth = _sftparams[14][1]; /* Ganze Tiefe */
+    my static = _sftparams[18]; /* calcAZE = statische Berechnung */
+      if (force ne 0 and floorfactor ne 0 and depth ne 0) {   
+        if (static) {
+          diffgewicht = Abs(_sftparams[22][0]);
+          anz_raw = diffgewicht/force/floorfactor;
+        } else {
+          missingmoment = Abs(kippgefahr[3]);
+          anz_raw = missingmoment/depth/force; 
+        }
+        my anz = Round(anz_raw,1.0);
+        my anz_floor = Floor(anz_raw);
+        anz eq anz_floor ? count = anz +1 : count = anz; 
+        count = count * 2; /* hinten + vorne: gemaess excel spez. */
+        
+      } else {
+        count = 0;
+      }
+    count;
+    my bodenkugeln = _sftparams[4];
+    if (count gt bodenkugeln) { 
+      count = bodenkugeln;
+    } else if (count le 0) {
+      count = 1;
+    }
+    
+    return count;
+  }"/>
+</function>
+  
+  
+<function description="Berechnet Anzahl Wandverankerungen">
+  <param description="Globale Safety-Params" name="_stfparams" type="List"/>
+  <returnvalue description="Anzahl Wandverankerung" type="INT"/>
+  <definition expression="def calculateWandVerankerung(_sftparams) {
+     my count = 0; 
+     my force = safetyparams['name','forces']['force']['name','wandanker']['value'];
+     my wallfactor = safetyparams['name','statics']['static']['name','wall_calcfactor']['value'];
+     my kippgefahr = _sftparams[2];
+     my missingmoment = kippgefahr[3];
+     my static = _sftparams[18]; /* calcAZE = statische Berechnung */
+     my diffgewicht = Abs(_sftparams[22][0]);
+     if (diffgewicht ne 0) {
+      if (force ne 0 and wallfactor ne 0) {     
+        my anz_raw = diffgewicht/force/wallfactor;
+        my anz = Round(anz_raw,1.0);
+        my anz_floor = Floor(anz_raw);
+        anz eq anz_floor ? count = anz +1 : count = anz;
+      } else {
+        count = 0;
+      }
+     }
+    my bodenkugeln = _sftparams[4];
+    my max_wandankerkugeln = bodenkugeln/2;
+    if (count gt max_wandankerkugeln) {
+       count = max_wandankerkugeln;
+    } else if (count le 0) {
+       count = 1;
+     }
+    return count;
+   }"/>
+</function>
+  
+<function description="Liste aller nicht-kalulierten Teile eines Moebels">
+  <param description="Group Id" name="groupid" type="List"/>
+  <returnvalue description="Nicht kalkulierte Teile" type="List"/>
+  <definition expression="def notCalculatedShelfParts(groupid) {
+     my nocalclist = List(); 
+     my group_parts = call groupIdPartList(groupid);
+     my nocalclist = FilterList(group_parts,'element',`Feature(element,'calculated') eq 'true';`);
+     return nocalclist;
+   }"/>
+</function>
+  
+<function description="Shows Choosen Satefy action">
+  <param description="Part Group Id" name="groupid" type="INT"/>
+  <returnvalue description="Choosen Satefy action" type="STRING"/>
+  <definition expression="def showSafetyActions(groupid) {
+		my action = '';
+		my store = call safetyDummy(groupid);
+		my answer = Localize('[CO]:[SFT]:[MSG] Sie haben folgende Massnahme definiert') ++ ':@n';
+    if ( call safetyParamStore(store,'usedGGPL') gt 0 ) {
+      action = answer ++ Localize('[CO]:[SFT]:[MSG] Gegengewichtsplatten, Anzahl') ++ ': ' ++ call safetyParamStore(store,'usedGGPL');
+    } else if ( call safetyParamStore(store,'bodenAnker') gt 0 ) {
+      action = answer ++ Localize('[CO]:[SFT]:[MSG] Bodenanker, Anzahl') ++ ': ' ++ call safetyParamStore(store,'bodenAnker');
+    } else if ( call safetyParamStore(store,'wandAnker') gt 0 ) {
+      action = answer ++ Localize('[CO]:[SFT]:[MSG] Wandanker, Anzahl') ++ ': ' ++ call safetyParamStore(store,'wandAnker');
+    } else if ( call safetyParamStore(store,'regalVerbinder') gt 0 ) {
+      action = answer ++ Localize('[CO]:[SFT]:[MSG] Regal-Verbinder, Anzahl') ++ ': ' ++ call safetyParamStore(store,'regalVerbinder');
+    }
+    if (StrLen(action) gt 0) {
+      action = action ++ '@n';
+    }
+		return action;
+	}"/>
+</function>
+
+
+<function description="Checks the stored Safety params">
+  <param description="Part Group Id" name="groupid" type="INT"/>
+  <returnvalue description="Value of stored Safety param" type="STRING"/>
+  <definition expression="def checkSafetyStored(groupid,search) {
+		my param = '';
+		my node = NamedNode('documentsettings');
+		my id = 'safety';
+		my safetyparams = NodeDataSet(node, id);
+		safetyparams = GetNodeDataSetAsTable(node, id);
+		param = safetyparams['groupid',groupid][search];
+		return param;
+  }"/>
+</function>
+
+<function description="Cases wo Safety-Check nicht durchgefuehrt wird">
+  <param/>
+  <returnvalue type="BOOL" description="disabled"/>
+  <definition expression="def notActiveSafety(){
+    my disabled = false;
+    my korpus = false;
+    my winkelregal = false;
+    my group_parts = GetSelectedComponentList('mainstructure');
+    winkelregal = call winkelRegal(group_parts);
+    disabled = korpus or winkelregal;
+  return disabled;
+  }"/>
+</function>
+<function name="getRelativeBBoxOfPartListPosition">
+		<definition expression="
+	def getRelativeBBoxOfPartListPosition(part, partlist) {
+		my result = List();
+		my origin = Vector();
+		my extent = Vector();
+		my e = Max(0,(Size(partlist)-1));
+		my step = 0.05;
+		partlist = SortByValue(partlist, `Round(PartPos(element)['x'],step);`);
+		origin['x'] = Round(PartPos(partlist[0])['x'],step);
+		extent['x'] = Round(PartPos(partlist[e])['x'],step) - Round(PartPos(partlist[0])['x'],step);;
+		partlist = SortByValue(partlist, `Round(PartPos(element)['y'],step);`);
+		origin['y'] = Round(PartPos(partlist[0])['y'],step);
+		extent['y'] = Round(PartPos(partlist[e])['y'],step) - Round(PartPos(partlist[0])['y'],step);
+		partlist = SortByValue(partlist, `Round(PartPos(element)['z'],step);`);
+		origin['z'] = Round(PartPos(partlist[0])['z'],step);
+		extent['z'] = Round(PartPos(partlist[e])['z'],step) - Round(PartPos(partlist[0])['z'],step);
+		
+		result['origin'] = LocalPos(part, origin);
+		result['extent'] = extent;
+		
+		result;
+	};		
+	"/>
+	</function>
+<function name="getRelativeBBoxOfDockListPosition">
+		<definition expression="
+	def getRelativeBBoxOfPartListPosition(part, partlist, docktype) {
+		my result = List();
+	
+		my docklist = List();
+		my docklist_pos = List();
+		for (my p: partlist) {
+			ListExtend(docklist, ConnectedDocksOfType(p, docktype)); 
+		};
+		for (my dock: docklist) {
+			ListAdd(docklist_pos, LocalDockPos(dock, PartPos(part)));
+		}
+		
+		my origin = Vector();
+		my extent = Vector();
+		
+		my e = Max(0,(Size(docklist_pos)-1));
+		my step = 2;
+		docklist_pos = SortByValue(docklist_pos, `Round(element['x'],step);`);
+		origin['x'] = Round(docklist_pos[0]['x'],step);
+		extent['x'] = Round(docklist_pos[e]['x'],step) - Round(docklist_pos[0]['x'],step);
+		docklist_pos = SortByValue(docklist_pos, `Round(element['y'],step);`);
+		origin['y'] = Round(docklist_pos[0]['y'],step);
+		extent['y'] = Round(docklist_pos[e]['y'],step) - Round(docklist_pos[0]['y'],step);
+		docklist_pos = SortByValue(docklist_pos, `Round(element['z'],step);`);
+		origin['z'] = Round(docklist_pos[0]['z'],step);
+		extent['z'] = Round(docklist_pos[e]['z'],step) - Round(docklist_pos[0]['z'],step);;
+		
+		
+		result['origin'] = LocalPos(part, origin);
+		result['extent'] = extent;
+		
+		result;
+	};		
+		"
+	/>
+	</function>
+	<function description="Stabilitaet Theke wenn horiz. Einsatz eingebaut">
+  <param type="component"/>
+  <returnvalue type="BOOL" description="stabil"/>
+  <definition expression="def hasURohr(part) {
+  	call hasURohr(part, 'value');
+  }
+  def hasURohr(part, type) {
+		def customLocalGetIntersectionInfo(center,direction,part) {
+			my info = GetIntersectionInfo(1000,Line(center, direction),'kugel_std',part);
+			if (info['part'] EQ null) {
+				info = GetIntersectionInfo(1000, Line(center, direction),'',part);
+				if (!IsSubTypeOf(info['part'],'kugel_gew') and !IsSubTypeOf(info['part'],'bodenelement') ) {
+					info['part'] = null;
+				}
+			}
+			return info;
+  		}
+  		my pointlist = List();
+  		pointlist[0] = List();
+  		pointlist[1] = List();
+  		pointlist[2] = List();
+  		pointlist[3] = List();
+  		my ok = true;
+
+		my missing_count = 0;
+  		my volume = GetRefVolumes(part, 'mainstructure')[0];
+  		my width = PartAttr(part,'width')* 0.1;
+  		my length = PartAttr(part,'length')* 0.1;
+  		
+  		if (true or not volume) {
+	  		my w = width;
+  			my l = length;
+  			my r = 75;
+  			
+  			my points = List();	 
+	  		my bbparts = List();
+	  		my bottomparts = List();
+  			my p1 = Vector(l/2,0,1);
+  			my p2 = Vector(l/2,-r,1);
+  			my center= GlobalPos(part,p1); 
+			my direction= VectorSub(GlobalPos(part,p2), center);
+			/* center and direction are now in the global coordinate system */
+			my info = call customLocalGetIntersectionInfo(center,direction,part);
+			if (not info['part']) {
+				my p1 = Vector(0,-w/2,1);
+  				my p2 = Vector(r,-w/2,1);
+  				my center= GlobalPos(part,p1); 
+  				my direction= VectorSub(GlobalPos(part,p2), center);
+				info= call customLocalGetIntersectionInfo(center,direction,part);
+			}
+  			my rightbottom = info['part']; 
+  			ListAdd(bbparts, rightbottom);
+  			
+  			my p1 = Vector(l/2,0,1);
+  			my p2 = Vector(l/2,r,1);
+  			my center= GlobalPos(part,p1);
+			my direction= VectorSub(GlobalPos(part,p2), center);
+			my info= call customLocalGetIntersectionInfo(center,direction,part);
+			if (not info['part']) {
+				my p1 = Vector(0,w/2,1);
+  				my p2 = Vector(r,w/2,1);
+  				my center= GlobalPos(part,p1); 
+  				my direction= VectorSub(GlobalPos(part,p2), center);
+				info= call customLocalGetIntersectionInfo(center,direction,part);
+			}
+  			my righttop = info['part'];
+  			ListAdd(bbparts, righttop); 
+  			
+  			my p1 = Vector(-l/2,0,1);
+  			my p2 = Vector(-l/2,r,1);
+  			my center= GlobalPos(part,p1);
+			my direction= VectorSub(GlobalPos(part,p2), center);
+			my info= call customLocalGetIntersectionInfo(center,direction,part);
+			if (not info['part']) {
+				my p1 = Vector(0,w/2,1);
+  				my p2 = Vector(-r,w/2,1);
+  				my center= GlobalPos(part,p1); 
+  				my direction= VectorSub(GlobalPos(part,p2), center);
+				info= call customLocalGetIntersectionInfo(center,direction,part);
+			}
+  			my lefttop = info['part'];
+  			ListAdd(bbparts, lefttop);
+
+  			my p1 = Vector(-l/2,0,1);
+  			my p2 = Vector(-l/2,-r,1);
+  			my center= GlobalPos(part,p1);
+			my direction= VectorSub(GlobalPos(part,p2), center);
+			my info= call customLocalGetIntersectionInfo(center,direction,part);
+			if (not info['part']) {
+				my p1 = Vector(0,-w/2,1);
+  				my p2 = Vector(-r,-w/2,1);
+  				my center= GlobalPos(part,p1); 
+  				my direction= VectorSub(GlobalPos(part,p2), center);
+				info= call customLocalGetIntersectionInfo(center,direction,part); 
+			}
+  			my leftbottom = info['part'];
+  			ListAdd(bbparts, leftbottom);
+  			
+  			my bbox = GlobalBoundingBox(bbparts, 1000);
+  			
+  			width = Round(VectorLength(VectorSub(PartPos(righttop), PartPos(rightbottom)))); 
+	  		length = Round(VectorLength(VectorSub(PartPos(rightbottom), PartPos(leftbottom)))); 
+  			
+  			for (my k: bbparts) {
+  				my direction = Vector(0,0, 15);
+  				my center = PartPos(k);
+  				my p1 = Vector(0.4,0.4,0);
+  				my center = GlobalPos(k, p1);
+  				center['z'] = 0;
+  				my info= call customLocalGetIntersectionInfo(center,direction,part);
+  				if (info['part'] ne null and PartPos(info['part'])['z'] le 14) {
+  					ListAdd(bottomparts, info['part']);
+  				}
+  			}
+  			
+  			if (Size(bbparts) ne Size(bottomparts)) {
+  				if (type eq 'value') {
+  					return false;
+  					
+  				}
+  				
+  			} else {
+  				for (my k: bottomparts) {
+  					my rohrdocks = ConnectedDocksOfType(k, 'kugel2rohr');
+  					if (Size(rohrdocks) eq 1) {
+  						if (type eq 'value') { 
+  							return false;
+  						}
+  						
+  					}
+  				}
+  			}
+  			
+  		};
+	  	{
+	  			
+	  		
+	  		my refkugel = SortByValue(FilterList(GetComponentListOfType('kugel'), 'p', `not (ConnectionId(p) eq ConnectionId(part));`), `PartPos(element)['z'];`)[0];
+	  		my z = PartPos(refkugel)['z'] -3;
+	  		my zdir = 5;
+	  		my step = 2.4;
+	  		my indexlist = IndexList(Floor(width/step));
+	  		my start = PartPos(rightbottom);
+	  		my start_offset = 1;
+	  		my direction = Vector(0,0,zdir);
+	  		
+	  		/* rechts */
+	  		for (my index: indexlist) {
+				
+				my dir = VectorSub(PartPos(righttop), PartPos(rightbottom)); 
+				dir = VectorNormalize(dir); 
+				my center = VectorAdd(start, VectorMult(dir, ((start_offset+index)*step)));
+				center['z'] = z; ;
+				ListAdd(pointlist[0], center);
+				
+				my info= GetIntersectionInfo(1000, Line(center, direction),'rohr', part);
+				if (info['part'] eq null and index lt (Size(indexlist)-1)) {
+					info= GetIntersectionInfo(1000, Line(center, direction),'kugel', part);
+				}
+				
+				ok = info['part'] ne null;
+				
+				if (not ok and type eq 'value') {
+					missing_count = missing_count + 1;
+					
+					break;
+				};
+				
+	  		};
+	  		
+	  		/* links */
+	  		my start = PartPos(leftbottom);
+	  		my indexlist = IndexList(Floor(width/step)-start_offset);
+	  		
+	  		for (my index: indexlist) {
+	  			my dir = VectorSub(PartPos(lefttop), PartPos(leftbottom)); 
+				dir = VectorNormalize(dir); 
+				my center = VectorAdd(start, VectorMult(dir, ((start_offset+index)*step)));
+				center['z'] = z; ;
+				ListAdd(pointlist[1], center);
+				
+				my info= GetIntersectionInfo(1000, Line(center, direction),'rohr', part);
+				if (info['part'] eq null and index lt (Size(indexlist)-1)) {
+					info= GetIntersectionInfo(1000, Line(center, direction),'kugel', part);
+				}
+				
+				ok = info['part'] ne null;
+				
+				if (not ok and type eq 'value') {
+					missing_count = missing_count + 1;
+					
+					break;
+				};
+	  		}
+	  		
+	  		/* oben */
+	  		my start =  PartPos(lefttop);
+	  		my indexlist = IndexList(Floor(length/(step+0.1)));
+	  		
+	  		for (my index: indexlist) {
+	  			my dir = VectorSub(PartPos(righttop), PartPos(lefttop)); 
+				dir = VectorNormalize(dir); 
+				my center = VectorAdd(start, VectorMult(dir, ((start_offset+index)*step)));
+				center['z'] = z; ;
+				ListAdd(pointlist[2], center);
+				
+				my info= GetIntersectionInfo(1000, Line(center, direction),'rohr', part);
+				if (info['part'] eq null and index lt (Size(indexlist)-1)) {
+					info= GetIntersectionInfo(1000, Line(center, direction),'kugel', part);
+				}
+				
+				ok = info['part'] ne null;
+				
+				if (not ok and type eq 'value') {
+					missing_count = missing_count + 1;
+					break;
+				};
+	  		}
+
+	  		/* unten */
+	  		my start =  PartPos(leftbottom);
+	  		my indexlist = IndexList(Floor(length/(step+0.1)));
+	  		
+	  		for (my index: indexlist) {
+	  			my dir = VectorSub(PartPos(rightbottom), PartPos(leftbottom)); 
+				dir = VectorNormalize(dir); 
+				my center = VectorAdd(start, VectorMult(dir, ((start_offset+index)*step)));
+				center['z'] = z; ;
+				ListAdd(pointlist[3], center);
+				
+				my info= GetIntersectionInfo(1000, Line(center, direction),'rohr', part);
+				if (info['part'] eq null and index lt (Size(indexlist)-1)) {
+					info= GetIntersectionInfo(1000, Line(center, direction),'kugel', part);
+				}
+				
+				ok = info['part'] ne null;
+				
+				if (not ok and type eq 'value') {
+					missing_count = missing_count + 1;
+					break;
+				};
+	  		}
+  		};
+  		
+  		
+  		if (missing_count gt 1 and type eq 'value') {
+  			ok = false;
+  		} else {
+  			ok = true;
+  		};
+  		
+  		if (type eq 'points') {
+  			return pointlist;
+  		};
+  		ok;	
+  		
+  };"/>
+  </function>
+
+<function description="Stabilitaet Theke wenn horiz. Einsatz eingebaut">
+	<param type="component"/>
+	<returnvalue type="BOOL" description="stabil"/>
+	<definition expression="def kugelStrukturEinsatzStabilitaet(part) {
+		my stabil = true;
+		my count = 0;
+		my rohr = null;
+		my groupid = '';
+		groupid = Feature(part,'_PXi_permanent_group_id');
+		/* Message(groupid); */
+		if (IsSubTypeOf(part,'einsatzverkleidung') and groupid eq '') {
+			rohr = DockGetConnectedPart(Dock(part,'blech2rohr','1'));
+			/* Message(rohr); */
+			groupid = rohr ? Feature(rohr,'_PXi_permanent_group_id') : groupid;
+		}
+		/* Message(groupid); */
+		my group_parts = call groupIdPartList(groupid);
+		my total_kugeln = FilterList(group_parts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+		my boden_kugeln = FilterList(total_kugeln,'element',`PartPos(element)['z'] gt 14;`);
+		my depth = PartAttr(part, 'width')/10;
+		my length = PartAttr(part, 'length')/10;
+		boden_kugeln = FilterList(boden_kugeln,'element',`not (Abs(Round(RelativePartPos(part, element)['x'], 0.01)) le length/2 and Abs(Round(RelativePartPos(part, element)['y'],0.01)) le depth/2);`);
+		/* Message(boden_kugeln); */
+		my rohre = List();
+		my hilfsrohre = 0;
+		my kugeln = List();
+		my match = 0;
+		/* Rohre holen */
+		my blechdocks = ConnectedDocksOfType(part, 'blech2rohr');
+		for (my dock : blechdocks) {
+			rohre = ListAdd(rohre,DockGetConnectedPart(dock));
+		}
+		/* Check ob Hilfsrohre vorhanden sind */
+		/* Hilfrohre haben eine pseudo Kugel eingebaut */
+		hilfsrohre = Size(FilterList(rohre,'element',` not IsSubTypeOf(element,'gewindehilfsrohr');`));
+		/* Alle verbundenen Kugeln holen */
+		for (my rohr : rohre) {
+			if (DockGetConnectedPart(Dock(rohr,'rohr2kugel','1')) NE null) {
+				kugeln = ListAdd(kugeln,DockGetConnectedPart(Dock(rohr,'rohr2kugel','1')));
+			}
+			if (DockGetConnectedPart(Dock(rohr,'rohr2kugel','2')) NE null) {
+				kugeln = ListAdd(kugeln,DockGetConnectedPart(Dock(rohr,'rohr2kugel','2')));
+			}
+		}
+		/* mehrfach gefundene Kugeln eliminieren */
+		kugeln = UniqueList(kugeln);
+		count = Size(kugeln);
+		/* Wenn Hilfsrohr, dann kann eine Kugel weniger auf dem Boden sein */
+		 count = count - hilfsrohre;
+		my bodenrohre = List();
+		/* hat jede Kugel ihr Gegenstueck auf dem Boden */
+		for (my kugel : kugeln) {
+			my kugelpos = PartPos(kugel);
+			for (my bkugel : boden_kugeln) {
+				my bkugelpos = PartPos(bkugel);
+				my xpos = Round(kugelpos['x'],0.1) eq Round(bkugelpos['x'],0.1);
+				my ypos = Round(kugelpos['y'],0.1) eq Round(bkugelpos['y'],0.1);
+				if ( xpos and ypos ) {
+					match = match + 1;
+					my rohre = FilterList(call connectedPartsByDockType(bkugel, 'kugel2rohr'), 'p', `not ((Round(PartPos(p)['z']) eq Round(PartPos(bkugel)['z'])));`);
+					rohre = FilterList(rohre,'element',`not (Abs(Round(RelativePartPos(part, element)['x'])) le length/2 and Abs(Round(RelativePartPos(part, element)['y'])) le depth/2);`);
+					for (my r: rohre) {
+						my rohr_kugel = FindPart(r, 'rohr2kugel',1);
+						if (rohr_kugel and not InList(bodenrohre, rohr_kugel)) {
+							ListAdd(bodenrohre, rohr_kugel);
+						}
+						my rohr_kugel = FindPart(r, 'rohr2kugel',2);
+						if (rohr_kugel and not InList(bodenrohre, rohr_kugel)) {
+							ListAdd(bodenrohre, rohr_kugel);
+						}
+					}
+				}
+			}	
+		}
+		/* wenn match gleich wie obere Kugeln ist es stabil */
+		stabil = match ge count;
+		my result = List();
+		result['stabil'] = stabil;
+		result['bodenkugeln'] = boden_kugeln;
+		result['rohrkugeln'] = bodenrohre;
+		return result;  
+	}"/>
+</function>
+
+<function description="Checks the stored Safety params">
+  <param description="co_safety_dummy" name="store" type="Object"/>
+  <returnvalue description="Value of stored Safety param" type="STRING"/>
+  <definition expression="def safetyParamStore(store,search) {
+		my param = '';
+		/* my store = call safetyDummy(call groupIdPartList(groupid)); */
+    my feature = 'f_' ++ search;
+    if(Bool(store)) {
+	    if (HasFeature(store,feature)) {
+	        param = Feature(store,feature);
+	    }
+	  }
+		return param;
+  }"/>
+</function>
+  
+
+<function description="Checks the stored Safety params">
+  <param description="co_safety_dummy" name="store" type="Object"/>
+  <returnvalue description="Sagety already calculated" type="BOOL"/>
+  <definition expression="def safetyAssigned(part) {
+		my assigned = false;
+		my groupid = Feature(part,'_PXi_permanent_group_id');
+		my group_parts = call groupIdPartList(groupid);
+		my store = call safetyDummy(group_parts);
+		if(store) {
+		assigned = Feature(store,'f_safetyAssigned');
+		}
+		return  assigned;
+		}"/>
+</function>
+
+<function>
+	<definition expression="
+def getSafetySet(part) {
+	my artnr = '';
+	my orientierungtiefe = String(Feature(part, 'f_ggwOrientierungTiefe'));
+	/* haller e nur relevant für normalblech in breite 395 */
+	my haller_e = Bool(Feature(part, 'f_hallerE')) and BeginsWith(GetTypeName(part), 'blech') and GetTypeName(part) ~ '_395' ? '1' : '0';
+	my table = TableRows(SAFETY,List('orientierungtiefe','haller_e'),List(orientierungtiefe,haller_e), false);
+	/* add the non haller_e rows  for fallback */
+	ListExtend(table, TableRows(SAFETY,List('orientierungtiefe','haller_e'),List(orientierungtiefe,'0'), false));
+	for (my e: table) {
+		my type = GetTypeName(part);
+		my types = StringToList(e['type'], ',');	
+		if (InList(types,type)) {
+			artnr = e['Anr'];
+			break;
+		};
+	};
+	return artnr;
+};	
+	
+	"/>
+</function>  
+
+</code>

@@ -1,0 +1,1137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code version="2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd" 
+ expression="global PRINTZONES = null; global PRINTZONES_CC = 0;"
+>
+	
+<function description="List of different PartGroup Ids inside a document">
+  <param description="allor usm_haller, usm_hallertisch, etc." type="STRING" />
+  <returnvalue description="PartGroupIds of a open ConfigDoc" type="LISTE" />
+  <definition expression="def partGroupIdList(cartridge) {
+    my grouplist = List();
+    my groupid = EnvValue('CO.GroupId'); /* von PO gesetzt */
+    my list = List();
+    if (StrLen(groupid) eq 0 ) {
+      /* direktes CO printing */
+	    list = GetComponentList();
+	    if (cartridge ne 'all') { 
+	      list = FilterList(list,'element',`cartridge ne GetCartridge(element);`);
+	    }
+	    
+	    for (my part : list) {
+	      groupid = Feature(part, '_PXi_permanent_group_id');
+	      if (groupid ge 0) {
+	      	ListAdd(grouplist,groupid);
+		     
+		  }
+	    }
+	    grouplist = UniqueList(grouplist);  
+    } else { 
+      /* von PO gesetzt */
+      if (cartridge eq EnvValue('CO.Print.Cartridge')) {
+        grouplist = List(groupid);
+      }
+    }
+    return grouplist;
+ }"/>
+</function>
+	
+<function description="Defines creation of overview">
+	<param name="caller" description="who is calling" type="STRING"/>
+	<param name="montage" description="2D/3D" type="STRING"/>
+	<param name="groupcounter" description="just for first ConfigPart" type="INT"/>
+  <returnvalue description="true/false" type="BOOL" />
+  <definition expression="def printOverview(caller,montage,groupcounter) {
+    my overview = false;
+    overview = (caller eq 'co' and EndsWith(montage,'3D') and groupcounter eq 1) or (caller eq 'po' and montage eq '3D');
+    return overview; 
+  }"/>
+</function>
+	
+<function description="Defines additional path to insert, if US-Letter Format">
+  <returnvalue description="additional path" type="STRING" />
+  <definition expression="def printFormatPathCO() {
+    my format = '';
+    if (EnvValue('PO2.PrintLayoutPDF') eq 'US-Letter') {
+       format = 'usa/';
+    }
+    return format; 
+  }"/>
+</function>
+	
+<function description="List of different PartGroup Ids inside a document">
+  <returnvalue description="PartGroup Infos of a open ConfigDoc" type="LISTE" />
+  <definition expression="def printPositionListCO() {
+    my printgrouplist = List();
+    my positionenlist = List();
+    my list = GetComponentList();
+    my group = '';
+    my pos = '';
+    my id = '';
+    my grouplist = List();
+    my groupidlist = List();
+    my groupnewlist = List();
+    my positionexistlist = List();
+    my printidlist = List();
+    my printlist = List();
+    my allidlist = List();
+    my j = 0;
+    my documentpos = FromJson(NodeValue(NamedNode('documentsettings'),'configdocument'))['name','position_number']['value'];
+    my positions = FromJson(NodeValue(NamedNode('documentsettings'),'configpart'));
+    my positionidlist = List();
+    
+    for (my i : IndexList(Size(positions))) {
+      positionidlist[i] = positions[i][0];
+    }
+    for (my i : IndexList(Size(list))) {
+       my groupid = USMPartGroupId(list[i]);
+       if (not InList(groupidlist,groupid)) {
+         groupidlist = ListAdd(groupidlist,groupid);
+         grouplist[j][0] = groupid;
+         grouplist[j][1] = 'Pos. ' ++ documentpos ++ '.' ++ (j+1);
+         grouplist[j][2] = GetCartridge(list[i]);
+         grouplist[j][3] = 'Neue Konfiguration_' ++ (j+1);
+         j = j + 1;
+       }  
+     } 
+     if (Size(positionidlist) ne 0) {
+     /* PO hat aber min. 1 Position */
+       for (my i : IndexList(Size(positions))) {
+          pos = positionidlist[i];
+          if (InList(pos, groupidlist)) {
+            positionexistlist = ListAdd(positionexistlist,pos);
+          }
+       }
+
+       for (my i : IndexList(Size(groupidlist))) {
+          group = groupidlist[i];
+          if (not InList(group, positionidlist)) {
+            groupnewlist = ListAdd(groupnewlist,group);
+          }
+       }
+       printlist = JoinList(grouplist,positions);
+       allidlist = JoinList(groupnewlist,positionexistlist);
+       for (my i : IndexList(Size(printlist))) {
+        for (my j : IndexList(Size(allidlist))) {
+         id = allidlist[j];
+         if (printlist[i][0] eq id and not InList(printidlist,id)) {
+           printidlist = ListAdd(printidlist,id);
+           printgrouplist = ListAdd(printgrouplist,printidlist[i]);
+         }
+        }
+       }
+
+    } else {
+      printgrouplist = grouplist;
+    }
+
+    return grouplist;
+   }"/>
+</function>
+
+<function description="List of different PartGroup Ids inside a document">
+  <param description="groupid" type="INT" />
+  <returnvalue description="all components with specific groupid" type="LISTE" />
+  <definition expression="def groupIdPartList(groupid) {
+  	my n = '_PXi_permanent_group_id';
+  	my partlist = FilterList(GetComponentList(),'element',`groupid ne Feature(element, n);`);
+  	/*
+    my partlist = FilterList(GetComponentList(),'element',`groupid ne USMPartGroupId(element);`);
+    */
+    
+    return partlist;
+ }"/>
+</function>
+
+<function description="Regalliste (groupid) ohne Printzonen">
+  <param description="cartridge usm_haller" type="String" />
+  <returnvalue description="groupids von Regalen ohne Printzone" type="LISTE" />
+  <definition expression="def setFirstPrintZone(cartridge) {
+	  my ohnezones  = List();
+	  my regal_ids = call partGroupIdList(cartridge);
+	  my zones = USMGetPrintZones();
+	  my zone_ids = List();
+	  for (my zone : zones) {
+	    zone_ids = ListAdd(zone_ids, zone['groupid']);
+	  }
+	  for (my id : regal_ids) {
+	    if (not InList(zone_ids, id)) {
+	      ohnezones = ListAdd(ohnezones, id);
+	    }
+	  } 
+	  return ohnezones;
+		}
+  "/>
+</function>
+
+<function description="List of different PartGroup Ids inside a document">
+  <param description="groupid" type="INT" />
+  <returnvalue description="all components with specific groupid" type="LISTE" />
+  <definition expression="def checkFullpageCount(pagecount_assembling, montage) {
+    my pages = pagecount_assembling;
+    if (montage eq '2D_and_3D') {
+      pages = pages + 1;
+    } else if (montage eq 'only_3D') {
+      
+      pages = 1;
+    }
+    return pages;
+ }"/>
+</function>
+
+<function description="Total Pages to print">
+  <param description="positions, Anzahl Moebel" type="INT" />
+  <param description="montage varianten" type="STRING" />
+  <param description="Mit oder ohne Inosboxen Symbolviewer" type="Bool" />
+  <returnvalue description="Anzahl Seiten" type="INT" />
+  <definition expression="def checkFullpageCountCO(positionen,montage,inos) {
+    my pages = 0; 
+    my groupId = '';
+    my groupcartridge = '';
+    my zoneId = '';
+    my groups = positionen;
+    my grouppages = Size(positionen); /* jede Gruppe hat sicher schon mal eine page */
+    my zones = USMGetPrintZones();
+    my hallerIds = 0;
+    my primoIds = 0;
+    my tischIds = 0;
+    my zonepages = 0;
+    for (my group : groups) {
+      groupId = group[0];
+      groupcartridge = group[2];
+      hallerIds = 0;
+      primoIds = 0;
+      tischIds = 0;
+      zonepages = 0;
+      for (my zone : zones) {
+        zoneId = zone['groupid'];
+        if (zoneId eq groupId) {
+          if (groupcartridge eq 'usm_hallertisch' or groupcartridge eq 'usm_kitos') {
+            tischIds = tischIds + 1;
+          }
+          if (groupcartridge['cartridge'] eq 'usm_haller') {
+            hallerIds = hallerIds + 1;
+          }
+          if (groupcartridge['cartridge'] eq 'usm_primo') {
+            primoIds = primoIds + 1;
+          }
+        }
+      }
+      if (hallerIds gt 1) {
+        /* erst wenn mehr als eine Zone definiert ist, braucht es zusaezliche Seiten */
+        zonepages = zonepages + (hallerIds -1);
+      }
+      if (primoIds gt 1) {
+        /* erst wenn mehr als eine Zone definiert ist, braucht es zusaezliche Seiten */
+        zonepages = zonepages + (primoIds -1);
+      }
+      if (tischIds gt 0) {
+      /* Tische brauchen pro Zone immer eine zusaezliche Seite */
+        zonepages = zonepages + tischIds;
+      }
+      if (Bool(inos)) {
+        grouppages = grouppages + Size(call inosMontageZones(groupId));
+      }
+      grouppages = grouppages + zonepages; 
+    }
+    pages = pages + grouppages;
+    if (montage eq '2D_and_3D') {
+      pages = pages + 1;
+    } else if (montage eq 'only_3D') {
+      pages = 1;
+    } else if (montage eq '2D_only') {
+      pages = pages;
+    } else if (montage eq 'currentView') {
+      pages = 1;
+    }
+    return pages;
+  }"/>
+</function>
+
+<function description="Haller-E">
+  <returnvalue description="transparent Elements" type="Bool" />
+    <definition expression="def transparentPrintHallerE(part) {
+      my active = false;
+      my transparent1 = IsSubTypeOf(part,'verkleidung') or IsSubTypeOf(part,'zwischenwand') or IsSubTypeOf(part,'ct_tablar');
+      my transparent2 = IsSubTypeOf(part,'ct_EinsaetzeAusruestung') or IsSubTypeOf(part,'metalltuer'); 
+      my transparent3 = IsSubTypeOf(part,'beschlag') or IsSubTypeOf(part,'stdklemmhalter') or IsSubTypeOf(part,'ct_inosBoxKonzept');
+      /* my transparent4 = not IsSubTypeOf(part,'rohrgriff') and GetTypeName(part) ne 'gCE_ContextZone'; */
+      active = transparent1 or transparent2 or transparent3 ;
+      return active;
+   }"/>
+</function>
+
+<function description="returns cached print zones">
+	<definition expression="def getPrintZones() {
+		my cc = ChangeCount('NC,NCE,CM,CEM', false);
+	    if (cc != PRINTZONES_CC or PRINTZONES == null) {
+	    	PRINTZONES_CC = cc;
+	    	PRINTZONES = USMGetPrintZones();
+	    }
+	    return PRINTZONES;
+	};
+	"/>
+</function>
+<function description="List of different PartGroup Ids inside a document">
+  <param description="groupid" type="INT" />
+  <returnvalue description="Alle prinzonenen zu einer groupid" type="LISTE" />
+  <definition expression="def groupIdZones(groupid) {
+    my groupzones = FilterList(USMGetPrintZones(),'zone',`zone['groupid'] ne groupid;`);
+    return groupzones;
+  }"/>
+</function>
+
+<function description="Conflict: printZoneTooBig ">
+  <returnvalue description="List of Zone Names" type="LIST" />
+  <definition expression="def printZoneTooBig() {
+my conflicts = List();
+my toobigs = List();
+my max = 320;
+my zones = USMGetPrintZones();
+zones = FilterList(zones,'element',`element['cartridge'] ne 'usm_haller';`);
+for (my zone : zones) {
+  if (zone['length'] gt max or zone['depth'] gt max) {
+    /* toobig = ListAdd(toobig,zone['parts'][0]); */
+    toobigs = ListAdd(toobigs,zone['name']);
+  }  
+}
+for (my toobig : toobigs) {
+    conflicts = JoinList(conflicts, call groupIdVolumeList(toobig));
+}
+return conflicts;
+}"/>
+</function>
+
+<function description="Has the symbolviewer to be turned">
+  <param description="zone" type="INT" />
+  <returnvalue description="turn yes/no" type="BOOL" />
+  <definition expression="def turnHallerMontageLayout(zone) {
+		my turn = false;
+		if (zone['length'] gt 300) {
+		  turn = true;
+		}
+		return turn;
+		}"/>
+</function>
+
+<function description="List of different PartGroup Ids inside a document">
+  <param description="groupid" type="INT" />
+  <returnvalue description="Alle prinzonenen zu einer groupid" type="LISTE" />
+  <definition expression="def groupIdMaterialCode(cartridge,groupid) {
+    my materialcode = '';
+    my materials = List();
+    my metalls =List();
+    my glasses =List();
+    my max = 0;
+    my size = 0;
+    my parts = call groupIdPartList(groupid);
+    if (cartridge eq 'usm_haller') {
+      metalls = FilterList(parts,'element',`not PropertyActive(element, 'metallverkleidungsFarbe');`);
+      glasses = FilterList(parts,'element',`not IsSubTypeOf(element,'glasverkleidung');`);
+      if (Size(metalls) gt Size(glasses)) {
+        materials = FeatureValuesFromPartList(metalls,'Metallfarbe');
+        for (my material : materials) {
+           size = Size(FilterList(metalls,'element',`Feature(element, 'Metallfarbe') ne material;`));
+           if (size gt max) {
+             max = size;
+             materialcode = material;
+           }
+        }
+      } else {
+        materialcode = '80';
+      }
+    }
+    return materialcode;
+  }"/>
+</function>
+
+	<function description="Sets the offset on which the abolutelayout is moved down (posy)">
+		<returnvalue description="the offset of the Y-Position that is added to the absolutelayout"/>
+		<definition expression="def projectInfoOffsetCO(pos) {
+			my offsetposy = 0;
+			my projectnamelength = StrLen(call printProjectInfoCO('nodename'));
+			
+			if (projectnamelength GT 27) {
+				offsetposy = 16;
+			}
+			if (projectnamelength GT 54) {
+				offsetposy = 32;
+			}
+			offsetposy;
+			if (pos eq 'id') {
+				my projectidlength = StrLen(call printProjectInfoCO('project_id'));
+	      
+	      if (projectidlength GT 27) {
+	        offsetposy = offsetposy + 16;
+	      }
+	      if (projectidlength GT 54) {
+	        offsetposy = offsetposy + 32;
+	      }
+      }
+      offsetposy;
+			return offsetposy;
+		}"/>
+	</function>
+	
+	<function description="Gets the values for projectname, project ID and user ID">
+		<param name="mode" description="the information that is needed" type="string"/>
+		<returnvalue description="Value of the information" type="String"/>
+		<definition expression="def printProjectInfoCO(mode) {
+			my string = '';
+			my infonode = FromJson(NodeValue(NamedNode('documentsettings'),'projectinfos'));
+			string = infonode['name',mode]['value'];
+			return string;
+		}"/>
+	</function>
+	
+	<function description="Gets the values for pos number and pos name">
+		<param name="mode" description="the information that is needed" type="string"/>
+		<returnvalue description="Value of the information" type="String"/>
+		<definition expression="def printDocumentInfoCO(mode) {
+      my string = '';
+      my infonode = FromJson(NodeValue(NamedNode('documentsettings'),'configdocument'));
+      string = infonode['name',mode]['value'];
+      string = Trim(string);
+      return string;
+    }"/>
+	</function>
+	
+	<function description="Gets the VEP/SUP title for the delivery date and the date itself">
+		<param name="mode" description="title or date" type="string"/>
+		<returnvalue description="VEP/SUP delivery date title or actual delivery date" type="String"/>
+		<definition expression="def printDeliverydateCO(mode) {
+			my delivery = '';
+			my date = '';
+			my infonode = FromJson(NodeValue(NamedNode('documentsettings'),'projectinfos'));
+			my printsetting_customer = infonode['name','printsetting_customer']['value'];
+			
+			if (printsetting_customer) {
+				date = infonode['name','deliverydate_customer']['value'];
+			} else {
+				date = infonode['name','delivery_date']['value'];
+			}
+			
+			if (mode EQ 'title') {
+				if (StrLen(date) gt 2 AND not printsetting_customer) {
+					delivery = delivery ++ Localize('Lieferdatum ab Werk');
+				} else if (StrLen(date) gt 2 AND printsetting_customer) {
+					delivery = delivery ++ Localize('Lieferdatum an Kunde');
+				}
+			} else if (mode EQ 'date') {
+				if (IsCalendarWeek(date)) {
+					delivery = delivery ++ Localize('Kalenderwoche') ++ ' ' ++ GetWeek(date);
+				} else {
+					delivery = delivery ++ FormatDateSystem(date,FALSE);
+				}
+			}
+			return delivery;
+		}"/>
+	</function>
+	
+	<function description="Gets the Values for the actual date and the purchase ordernumber">
+		<param name="mode" description="definition of the info/values needed (date or ordernumber)" type="string"/>
+		<returnvalue description="actual date or ordernumber" type="String"/>
+		<definition expression="def printDateOrdernumberCO(mode) {
+			my string = '';
+			my infonode = FromJson(NodeValue(NamedNode('documentsettings'),'projectinfos'));
+			my purchaseorder = infonode['name','purchaseorder']['value'];
+			my printdate = FormatDateSystem(ActualDate(), FALSE);
+			
+			if (mode EQ 'actualdate') {
+				string = string ++ printdate;
+			} else if (mode EQ 'ordernumber') {
+				if (StrLen(purchaseorder)) {
+					string = string ++ purchaseorder;
+				}
+			}
+			return string;
+		}"/>
+	</function>
+	
+	<function description="Gets the partneraddress recorded in the P'X5 settings">
+		<param name="short" description="short version is without country" type="boolean"/>
+		<param name="underlined" description="fills the spaces with underlines" type=""/>
+		<returnvalue description="Partneraddress with (long) or without (short) country" type="string"/>
+		<definition expression="def printPartnerAdressCO(short,underlined) {
+      my partneraddress = '';
+      my streetaddress = '';
+      my location = '';
+      my infonode = FromJson(NodeValue(NamedNode('documentsettings'),'partneraddress'));
+      my companyname = infonode['name','company_name']['value'];
+      my streetname = infonode['name','street']['value'];
+      my streetnumber = infonode['name','street_number']['value'];
+      my zipcode = infonode['name','zip']['value'];
+      my city = infonode['name','city']['value'];
+      my state = infonode['name','state']['value'];
+      my country_iso = infonode['name','country']['value'];
+      my country = Localize(countrycodes['iso',country_iso]['name']);
+      my layouttyp = infonode['name','layouttyp']['value'];
+      
+      if ( not Bool(StrLen(layouttyp)) ) {
+        layouttyp = 'europe';
+      }
+      /* Street Layout */
+      if (layouttyp eq 'europe') {
+        streetaddress = streetname ++ ' ' ++ streetnumber;
+      } else if (StrLen(streetnumber) gt 0) {
+        if (layouttyp eq 'france') { 
+          streetaddress = streetnumber ++ ', ' ++ streetname;
+        } else {
+          streetaddress = streetnumber ++ ' ' ++ streetname;
+        }
+      }
+      /* Location Layout */
+      location = zipcode ++ ' ' ++ city;
+      if (layouttyp eq 'usa') {
+        if (StrLen(state) gt 0) {
+          location = city ++ ' ' ++ state ++ ' ' ++ zipcode;
+        } else {
+          location = city ++ ' ' ++ zipcode;
+        }
+      }
+      
+      /* Address Layout */
+      partneraddress = companyname++', '++streetaddress++', '++location;
+            
+      if (StrLen(partneraddress) gt 6) {
+        /* Long-Address Layout */       
+        if (not Bool(short)) {
+          partneraddress = partneraddress++', '++country;
+        }
+        /* Underlined Address Layout */
+        if (underlined) {
+          partneraddress = StrReplace(partneraddress, ' ', '_');
+        }
+      } else {
+        /* no Address entries */
+        partneraddress = '';
+      }
+      return partneraddress;
+    }"/>
+	</function>
+	
+	<function description="Gets the communication address recorded in the settings of P'X5">
+		<param name="fontactive" description="are font control characters transcribed?" type="boolean"/>
+		<returnvalue description="Communication address of the Partner" type="string"/>
+		<definition expression="def printPartnerCommunicationCO(fontactive) {
+			my communication = '';
+			my phonenumber_central = '';
+			my list = List();
+			my infonode = FromJson(NodeValue(NamedNode('documentsettings'),'partneraddress'));
+			my website = infonode['name','website']['value'];
+			
+			if (StrLen(infonode['name','tel_central']['value'])) {
+				phonenumber_central = Localize('Telefon') ++ ' ' ++ infonode['name','tel_central']['value'] ++ ', ';
+			}
+			
+			my email = '';
+			my company_email = infonode['name','email_company']['value'];
+			if (StrLen(company_email)) {
+				email = company_email++', ';
+				
+				/* if the control characters for the font are transcribed for the output,
+				a second '@' has to be added */
+				if (fontactive) {
+					list = StringToList(email,'@');
+					email = list[0] ++ '@@'++ list[1] ++ ', ';
+				}
+				
+			}
+			communication = phonenumber_central ++ email ++ website;
+			return communication;
+		}"/>
+	</function>
+	
+	<function description="Gets the communication address recorded in the settings of P'X5">
+		<param name="fontactive" description="are font control characters transcribed?" type="boolean"/>
+		<returnvalue description="Communication address of the Partner" type="string"/>
+		<definition expression="def setAddrLayoutType(adrnode,country) {
+      my layouttyp = adrnode['name','layouttyp']['value'];   
+      if (StrLen(layouttyp) eq 0) {
+        layouttyp = 'europe';
+        if (country eq 'FR') { 
+        layouttyp = 'france';
+       }else if (country eq 'US') {
+        layouttyp = 'usa';
+       }
+      }
+      return layouttyp;
+     }
+    "/>
+ </function>
+
+	<function description="Gets the values or the order address">
+		<returnvalue description="string containing the address" type="string"/>
+		<definition expression="def printOrderAddressCO(){
+      my orderaddress = '';
+      my adrnode = FromJson(NodeValue(NamedNode('documentsettings'),'cust_orderaddress'));
+      my country_iso = adrnode['name','country']['value'];
+      my country = Localize(countrycodes['iso',country_iso]['name']); 
+      my projectinfos = FromJson(NodeValue(NamedNode('documentsettings'),'projectinfos'));
+      my layouttyp = projectinfos['name','printsetting_layouttyp']['value'];
+      my street = Trim(adrnode['name','street']['value']);
+      /* FROM SF CRM multiple lines inside street with ; separator */
+      street = StrReplace(street, ';', '@n');
+      my house =  adrnode['name','street_number']['value'];
+      my number = StrLen(house) gt 0;
+      my zip = adrnode['name','zip']['value'];
+      my city = adrnode['name','city']['value'];
+      my state = adrnode['name','state']['value'];
+      
+      my pob = Trim(adrnode['name','pob']['value']);
+      
+      my tabl= List();
+      tabl[0] = adrnode['name','company_name']['value'];
+      tabl[1] = adrnode['name','company_addition']['value'];
+      my salute = call salutationChoice('name', adrnode['name','salutation']['value']);
+      if(StrLen(salute) gt 0){
+      	tabl[2] = salute ++' ' ++ adrnode['name','first_name']['value'] ++ ' ' ++ adrnode['name','last_name']['value'];
+     	}
+      else{
+	      tabl[2] = adrnode['name','first_name']['value'] ++ ' ' ++ adrnode['name','last_name']['value'];
+      }
+      tabl[2] = Trim(tabl[2]);
+      
+      if (number) {
+        if (layouttyp eq 'europe') {
+          tabl[3] = street ++ ' ' ++ house;
+        } else if (layouttyp eq 'france') {
+          tabl[3] = street ++ ', ' ++ house;
+        } else {
+          tabl[3] = house ++ ' ' ++ street;
+        }
+      } else {
+        tabl[3] = street;
+      }
+      tabl[3] = Trim(tabl[3]);
+      tabl[4] = adrnode['name','address_addition']['value'];
+      if (layouttyp ne 'usa' and StrLen(pob) gt 0) {
+        tabl[5] = Localize('POB') ++' '++ pob ++ '@n' ++ zip ++ ' ' ++ city ++ '@n' ++ country;
+      } else if (layouttyp ne 'usa' and StrLen(pob) eq 0) {
+        tabl[5] = zip ++ ' ' ++ city ++ '@n' ++ country;
+      }
+      else if (layouttyp eq 'usa' and StrLen(pob) gt 0) {
+        tabl[5] = Localize('POB') ++' '++ pob ++ '@n'++ city ++ ' ' ++ state ++ ' ' ++ zip;
+      }
+      else {
+        tabl[5] = city ++ ' ' ++ state ++ ' ' ++ zip;
+      }
+      tabl[5] = Trim(tabl[5]);
+      
+      for (my zeile : tabl) {
+        if (StrLen(zeile) gt 3) {
+          orderaddress = '@/100' ++ orderaddress ++ zeile ++ '@n';
+        }
+      }
+      ;
+      return orderaddress;
+    }"/>
+	</function>
+	
+	<function description="Gets the colorcode and its description">
+		<param name="groupid"/>
+		<returnvalue description="string containing the colorcode and description" type="string"/>
+		<definition expression="def printMaterialAsListCO(groupid,param_cartridge) {
+			my materiallist = List();
+			my cartridge = param_cartridge;
+			my elements_by_groupid = call groupIdPartList(groupid);
+			my colorfeatures = List();
+			my inos_elements = List();
+			my glashalter = List();
+			my glasverkleidung = List();
+			my colorlist_compressed = List();
+			
+			if (InList(List('usm_hallertisch','usm_kitos'),cartridge)) {
+				return materiallist;
+			} else {
+				if (cartridge EQ 'usm_haller') {
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('Metallfarbe',cartridge,1)));
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('f_inosBoxMaterial','INOS',2)));
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('f_inosBoxUnterteilungMaterial','INOS',2)));
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('Schalentypmaterial','INOS',2)));
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('Beschlaegematerial','pty_Beschlaegematerial',3)));
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('Glasmaterial',cartridge,1)));
+				} else if (cartridge EQ 'usm_primo') {
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('f_primoMaterial',cartridge,4)));
+					ListAdd(colorfeatures,Dictionary(List('name','cartridge','headerindex'),List('f_primoMaterialBi',cartridge,4)));
+				}
+				my elements = List();
+				for (my colorfeature : colorfeatures) {
+					elements = JoinList(elements,FilterList(elements_by_groupid,'element',`NOT HasFeature(element,colorfeature['name']);`));
+				}
+				colorlist_compressed = call colorListCOCompressed(elements,colorfeatures);
+				materiallist = Sort(colorlist_compressed,`element1['colorcode'] GT element2['colorcode'] ? 1 : (element1['colorcode'] LT element2['colorcode'] ? -1 : 0);`);
+				return materiallist;
+			}
+		}"/>
+	</function>
+	
+	<function description="CREATES A LIST OF LOCKS USED IN CONFIGPART">
+		<param name="groupid"/>
+		<returnvalue description="List as String of Locks to print in header_materials1.xml" type="string"/>
+		<definition expression="def printSchlossListCO(groupid) {
+      my schlossprintstring = '';
+      my schlosslist = List();
+      my list = List();
+      my schlossname = Localize('Schloss-Nr');
+      my filename = EnvValue('PO2.VUH.FullPath');
+      my list = Load(filename, 'header', 'moebel');
+      list = AsList(list);
+      if (Size(list) gt 0) {
+        schlossprintstring = '@n';
+        schlosslist = CompressTable(list,List('static','article','locknr','lockid'),List('count'));
+        for (my schloss : schlosslist) {
+          if (schloss['staticid'] eq groupid) {
+            schlossprintstring = schlossprintstring ++ schlossname ++ ' ' ++ schloss['locknr'] ++ '@n';
+          }
+        }
+        schlossprintstring;
+      }
+      return schlossprintstring;
+    }"/>
+	</function>
+	
+	 <function description="">
+    <param name="mode" description="the needed value"/>
+    <returnvalue description="full position number" type="string"/>
+    <definition expression="def colorListCOCompressed(elements,colorfeatures) {
+        my colorlist_compressed = List();
+        my colorcode = '';
+        my colordescription = '';
+        my colorlist = List();
+        my first = '';
+        for (my element : elements) {
+          for (my feature : colorfeatures) {
+            if (HasFeature(element,feature['name'])) {
+              colorcode = Feature(element,feature['name']);
+              if (colorcode EQ 'glas_haller') {
+                colorcode = '80';
+              }
+              if (colorcode EQ 99) {
+                colordescription = Localize('Sonderfarbe');
+              } else {
+                colordescription = colornames['Farbcode',colorcode]['Bezeichnung_'++UpperCase(EnvValue('DYNAMIC.Language'))];
+                first = UpperCase(SubStr(colordescription,0,1));
+                colordescription = first ++ SubStr(colordescription,1);
+              }
+              ListAdd(colorlist,Dictionary(List('colorcode','colordescription','cartridge','headerindex'),List(colorcode,colordescription,feature['cartridge'],feature['headerindex'])));
+            }
+          }
+        } 
+        colorlist_compressed = CompressTable(colorlist,List('cartridge','colorcode'),List());
+       return colorlist_compressed;
+    }"/>
+  </function>
+	
+	<function description="Gets the materiallist as a String">
+	  <param name="groupid" description="groupid des Einzelmoebels oder bei uebersicht groupid = all"/>
+    <param name="cartridge" description="cartridge des Einzelmoebels oder bei uebersicht cartridge = overview"/>
+		<returnvalue description="string of the materials and its cartridge" type="string"/>
+		<definition expression="def printHeaderMaterialsCO(groupid,cartridge) {
+      my materiallist = List();
+      my string = '';
+      my empty = '';
+      my max = 11;
+      my rows = List();
+      my size = 0;
+      my schlossnummern = '';
+      my cartridges = List('usm_haller','usm_primo');
+      my groupids = List();
+      my ids_loop = List();
+      my list = List();
+      my dictionary = List();
+      if (cartridge eq 'overview') {
+        for (my i : List(0,1)) {
+          ids_loop = call partGroupIdList(cartridges[i]);
+          for (my j : IndexList(Size(ids_loop))) {
+            dictionary = Dictionary(List('groupid','cartridge'),List(ids_loop[j],cartridges[i]));
+            ListAdd(groupids,dictionary);
+          }
+        }
+      } else {
+         groupids = List(Dictionary(List('groupid','cartridge'),List(groupid,cartridge)));
+      }
+      my materials = List();
+      for (my gid : groupids) {
+        materials = JoinList(materials,call printMaterialAsListCO(gid['groupid'],gid['cartridge']));
+      }
+      materials = CompressTable(materials,List('cartridge','colorcode'),List());
+      materials = SortByValue(materials,`element['headerindex'];`);
+      my materials_sorted = List();
+      my cartridgelist = CompressTable(materials,List('cartridge'),List());
+
+      if (cartridge EQ 'usm_haller') {
+        cartridgelist = FilterList(cartridgelist,'row',`row['cartridge'] eq 'usm_primo';`);
+      } else if (cartridge EQ 'usm_primo') {
+        cartridgelist = FilterList(cartridgelist,'row',`row['cartridge'] ne 'usm_primo';`);
+      } 
+      my temp = List();
+      for (my type : cartridgelist) {
+        temp = FilterList(materials,'row',`row['cartridge'] NE type['cartridge'];`);
+        temp = Sort(temp,`element1['colorcode'] GT element2['colorcode'] ? 1 : (element1['colorcode'] LT element2['colorcode'] ? -1 : 0);`);
+        materials_sorted = JoinList(materials_sorted,temp);
+      }
+      materials_sorted;
+      
+      my cartridge_materials = List();
+      for (my type : cartridgelist) {
+        string = string ++ '@n' ++ '@-@-' ++ Localize(type['cartridge']) ++ '@+@+';
+        cartridge_materials = FilterList(materials_sorted,'row',`row['cartridge'] NE type['cartridge'];`);
+        cartridge_materials = FilterList(cartridge_materials,'row',`row['colordescription'] EQ '';`);
+        for (my material : cartridge_materials) {
+          string = string ++ '@n' ++ material['colorcode'] ++ ' ' ++ material['colordescription'];
+        }
+      }
+      return string;
+    }"/>
+	</function>
+	
+	
+	
+	<function description="">
+	  <param name="groupid" description="groupid des Einzelmoebels oder bei uebersicht groupid = all"/>
+		<param name="column" description="Layoutposition first,second "/>
+		<returnvalue description="String of Materials and Locks" type="string"/>
+		<definition expression="def printDynamicHeaderMaterialsCO(groupid,column) {
+      my string = '';
+      my rows = List();
+      my size = 0;
+      my max = 11; /* maximale Anzahl Zeilen */
+      my cartridge = '';
+      my zones = List();
+      my parts = List();
+      my schlossnummern = List();
+      my empty = List();
+      if (groupid ne 'all') {
+        zones = call groupIdZones(groupid);  
+        cartridge = zones[0]['cartridge'];
+        if (StrLen(cartridge) eq 0) {
+          parts = call groupIdPartList(groupid);
+          cartridge = GetCartridge(parts[0]);
+        }
+      } else {
+        cartridge = 'overview';
+      }
+      
+      string = call printHeaderMaterialsCO(groupid,cartridge);
+      
+      if (cartridge eq 'usm_haller') {
+        schlossnummern = call printSchlossListCO(groupid);
+        if (StrLen(schlossnummern) gt 3) {
+          string = string ++ '@n' ++ '@-@-' ++ Localize('Schlossnummer') ++ '@+@+';
+          string = string ++ schlossnummern;
+        }
+      }
+      /* zuschneiden der List fuer 1. Reihe und 2. Reihe */
+      rows = StringToList(string,'@n');
+      empty = ListRemoveFirst(rows);
+      size = Size(rows);
+      if (column eq 'first' and size gt max) {   
+        string = '';
+        for (my i : IndexList(max)) {
+          string = string ++ '@n' ++ rows[i];
+        }
+      } else if (BeginsWith(column,'second') and size gt max) {    
+        if (size le 2*max) {
+          string = '';
+          for (my i : call indexList(max, 1, size-max)){
+            string = string ++ '@n' ++ rows[i];
+          }
+        } else if (size gt 2*max) {
+          string = '';
+          for (my i : call indexList(max, 1, max - 1)) { 
+            string = string ++ '@n' ++ rows[i];
+          }
+          string = string ++ '@n' ++ Localize('...');
+        }
+          
+      } else if (BeginsWith(column,'second') and size lt max) {
+        string = '';
+      } 
+      return string;
+    }"/>
+	</function>
+	
+	<function description="">
+		<param name="mode" description="the needed value"/>
+		<returnvalue description="full position number" type="string"/>
+		<definition expression="def printHeaderMaterialsCO2(prodline,groupid,column) {
+		   my string = '';
+		   my product = prodline;
+		   if (prodline eq 'usm_haller') {
+		      product = 'usm_halleraddons';
+		   }
+		   string = call printHeaderMaterialsCO(product,List(Dictionary(List('groupid','cartridge'),List(groupid,prodline))),column);
+		   return string;
+		}"/>
+	</function>
+	
+	<function description="">
+		<param name="mode" description="the needed value"/>
+		<returnvalue description="full position number" type="string"/>
+		<definition expression="def printPartInfoCO(groupid,mode){
+      my string = '';
+      my configid = groupid;
+      my list = FromJson(NodeValue(NamedNode('documentsettings'),'configpart'));
+      list = FilterList(list,'row',`row[0] NE configid;`);
+      if (Size(list) eq 0) {
+        configid = groupid;
+        list = call printPositionListCO();
+        list = FilterList(list,'row',`row[0] NE configid;`);
+      }
+      
+      list = list[0];
+      
+      if (mode eq 'posnr') {
+        string = list[1];
+      } else if (mode eq 'nodename') {
+        string = list[3];
+      } else if (mode eq 'furnituretype') {
+        string = list[2];
+      }
+      return string;
+    }"/>
+	</function>
+	
+	
+	<function description="">
+		<param name="cartridge" description="USM productline"/>
+		<returnvalue description="print yes/no" type="BOOL"/>
+		<definition expression="def doCartridgePrint(caller,prodline,montage,cartridge) {
+      my doprint = false;
+      my docartridge = prodline eq cartridge;
+      if (caller eq 'co') {
+        doprint = docartridge and BeginsWith(montage,'2D');
+      } else if (BeginsWith(caller,'po')) {
+        doprint = docartridge and montage eq cartridge;
+      }
+      return doprint;
+    }"/>
+	</function>
+	
+	<function description="">
+		<param name="groupid" description="GroupId Shelf"/>
+		<returnvalue description="Zones to Print" type="List"/>
+		<definition expression="def montageZones(groupid) {
+			my zones = call groupIdZones(groupid);
+			 if (not Bool(Size(zones))){
+			   zones = List(1);
+			} 
+			
+			return zones;
+	  }"/>
+	</function>
+	
+	<function description="">
+		<param name="groupid" description="GroupId Shelf"/>
+		<returnvalue description="Inos Zones to Print" type="List"/>
+		<definition expression="def inosMontageZones(groupid) {
+			my inoszones = List();
+			my zones = call montageZones(groupid);
+			my parts = call groupIdPartList(groupid);
+			if (FilterList(parts,'element',`not IsSubTypeOf(element,'ct_inosBox');`)[0]) {
+			  inoszones = zones;
+			}	
+			return inoszones;
+	  }"/>
+	</function>
+	
+	<function description="">
+		<param name="groupid" description="GroupId Shelf"/>
+		<returnvalue description="Printzone Fuesse, List() wenn alle fuesse gleich, List(0), wenn keine Printzome gesetzt" type="List"/>
+		<definition expression="def montageZonesFuss(groupid) {
+      my fusszones = List();
+      my fuesse = List();
+      my parts = call groupIdPartList(groupid);
+      my bodenelemente = FilterList(parts,'element',`not IsSubTypeOf(element,'bodenelement');`);
+      for (my i : IndexList(Size(bodenelemente))) {
+        fuesse[i] = GetTypeName(bodenelemente[i]);
+      }
+      fuesse = UniqueList(fuesse) ;
+      /* wenn es mehr als eine Sorte Fuesse gibt */
+      if (Size(fuesse) gt 1) {
+        fusszones = call groupIdZones(groupid);
+        if (Size(fusszones) eq 0) {
+        /* wenn keine Printzone gesetzt ist */
+          fusszones = List(0);
+        }
+      }
+      return fusszones;
+    }"/>
+	</function>
+	
+	<function description="">
+		<param name="groupid" description="GroupId Shelf"/>
+		<returnvalue description="Haller-E Zones to Print" type="List"/>
+		<definition expression="def montageZonesHallerE(groupid) {
+      my hallerEzones = List();
+      my zones = call montageZones(groupid);
+      my parts = call groupIdPartList(groupid);
+      parts = FilterList(parts,'element',`not IsSubTypeOf(element,'kugel_std');`);
+      parts = FilterList(parts,'element',`not HasFeature(element,'f_hallerE');`);
+      my ekugel = FilterList(parts,'element',`not Feature(element,'f_hallerE') eq 'true';`)[0];
+      if (ekugel) {
+        hallerEzones = zones;
+      } 
+      return hallerEzones;
+    }"/>
+	</function>
+	
+	<function description="">
+		<param name="groupid" description="GroupId Shelf"/>
+		<returnvalue description="Haller Vitrine Electric Zones to Print" type="List"/>
+		<definition expression="def montageZonesHallerElectric(groupid) {
+      my electriczones = List();
+      my zones = call montageZones(groupid);
+      my parts = call groupIdPartList(groupid);
+      parts = FilterList(parts,'element',`not IsSubTypeOf(element,'leitgestaenge');`);
+      if (parts[0]) {
+        electriczones = zones;
+      } 
+      return electriczones;
+    }"/>
+	</function>
+	
+	<function description="Zaehlt die Montageseiten von Haller zusammen">
+		<param name="groupid" description="GroupId Shelf"/>
+		<returnvalue description="Montagepages pro Möbel" type="Number"/>
+		<definition expression="def pageCountMontage(groupid) {
+      my pagecount = 0;
+      my montage = Size(call montageZones(groupid));
+      my fuss = Size(call montageZonesFuss(groupid));
+      my hallerE = Size(call montageZonesHallerE(groupid));
+      my electric = Size(call montageZonesHallerElectric(groupid));
+      my inos = Size(call inosMontageZones(groupid));
+      pagecount = montage + fuss + hallerE + electric + inos;
+      return pagecount;
+    }"/>
+	</function>
+	
+	<function description="Liefert List von Haller Moebeln mit ihren Monatgepages für PO">
+		<returnvalue description="GroupId mit Montagepages der Haller Regale" type="List von Listen als Json"/>
+		<definition expression="def pageCountHallerAssembly() {
+		  my hallerpagecounts = '';
+		  my count = 0;
+		  my groupidlist = call partGroupIdList('usm_haller');
+		  my pagecount = List();
+		  my pagecounts = List();
+		  for (my groupid :  groupidlist) {
+		     count = call pageCountMontage(groupid);
+		     pagecount = List(groupid,count);
+		     pagecounts = ListAdd(pagecounts,pagecount);
+		  }
+		  hallerpagecounts = ToJson(pagecounts);
+		  return hallerpagecounts;
+		}"/>
+	</function>
+	
+	<function description="checkt ob eine Hallergruppe mehr als 2100mm bzw. 6x350 hoch ist">
+		<param description="die groupid" name="groupid" type="int"/>
+		<returnvalue description="check" type="boolean"/>
+		<definition expression="def checkVolumeHeigthForMontage(groupid) {
+			my layout_hoch = false;
+			my volumes = call groupIdVolumeList(groupid);
+			my volpos = List();
+			my height = 0;
+			my volume_sum_list = List();
+			my partposx = 0;
+			my partposy = 0;
+			for (my volume : volumes) {
+				ListAdd(volpos,PartPos(volume));
+			}
+			volpos = CompressTable(volpos,List('x','y'),List());
+			for (my  pos : volpos) {
+				height = 0;
+				volume_sum_list = List();
+				for (my volume : volumes) {
+					partposx = Round(PartPos(volume)['x']);
+					partposy = Round(PartPos(volume)['y']);
+					if (partposx EQ Round(pos['x']) AND partposy EQ Round(pos['y'])) {
+						volume_sum_list = JoinList(volume_sum_list,volume);
+					}
+				}
+				for (my volume : volume_sum_list) {
+					height = height + Feature(volume,'zlength');
+				}
+				if (height GT 210) {
+					layout_hoch = true;
+					break;
+				}
+			}
+			return layout_hoch;
+		}"/>
+	</function>
+	
+	<!-- <function description="checkt ob eine Primogruppe mehr als 2450mm hoch ist">
+		<param description="die groupid" name="groupid" type="int"/>
+		<returnvalue description="check" type="boolean"/>
+		<definition expression="def checkPrimoHeigthForMontage(groupid) {
+		
+			my primoHoch = false;
+			
+			my zones = call groupIdZones(groupid);
+			my parts = zones[0]['parts'];
+			my height = 0;
+			my partPosZ = 0;
+			my maxHeight = 245;
+			
+			for (my part : parts) {
+				partPosZ = Round(PartPos(part)['z']);
+				if (partPosZ GT height) {
+					height = partPosZ;
+				}		
+				if (height GT maxHeight) {
+					primoHoch = true;
+					break;
+				}		
+			}						
+			return primoHoch;
+		}"/>
+	</function> -->
+	
+	<function description="checkt ob eine Primogruppe mehr als 2450mm hoch ist">
+		<param description="Printzone" name="zone" type="int"/>
+		<returnvalue description="Ist ein PPs zu hoch fuer normales Print-Layout" type="boolean"/>
+		<definition expression="def checkPrimoHeigthForMontage(zone) {    
+      my primoHoch = false;
+      my hochlist = List();
+      my parts = zone['parts'];
+      my maxHeight = 210;
+      
+      hochlist = FilterList(parts,'element',`PartPos(element)['z'] le maxHeight;`);  
+      /* Falls die Zonen-Definition auch noch parts der Nachbarpanels erwischt, die höher sind */  
+      primoHoch = Size(hochlist) gt 10;
+      
+      return primoHoch;
+    }"/>
+	</function>
+	
+	<!-- MF 05,03,2019 -->
+	<!-- There is a function with the same name in PO - this is due to a function in shared needing to be called from both sides. but in CO we need less functionality here. -->
+	<function description="returns the most accurated customer_language ">
+    <returnvalue description="de,en,fr,it,es" type="String" />
+    <definition expression="def customerLang(mode) {
+    	my custdefaultlang = FromJson(NodeValue(NamedNode('documentsettings'),'cust_orderaddress'))['name','customer_language']['value'];
+        my lang = 'de';  
+        my langlist = List('de','en','es','fr','it');
+        if ( InList(langlist, custdefaultlang )){
+           lang = custdefaultlang;
+        }
+        return lang;
+       }" />
+  </function>
+	
+	<function description="returns if the part should be drawn">
+    <returnvalue description="exluded" type="Bool" />
+    <definition expression="def categoryDrawNot(part,groupid,zone) {
+    	my excluded = false;
+      my parts = zone['parts'];
+      if (Size(parts) gt 3 and Size(call groupIdZones(groupid)) gt 1) {
+        excluded = not InList(zone['parts'],part);
+      } else {
+        excluded = USMPartGroupId(part) ne groupid;
+      }
+      return excluded;
+      }" />
+  </function>
+	
+</code>

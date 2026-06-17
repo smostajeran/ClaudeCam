@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code expression="
+global CO_GLOBAL = List();
+global partnertable = List();
+
+" version="2"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd">
+   <function description="">
+      <definition expression="def mapIconBarIdToRepresentation(id){
+      	if (id == 'usm_haller') {
+      		return 'IconBar_Regal';
+      	}
+      	if (id == 'usm_hallertisch') {
+      		return 'IconBar_Tisch';
+      	}
+      	if (id == 'usm_addons') {
+      		return 'IconBar_Addons';
+      	}
+      	if (id == 'space_configurator') {
+      		return 'iconbar_space';
+      	}
+		return id;
+};"/>
+   </function>
+   
+   <function description="It creates a mapping between a specific Topic Id and a Topic Guider Representation.">
+    <param name="id" type="String" description="The Topic Id."/>
+    <returnvalue type="String" description="Returns id of the "/>
+    <definition expression="def mapTopicIdToRepresentation(id) {
+      /* return 'topicguider_usm_hallertisch'; */
+      return 'topicguider_usm_haller';
+}
+    "/>
+  </function>
+
+  <function description="It creates a mapping between a specific Topic Id and a Topic Guider Representation.">
+    <param name="id" type="String" description="The Topic Id."/>
+    <returnvalue type="String" description="Returns id of the "/>
+    <definition expression="def volumeBorderPosition(part,direction) {
+      my visible = true;
+      /* my groupid = USMPartGroupId(GetVolumeRefParts(vol)[0]);
+
+			my volumes = call groupIdVolumeList(groupid);	
+			volumes = FilterList(volumes,'element',`Round(PartPos(element)['z']) ne Round(PartPos(vol)['z']);`);
+      
+      */
+      return visible;
+}
+    "/>
+  </function> 
+  <function description="tested, ob auf der usm printzone teile stehen.">
+  	<param name="usmzone" description="usm printzone von USMGetPrintZeones()"/>
+  	<definition expression="
+def hasPartsOnPrintZone(usmzone) {
+	my p1= Vector(0,0,-10);
+	my p2= Vector(0,0,400);
+	/*p1 and p2 define the intersection ray in the local coordinate system of the 
+	 part*/
+	my zonepos = PolyCentroid(usmzone['pointlist']); 
+	my center= VectorAdd(zonepos, p1);
+	my direction= VectorSub(VectorAdd(zonepos,p2), center);
+	/* center and direction are now in the global coordinate system */
+	my info= GetIntersectionInfo(1000, Line(center, direction),'', null);
+	
+	if (info['part'] ne null) {
+	  return true;
+	} else {
+	  return false;
+	};
+};  	
+  	"/>
+  </function>
+  <function name="setCategory" description="which elements should be changed by category expression">
+	<param name="category id"/>
+	<returnvalue description="true false"/>
+	<definition expression="def setCategory(id) {
+			my state = false;
+		  if (id eq 'blacklines') {
+		  	state = IsSubTypeOf('rohr') or IsSubTypeOf('kugel') or 
+				        IsSubTypeOf('tischbein') or IsSubTypeOf('tischzarge') or 
+				        IsSubTypeOf('ct_saeule') or IsSubTypeOf('traegerrohr') or 
+				        IsSubTypeOf('ct_saeule_e_tisch') or IsSubTypeOf('ct_saeule_m_tisch');
+      } else if (id eq 'onlylines') {
+						state = IsSubTypeOf('ct_tischblatt');
+			} else if (id eq 'transparent') {  	
+						state = (IsSubTypeOf('haller_shelf_component') or 
+		                 IsSubTypeOf('ct_primo') or 
+		                 IsSubTypeOf('haller_table_component') or 
+		                 IsSubTypeOf('ct_kitos_component') or 
+		                 IsSubTypeOf('ct_kastenset')) 
+		                 and not call setCategory('blacklines')
+		                 and not IsSubTypeOf('tischblatt') 
+		                 and not call setCategory('onlylines');
+		      }
+      return state;
+    }
+"/>
+</function>
+</code>

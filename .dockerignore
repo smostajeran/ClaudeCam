@@ -1,8 +1,8 @@
 .git
 .claude
 node_modules
-out
 oracle
 *.pxpz
 database.xml
-data
+out/*
+!out/model.json

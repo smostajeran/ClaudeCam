@@ -1,0 +1,835 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd"
+  expression="">
+<function>
+  <param name="vertex"/>
+  <definition expression="def reachableFrom(vertex) {
+  my ret = List();
+  for (my td: ConnectedDocksOfType(vertex, 'kugel2rohr')) {
+    my t = DockGetConnectedPart(td);
+    for (my t2s: ConnectedDocksOfType(t, 'rohr2kugel')) {
+      my nextVertex = DockGetConnectedPart(t2s);
+      if (nextVertex ne vertex) {
+        ret = ListAdd(ret, 
+          List(nextVertex, call edgeCost(vertex, nextVertex))
+        );
+      }
+    }
+  }
+  
+  for (my td: ConnectedDocksOfType(vertex, 'gewinde2rohr')) {
+    my t = DockGetConnectedPart(td);
+    for (my t2s: ConnectedDocksOfType(t, 'rohr2kugel')) {
+      my nextVertex = DockGetConnectedPart(t2s);
+      if (nextVertex ne vertex) {
+        ret = ListAdd(ret, 
+          List(nextVertex, call edgeCost(vertex, nextVertex))
+        );
+      }
+    }
+     
+    for (my t2s: ConnectedDocksOfType(t, 'dt_rohr2gewinde')) {
+      my nextVertex = DockGetConnectedPart(t2s);
+      if (nextVertex ne vertex) {
+        ret = ListAdd(ret, 
+          List(nextVertex, call edgeCost(vertex, nextVertex))
+        );
+      }
+    }
+    
+  }
+  ret;
+}"/>
+</function> 
+
+<function>
+<definition expression="def edgeCost(v1, v2) {
+	my tube = call tubeBetween(v1, v2);
+	my tname =  GetTypeName(tube);
+
+	if (BeginsWith(tname, 'rohr')) {
+		return 1;
+	}
+	if (StringContains(tname, 'fraesrohr')) {
+		return 1;
+	}
+	if (BeginsWith(tname, 'gewhilfsrohr')) {
+		return 0.5;
+	}
+	Message('CoverPanel AppCode Logic Exception: connected via ' ++ tname);
+}"/>
+</function>
+
+<function>
+<definition expression="def isSphere(v) {
+	BeginsWith(GetTypeName(v), 'kugel_std');
+}"/>
+</function>
+	
+<function>
+	<param name="path"/>
+	<definition expression="def invert(path) {
+	call rotateToSmallest(ListReverse(path));
+}"/>
+</function>
+
+<function>
+<param name="list"/>
+<definition expression="def argMin(list) {
+	my min = ListMin(list);
+	for (my i: IndexList(Size(list))) {
+		if (list[i] eq min) {
+			return i;
+		}
+	}
+}"/>
+</function>
+
+<function>
+<param name="list"/>
+<param name="n"/>
+<definition expression="def rotate(list, n) {
+	my cpy1 = CopyList(list);
+	my cpy2 = CopyList(list);
+	JoinList(ListSplice(cpy1, n, -1, List()),
+			  ListSplice(cpy2, 0, n, List()));
+}"/>
+</function>
+
+<function>
+<param name="path"/>
+<definition expression="def rotateToSmallest(path) {
+/* avoid sorting pointers */
+	my uuids = call listMap(path, 'PartUniqueId(x)');
+	call rotate(path, call argMin(uuids));
+	}
+"/>
+</function>
+
+<function>
+<param name="path"/>
+<param name="graph"/>
+<definition expression="def findCycles(path, cost, graph) {
+	if (cost gt 3.99) {
+		return;
+	}
+	my start_node = path[0];
+	my next_node = null;
+	my sub = List();
+	global cycles = List();
+	
+	for(my edge: graph) {
+		my v1 = edge[0];
+		my v2 = edge[1];
+		if (v1 eq start_node or v2 eq start_node) {
+			if (v1 eq start_node) {
+				next_node = v2;
+			}
+			if (v2 eq start_node) {
+				next_node = v1;
+			}
+
+			if (not InList(path, next_node)) {
+				my sub = ListAddFirst(CopyList(path), next_node);
+				call findCycles(sub, cost + edge[2], graph);
+			} else {
+				if (Size(path) gt 2 and next_node eq path[Size(path)-1]) {
+					my p = call rotateToSmallest(path);
+					if (not InList(cycles, p) and not InList(cycles, call invert(p))) {
+						cycles = ListAdd(cycles, p);
+					}
+				}
+			}
+		}
+	}
+}"/>
+</function>
+
+<function>
+<definition expression="def isTubeVertex(p) {
+	BeginsWith(GetTypeName(p), 'gewrohr');
+}"/>
+</function>
+
+<function>
+<definition expression="def isVertex(p) {
+	not (GetTypeName(p) eq 'kugel_std' or call isTubeVertex(p));
+}"/>
+</function>
+
+<function>
+<param name="part"/>
+<returnvalue type="List"/>
+<definition expression="def graphFromPart(tubes) {
+	/* my connections = GetComponentListOfConnectionId(ConnectionId(part)); */
+/*	my selections = GetSelectedComponentList('mainstructure');*/
+	/* my spheres = IntersectList(connections, selections); */
+	my spheres = FilterList(tubes, 'p', 'call isVertex(p);');
+	my undir_edges = List();
+	my fwd = List();
+	my bwd = List();
+	for (my v1: spheres) {
+		for (my v2: call reachableFrom(v1)) {
+			fwd = List(v1, v2[0], v2[1]);
+			bwd = List(v2[0], v1, v2[1]);
+			if (not InList(undir_edges, fwd) and not InList(undir_edges, bwd)) {
+				undir_edges = ListAdd(undir_edges, List(v1, v2[0], v2[1]));
+			}
+		}
+	}
+	return List(spheres, undir_edges);
+}"/>
+</function>
+
+<function>
+<definition expression="def vectorAbs(v) {
+	Vector(Abs(v['x']), Abs(v['y']), Abs(v['z']));
+}"/>
+</function>
+
+<function>
+<param name="part"/>
+<definition expression="def cyclesFromPart(tubes) {
+my graph = call graphFromPart(tubes);
+my vertices = graph[0];
+my undir_edges = graph[1];
+my cycles = List();
+for (my v: vertices) {
+	call findCycles(List(v), 0.0, undir_edges);
+}
+cycles;
+}"/>
+
+
+</function>
+
+<function>
+<param name="s1"/>
+<param name="s2"/>
+<definition expression="def tubeBetween(v1, v2) {
+	my k2r_1 = call connectedPartsByDockType(v1, 'kugel2rohr');
+	my k2r_2 = call connectedPartsByDockType(v2, 'kugel2rohr');
+	my g2r_1 = call connectedPartsByDockType(v1, 'gewinde2rohr');
+	my g2r_2 = call connectedPartsByDockType(v2, 'gewinde2rohr');
+	IntersectList(JoinList(k2r_1, g2r_1), JoinList(k2r_2, g2r_2))[0];
+}"/>
+</function>
+
+<function>	
+<param name="v1"/>
+<param name="v2"/>
+<definition expression="def vectorMax(v1, v2) {
+	Vector(Max(v1['x'], v2['x']), Max(v1['y'], v2['y']), Max(v1['z'], v2['z']));
+}"/>
+</function>
+
+
+<function>
+<param name="v1"/>
+<param name="v2"/>
+<definition expression="def vectorMin(v1, v2) {
+	Vector(Min(v1['x'], v2['x']), Min(v1['y'], v2['y']), Min(v1['z'], v2['z']));
+}"/>
+</function>
+
+
+<function>
+	<param name="t1"/>
+	<param name="t2"/>
+	<definition expression="def maxScrewTube(t1, t2) {
+	my len1 = SubStr(GetTypeName(t1), 12);
+	my len2 = SubStr(GetTypeName(t2), 12);
+	if (len1 > len2) {
+		return t1;
+	} else {
+		return t2;
+	}
+}"/>
+</function>
+
+
+<function>
+<definition expression="def tubesFromCycle(cy) {
+	my ret = List();
+	my n = Size(cy);
+	my i = 0;
+	while(i lt n) {
+		my continue = false;
+		my c1 = cy[i % n];
+		my c2 = cy[(i + 1) % n];
+		my t = call tubeBetween(c1, c2);
+		my tubeName = GetTypeName(t);
+		if (BeginsWith(tubeName, 'gewhilfsrohr')) {
+			my c3 = cy[(i + 2) % n];
+			my nextTube = call tubeBetween(c2, c3);
+			my nextTubeName = GetTypeName(nextTube);
+			if (BeginsWith(nextTubeName, 'gewhilfsrohr')) {
+				ret = ListAdd(ret, call maxScrewTube(t, nextTube));
+				i = i + 2;
+				continue = true;
+			}
+		}
+		if (not continue) {
+			ret = ListAdd(ret, t);
+			i = i + 1;
+		}
+	}
+	ret;
+}"/>
+</function>
+
+<function>
+<definition expression="def dockDist(dock, x0) {
+	VectorLength(VectorSub(GlobalPos(DockGetPart(dock), DockPos(dock)), x0));
+}"/>
+</function>
+
+<function>
+<definition expression="def closestDock(tube, x0) {
+  my ds = DocksOfType(tube, 'rohr2blech');
+  my dists = call listMap(ds, 'call dockDist(x, x0)');
+  ds[call argMin(dists)];
+}"/>
+</function>
+
+<function>
+<definition expression="def polyCentroid(points) {
+  my centerpoint = Vector();
+  my center = Vector(0,0,0);
+  my count = Size(points);
+  if (count) {
+	  for (my point : points) {
+	   center = VectorAdd(center, point);
+	  }
+	  centerpoint = VectorMult(center, 1.0/count);
+  }
+  return centerpoint;
+}"/>
+</function>
+
+<function>
+<definition expression="def fixCenterpoint(tPoss, centerpoint) {  
+  /* -------        -------  
+     |  +  |        |  |  |
+     |  |  |   ->   |  +  |
+     |  |  |        |  |  |
+     -------        -------
+  */
+  if (Size(tPoss) eq 4) {
+    /* create crossing lines*/
+    my lines = List();
+    lines[0] = Line(tPoss[0], VectorSub(tPoss[2], tPoss[0]));
+    lines[1] = Line(tPoss[1], VectorSub(tPoss[3], tPoss[1]));
+    my angle = VectorAngle(lines[0]['direction'], lines[1]['direction']);
+    if (Abs(angle - PI/2.0) gt PI/4.0) {
+      lines[0] = Line(tPoss[0], VectorSub(tPoss[1], tPoss[0]));
+      lines[1] = Line(tPoss[2], VectorSub(tPoss[3], tPoss[2]));
+    }
+    /* check if centerpoint is at half position of each line
+    otherwise correct centerpoint
+    */
+    for (my line : lines) {
+      my halfDir = VectorSub(line['origin'], centerpoint);
+      my len1 = VectorLength(halfDir);
+      my len2 = VectorLength(line['direction']);
+      my delta = len1 - len2 / 2.0;
+      if (Abs(delta) gt 1) {
+        my corr = VectorMult(halfDir, delta/2.0/len1);
+        centerpoint = VectorAdd(centerpoint, corr);
+      }
+    }
+  }
+  return centerpoint;
+}"/>
+</function>
+
+<function>
+<definition expression="def cycleToDocks(cy) {
+  my ret = List();
+  my dockposlist = List();
+  my ts = call tubesFromCycle(cy);
+  my tPoss = call listMap(ts, 'PartPos(x)');
+  
+  my centerpoint = call polyCentroid(tPoss); 
+  centerpoint = call fixCenterpoint(tPoss, centerpoint);
+  for (my t: ts) {
+    ret = ListAdd(ret,call closestDock(t, centerpoint));
+  }
+  /* panel center again because: center of gewindeholfsrohr is not center of panel */
+  dockposlist = call listMap(ret, 'GlobalDockPos(x,Vector(0,0,0))');
+  centerpoint = call polyCentroid(dockposlist);
+  return List(ret, centerpoint);
+}"/>
+</function>
+
+<function>
+<definition expression="def cycleToPanel(cy) {
+	my ps = call listMap(cy, 'RelativePartPos(cy[0], x)');
+	my hull = call chebyshevHull(ps);
+	my v = call vectorAbs(VectorSub(hull[1], hull[0]));
+	v['x'] = Round(10*v['x']);
+	v['y'] = Round(10*v['y']);
+	v['z'] = Round(10*v['z']);
+	my ret = null;
+	if (v['x'] eq 0) {
+		ret = List(v['y'], v['z']);
+	}
+	if (v['y'] eq 0) {
+		ret = List( v['x'], v['z']);
+	}
+	if (v['z'] eq 0) {
+		ret = List(v['x'], v['y']);
+	}
+	ret;
+}"/>
+</function>
+
+<function>
+<definition expression="def allValidBlechSizes() {
+	my bleche250 = 	List(List(250,100), List(250,150), List(250, 175), List(250, 250), List(250, 350), List(250, 395), List(250, 500), List(250,750));
+	my bleche350 = 	List(List(350,100), List(350,150), List(350, 175), List(350, 350), List(350, 395), List(350, 500), List(350, 750));
+	my bleche395 = 	List(List(395,100), List(395,150), List(350, 175), List(395, 395));
+	my bleche500 = 	List(List(500,100), List(500,150), List(500, 175), List(500, 395), List(500, 500), List(500, 750));
+	my bleche750 = 	List(List(750,100), List(750,150), List(750, 175), List(750, 395));
+	return JoinList(bleche250, JoinList(bleche350, JoinList(bleche395, JoinList(bleche500, bleche750))));
+}"/>
+</function>
+
+<function>
+<definition expression="def validGlasElement(glastype) {
+  my valid = false;
+  my glas250 =  List('glas250_250', 'glas250_350', 'glas250_395', 'glas250_500', 'glas250_750');
+  my glas350 =  List('glas350_350', 'glas350_395', 'glas350_500', 'glas350_750');
+  my glas500 =  List('glas500_395', 'glas500_500', 'glas500_750');
+  my glaslist = JoinList(glas250,JoinList(glas350, glas500));
+  valid = InList(glaslist,glastype);
+  return valid;
+}"/>
+</function>
+
+<function>
+<definition expression="def dimsToMaybeComp(x, y) {
+  my validBlechSizes =call allValidBlechSizes();
+	if (InList(validBlechSizes, List(x, y))) {
+		return 'blech' ++ x ++ '_' ++ y;
+	}
+	if (InList(validBlechSizes, List(y, x))) {
+		return 'blech' ++ y ++ '_' ++ x;
+	}
+	'None';
+}"/>
+</function>
+
+<function>
+<definition expression="def alreadyHasPanel(panelDocks) {
+	for (my d: panelDocks) {
+		if (DockGetConnectedDock(d) ne null	) {
+			return true;
+		}
+	}
+	false;
+}"/>
+</function>
+
+<function>
+<definition expression="def equalLines(line1, line2) {
+  if (LinesAreParallel(line1, line2)) {
+    return LineDistance(line1, line2) lt 0.01;
+  }
+  return false;
+}"/>
+</function>
+
+<function>
+<definition expression="def sortCycleChain(masterLine, cycle) {
+/* determine the signed distance of the cycles center to the masterLine origin. */
+  my dir = VectorSub(masterLine['origin'], cycle['center']);
+  my dist = VectorLength(dir);
+  if (dist lt 0.1) {
+    return 0;
+  }
+  return VectorCosAngle(dir, masterLine['direction']) * dist;
+
+}"/>
+</function>
+<function description="returns angle from 2d vector v1 to v2 in degress from 0 to 360">
+  <definition expression="def angleFromTo(v1, v2) {
+		my z = Vector(0,0,1);
+		my n = VectorCrossProduct(v1,z);
+		
+		if (VectorCosAngle(n,v2) lt 0) {
+		  return VectorAngle(v1,v2) / Pi *180;
+		} 
+    return -VectorAngle(v1,v2) / Pi *180 + 360;
+  }"/>
+</function>
+<function description="">
+  <definition expression="def straightLineCiycles(ret) {
+	  /* determine cycles on same straightLine */
+	  my chains = List();
+	  for (my entry : ret) {
+	    my cycleLine = Line(entry['center'], entry['normal']);
+	    my chain = null;
+	    for (my c : chains) {
+	     if (call equalLines(c['line'], cycleLine)) {
+	       chain = c;
+	       break;
+	     }
+	    }
+	    if (chain eq null) {
+	     chain['line'] = cycleLine;
+	     chain['cycles'] = List();
+	     ListAdd(chains, chain);
+	    }
+	    ListAdd(chain['cycles'], entry);
+	  }
+	  return chains;
+  }"/>
+</function>
+
+<function>
+<definition expression="def panelsOf(tubes) { 
+  my ret = List();
+  my nullPt = Vector(0,0,0);
+  my validBlechSizes = call allValidBlechSizes();
+  my cycles = call cyclesFromPart(tubes);
+  /* WriteInfoLog('ccc: ' ++ DumpToString(cycles)); */
+  my panels = call listMap(cycles, 'call cycleToPanel(x)');
+  my MaybePanels = call listMap(panels, 'call dimsToMaybeComp(x[0], x[1])');
+  /* WriteInfoLog('mmm: ' ++ DumpToString(MaybePanels)); */
+  my idx = IndexList(Size(MaybePanels));
+  idx = FilterList(idx, 'i', 'MaybePanels[i] eq `None`;');
+  for (my i: idx) {
+    my docks = call cycleToDocks(cycles[i]);
+    my entry = List();
+    entry['docks'] = docks[0];
+    entry['center'] = docks[1];
+    /* calculate normal */
+    
+    entry['normal'] = VectorCrossProduct(VectorSub(GlobalDockPos(entry['docks'][0],nullPt), entry['center']), 
+                VectorSub(GlobalDockPos(entry['docks'][1],nullPt), entry['center']));
+    entry['normal'] = VectorNormalize(entry['normal']);
+    entry['type'] = MaybePanels[i];
+    ret = ListAdd(ret, entry);
+  }
+  my chains = call straightLineCiycles(ret);
+  
+  for (my chain : chains) {
+   my masterLine = chain['line'];
+   my isHorizontal = Abs(chain['line']['direction']['z']) lt 0.1;
+   if (isHorizontal) {
+     chain['cycles'] = SortByValue(chain['cycles'], 'call sortCycleChain(masterLine, element);');
+     /* angle between camera direction and chain['line']['direction'] must be used for determining:*/
+     /* based on camera line identify left most right most front and back cycle and mark */
+     my cam = ViewerInfo('1000', 'camera')['camera'];
+     my camdir = VectorSub(cam['lookat'], cam['eyep']);
+     camdir['z'] = 0;
+     my angle = call angleFromTo(camdir, chain['line']['direction']);
+     my chainSize = Size(chain['cycles']);
+     if (angle lt 45 or angle gt 315) {
+       /* looking from front */
+       if (chainSize gt 1) {
+        chain['cycles'][chainSize-1]['skip'] = true;
+      }
+       for (my c : chain['cycles']) {
+        if (VectorCosAngle(chain['line']['direction'], c['normal']) lt 0) {
+          c['flip'] = true;
+        }
+       }
+     }
+     if (angle ge 45 and angle le 135) {
+       /* looking from right */
+       my first = true;
+       for (my c : chain['cycles']) {
+        if (VectorCosAngle(chain['line']['direction'], c['normal']) gt 0) {
+          if (!first) {
+            c['flip'] = true;
+          }
+        } else {
+          if (first) {
+            c['flip'] = true;
+          }
+        }
+        first = false;
+       }
+       
+     }
+     if (angle gt 135 and angle lt 225) {
+       /* looking from back */
+       if (chainSize gt 1) {
+         chain['cycles'][0]['skip'] = true;
+        }
+       for (my c : chain['cycles']) {
+        if (VectorCosAngle(chain['line']['direction'], c['normal']) gt 0) {
+          c['flip'] = true;
+        }
+       }
+     }
+     if (angle ge 225 and angle le 315) {
+       /* looking from left */
+       my first = true;
+       for (my c : chain['cycles']) {
+        if (VectorCosAngle(chain['line']['direction'], c['normal']) gt 0) {
+          if (!first) {
+            c['flip'] = true;
+          }
+        } else {
+          if (first) {
+            c['flip'] = true;
+          }
+        }
+        first = false;
+       }
+     }
+   } else {
+    for (my c : chain['cycles']) {
+        if (VectorCosAngle(Vector(0,0,1), c['normal']) lt 0) {
+          c['flip'] = true;
+        }
+       }
+   }
+  } 
+  ret = FilterList(ret, 'r', 'call alreadyHasPanel(r[0]);');
+  ret;
+}"/>
+</function>
+
+
+<function name="connectedPartsByDockType" description="Gennerates a List of Parts, connected throught a Docktype">
+<param name="part"/>
+<param name="docktype"/>
+<returnvalue description="List of connected Parts of a Docktype" type="List"/>
+<definition expression="def connectedPartsByDockType(part, docktype) {
+  my connectedparts = List();
+  for (my d: ConnectedDocksOfType(part, docktype)) {
+    connectedparts = ListAdd(connectedparts, DockGetConnectedPart(d));
+  }
+  return connectedparts;
+}"/>
+</function>
+
+<function>
+<param name="xs"/>
+<definition expression="def chebyshevHull(xs) {
+	my max = Vector(-1e100, -1e100, -1e100);
+	my min = Vector(1e100, 1e100, 1e100);
+	for (my x: xs) {
+			min = call vectorMin(min, x);
+			max = call vectorMax(max, x);
+	}
+	return List(min, max);
+}"/>
+</function>
+
+<function>
+<param name="xs"/>
+<param name="f"/>
+<definition expression="def listMap(xs, f) {
+	my ret = List();
+	for(my x: xs) {
+		ret = ListAdd(ret, Eval(f));
+	}
+}"/>
+</function>
+
+<!-- Additional Functions after  calling panelsOf(part)-->
+<function>
+<param name="panel" description="createpart"/>
+<returnvalue description="Liste mit: dockindex, dock und zugehoerige Seitenlaenge" type="List"/>
+<definition expression="def dockLengthList(panel) {
+  my docklengthlist = List();
+  my dock = null;
+  my dockposx = Vector();
+  my dockposy = Vector();
+  my length = PartAttr(panel,'length');
+  my width = PartAttr(panel,'width');
+  my lengthM = length/10/2;
+  my widthM = width/10/2;
+  for(my index: List(1,2,3,4)) { 
+    dock = Dock(panel,'blech2rohr',index);
+    dockposx = Abs(DockPosX(dock));
+    dockposy = Abs(DockPosY(dock));
+    if (InRange(lengthM - 2,lengthM + 2, dockposx) or InRange(lengthM - 2,lengthM + 2, dockposy)) {
+      docklengthlist[index-1] = List(index,dock,width);
+    } else if (InRange(widthM - 2,widthM + 2, dockposx) or InRange(widthM - 2,widthM + 2, dockposy)) {
+      docklengthlist[index-1] = List(index,dock,length); 
+    }
+  }
+  return docklengthlist;
+}"/>
+</function>
+
+<function>
+<param name="docks" description="possible docks to connect"/>
+<returnvalue description="Liste mit: dockindex, dock und zugehoerige Seitenlaenge" type="List"/>
+<definition expression="def dockTubeLengthList(docks) {
+  my docktubelengthlist = List();
+  my length = 0;
+  my dock = null;
+  my tube = null;
+  my index = 0;
+  for(my i: IndexList(Size(docks))) { 
+    dock = docks[i];
+    tube = DockGetPart(dock);
+    /* if (not BeginsWith(GetTypeName(tube),'gewhilf')) { */
+      /* gewhilfsrohre entsprechen nicht immer den Blechdimensionen, daher ungeeignet zu docken */
+      length = PartAttr(tube,'hc_length');
+      index = DockGetIndex(docks[i]);
+      docktubelengthlist[i] = List(index,dock,length);
+    /* } */
+  }
+  return docktubelengthlist;
+}"/>
+</function>
+
+<function>
+<param name="docks" description="possible docks to connect"/>
+<returnvalue description="Liste mit: dockindex, dock und zugehoerige Seitenlaenge" type="List"/>
+<definition expression="def matchDockList(docktubelengthlist,docklengthlist) {
+  my matchlist = List();
+  my paneldock = null;
+  my tubedockset = docktubelengthlist[0];
+  my tubedock = tubedockset[1];
+  my tubelength = tubedockset[2];
+  my panellength = 0;
+  for(my paneldockset: docklengthlist) { 
+    panellength = paneldockset[2];
+    if (tubelength eq panellength) {
+       paneldock = paneldockset[1];
+       break;
+    }
+  }
+  matchlist = List(tubedock,paneldock);
+  return matchlist;
+}"/>
+</function>
+
+<function>
+	<param name="dockpositions" description="Dock positionen für ein Blech"/>
+	<returnvalue description="Mittelpunkt des neuen Blechs" type="Vector"/>
+	<definition expression="def midPointPanel(positions) {
+		my midpoint = Vector(0,0,0);
+		my localpos = Vector(0,0,0);
+		my points = List(Vector(),Vector(),Vector(),Vector());
+		for (my i : List(0,1,2,3)) {
+		  points[i] = GlobalDockPos(positions[i], localpos);  
+		}
+		my direction1 = VectorSub(points[0],points[2]);
+		my direction2 = VectorSub(points[1],points[3]);
+		my line1 = Line(points[0],direction1);
+		my line2 = Line(points[1],direction2);
+		midpoint =LineIntersection(line1, line2);
+		return midpoint;
+		}"/>
+</function>
+
+<function>
+  <param name="dockpositions" description="Dock positionen für ein Blech"/>
+  <returnvalue description="Rotation des neuen Blechs" type="Vector"/>
+  <definition expression="def rotationPanel(positions) {
+    my rot = Vector();
+    my localpos = Vector(0,0,0);
+    my p1 = GlobalDockPos(positions[0], localpos);
+    my p2 = GlobalDockPos(positions[1], localpos);
+    my p3 = GlobalDockPos(positions[2], localpos);
+    my p4 = GlobalDockPos(positions[3], localpos);
+
+    my center = VectorMult(VectorAdd(p1, VectorAdd(p2, VectorAdd(p3, p4))), 0.25);
+
+    my xdir = VectorSub(p1, center);
+    my ydir = VectorSub(p2, center);
+    if (VectorLength(xdir) gt VectorLength(ydir)) {
+      rot =  AxesDeltaRotation(Vector(1,0,0), Vector(0, 1, 0), xdir, ydir);
+    } else {
+      rot =  AxesDeltaRotation(Vector(1,0,0), Vector(0, 1, 0), ydir, xdir);
+    }
+   /* AxesDeltaRotation(Vector(1,0,0), Vector(0, 1, 0), xdir, ydir); */
+    return rot;
+}"/>
+</function>
+
+<function>
+	<param name="panel" description="Nicht eingebautes Blech"/>
+	<returnvalue description="true/false connected" type="Bool"/>
+	<definition expression="def noconnectedPanel(panel) {
+		my noconnected = null; 
+    if (not DockGetConnectedPart(Dock(panel,'blech2rohr',1))) {
+       noconnected = panel;
+    }                      
+    return noconnected;
+		}"/>
+</function>
+
+<function>
+	<param name="panel" description="neu erzeugtes Panel"/>
+	<returnvalue description="Panel zum Loeschen" type="Part"/>
+	<definition expression="def doppelBlech(panel) {
+    my deletepanel = null;
+    my connections = ConnectedDockCount(panel, 'blech2rohr');
+       if (connections lt 3) {
+         deletepanel = panel;
+       }
+    return deletepanel;
+    }"/>
+</function>
+
+<function>
+	<param name="panel" description="neu erzeugtes Panel"/>
+	<returnvalue description="Panel zum Loeschen" type="Part"/>
+	<definition expression="def fraesrohrPair() {
+		my fraesrohrpairs = GetSelectedComponentList('mainstructure');
+		
+		return fraesrohrpairs;
+		
+		}"/>
+</function>
+
+
+<function>
+	<param name="part" description="Selected component"/>
+	<returnvalue description="Fraesrohr Paar" type="Liste"/>
+	<definition expression="def fraesrohrBlechInfo(pair) {
+		my info = List();
+		my points = List();
+		my center = Vector();
+		my rotation = Vector();
+		my width = 0;
+		my type = '';
+		my length = Number(PartAttr(pair[0],'hc_length'));
+		my dist = RelativePartPos(pair[0], pair[1]);
+		my dx = Abs(Round(dist['x']));
+		my dy = Abs(Round(dist['y']));
+		my dz = Abs(Round(dist['z']));
+		
+		
+		if (dy eq 0 and dz eq 0) {
+		    width = Round(Abs(dist['x']));
+		} else if (dx eq 0 and dz eq 0) {
+		    width = Round(Abs(dist['y']));
+		} else {
+		    width = Round(Abs(dist['z']));
+		}
+		
+		width = width * 10;
+		
+		if (length eq PartAttr(pair[1],'hc_length')) {
+		  rotation = Vector(0,0,0);
+		  points[0] = VectorSub(PartPos(pair[0]),Vector(0,-length/20,0));
+		  points[1] = VectorSub(PartPos(pair[0]),Vector(0,length/20,0));
+		  points[2] = VectorSub(PartPos(pair[1]),Vector(0,-length/20,0));
+		  points[3] = VectorSub(PartPos(pair[1]),Vector(0,length/20,0));
+		} 
+		
+		center = call polyCentroid(points);
+		type = call dimsToMaybeComp(width, length);
+		
+		info['type'] = type;
+		info['position'] = center;
+		info['rotation'] = rotation;
+		
+		return info;
+		
+		}"/>
+</function>
+
+</code>

@@ -1,0 +1,1774 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<code expression="
+global g_table = List();
+global CO_GLOBAL = List();
+global PROTOCOL_LIST = List();
+global partnertable = List();
+global parameters = Load(Expand('${DYNAMIC.CustomDir}') ++ '/../data/ApplicationData/parameters.xml', 'parameters');
+global validdate_view_priceold = Date(parameters['name','validdate_view_priceold']['value']);
+global usm_price_gap = Number(validdate_view_priceold - ActualDate());
+global conflicts = List();
+global VALIDITY = List();
+
+global VALID_COLORS = List();
+ListAdd(VALID_COLORS, '22');
+ListAdd(VALID_COLORS, '23');
+ListAdd(VALID_COLORS, '24');
+ListAdd(VALID_COLORS, '25');
+ListAdd(VALID_COLORS, '26');
+ListAdd(VALID_COLORS, '27');
+ListAdd(VALID_COLORS, '28');
+ListAdd(VALID_COLORS, '29');
+ListAdd(VALID_COLORS, '30');
+ListAdd(VALID_COLORS, '31');
+ListAdd(VALID_COLORS, '32');
+ListAdd(VALID_COLORS, '33');
+ListAdd(VALID_COLORS, '34');
+ListAdd(VALID_COLORS, '35');
+ListAdd(VALID_COLORS, '36');
+
+global VALID_TABLE_LENGTH = List();
+ListAdd(VALID_TABLE_LENGTH, '75');
+ListAdd(VALID_TABLE_LENGTH, '100');
+ListAdd(VALID_TABLE_LENGTH, '125');
+ListAdd(VALID_TABLE_LENGTH, '150');
+ListAdd(VALID_TABLE_LENGTH, '175');
+ListAdd(VALID_TABLE_LENGTH, '200');
+ListAdd(VALID_TABLE_LENGTH, '225');
+ListAdd(VALID_TABLE_LENGTH, '250');
+ListAdd(VALID_TABLE_LENGTH, '300');
+
+global VALID_TABLE_BREITE = List();
+ListAdd(VALID_TABLE_LENGTH, '75');
+ListAdd(VALID_TABLE_LENGTH, '100');
+
+
+global RESIZE_TEXT = '';
+global G_TEXT = '';
+" version="2"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/pxml/ExprCode.xsd">
+   <function>
+    <returnvalue/>
+    <definition expression="def webUpdatePriceValidityView(node) {
+    	
+    	/* INFO ms: 
+    	   from_date: Sichtbarkeit für das Umschaltmenu, ab diesem Datum wird es angezeigt
+    	   Zusatz 1: wer in canCalcOldPrice Liste ist sieht das Menu immer.
+    	   to_date: Alte Preise bis zu diesem Datum möglich, ab to_date+1 sind die Preise neu.
+    	   Zusatz 2: USM kann noch 90 Tage über das to_date alte Preise setzen und sieht deshalb das Umschaltmenu solange noch
+    	   
+    	  */
+    	
+	   	my currency = NodeValue(node,'currency');
+	   
+    	my validity_row = PRICE_VALIDITY['currency', currency];
+   		global VALIDITY = validity_row;
+   		global usm_price_gap = 0;
+   		global view_old_price = false;
+    	if (VALIDITY) {
+	    	global validdate_view_priceold = Date(validity_row['to_date']);
+			usm_price_gap = Number(validdate_view_priceold - ActualDate());
+			view_old_price = Number(Date(validity_row['from_date']) - ActualDate()) le 0;
+    	};
+    	
+	};"/>
+  </function>
+   <!-- pricing from po -->
+   <function>
+		<returnvalue />
+		<definition
+			expression="def setOldPriceValid() {
+				if (not call isUSM() or Scenario() eq 'web') {
+				    usm_price_gap ge 0;
+				}else{
+				   usm_price_gap gt -90;
+				};
+			};" />
+	</function>
+	
+	<function>
+		<returnvalue />
+		<definition
+			expression="def isOldPriceValid() {       
+      usm_price_gap ge 0;
+		};" />
+	</function>
+
+	<function>
+		<param description="" name="node" type="Any" />
+		<returnvalue description="" type="Any" />
+		<definition
+			expression="def getPriceKey(node) {
+		my curr	= NodeValue(node,'calculation_currency');
+		curr = StrLen(curr) ? curr : 'CHF';
+
+	     /*  Für Einsatz alt und neu Preis: */
+	     if (call setOldPriceValid()) {
+	         my key = 'Preis_alt_' ++ curr;
+	     } else { 
+	     	'Preis_' ++ curr;
+	     };
+	};" />
+	</function>
+
+	<function description="Check if Currency use Integer">
+		<returnvalue description="Use Integer" type="Boolean" />
+		<definition
+			expression="def isInListIntCurrency(curr) {
+      my check = InList(List('JPY'),curr);
+    };" />
+	</function>
+	<function description="Check if Currency use Integer with decimal">
+		<returnvalue description="Use IntegerDecimals" type="Boolean" />
+		<definition
+			expression="def isInListIntDecCurrency(curr) {
+      my check = InList(List('CNY'),curr);
+    };" />
+    </function>
+   <function description="Formats a length displayed inside the configurator. changed 2018-04, damit HallerTisch und Kitos indetisch sind" >
+     <param name="distance" type="Double" description="The distance in the internal units, typically mm."/>
+     <param name="metric" type="Boolean" description="Defines if the distance should be displayed in metric or imperial units."/>
+     <definition expression="
+				def formatDistanceWeb(distance) {
+          return call formatDistanceWeb(distance, UnitSystem() eq 'metric');
+        }
+		 "/>
+   </function>
+   <function description="Formats a length displayed inside the configurator. changed 2018-04, damit HallerTisch und Kitos indetisch sind" >
+     <param name="distance" type="Double" description="The distance in the internal units, typically mm."/>
+     <param name="metric" type="Boolean" description="Defines if the distance should be displayed in metric or imperial units."/>
+     <definition expression="
+				def formatDistanceWeb(distance, metric) {
+          distance = distance *10;
+          if (not metric) {
+            return StrReplace(FormatImperialLength(distance, false, 2), ASCIIChar(8243), ASCIIChar(34));
+          }
+          return LocalizeNumber(Round(distance, 1)) ++ ' mm';
+        }
+		 "/>
+   </function>
+   <function description="">
+      <definition expression="def mapIconBarIdToRepresentation(id){
+      	if (id == 'usm_haller') {
+      		return 'IconBar_Regal';
+      	}
+      	if (id == 'usm_hallertisch') {
+      		return 'IconBar_Tisch';
+      	}
+      	if (id == 'usm_addons') {
+      		return 'IconBar_Addons';
+      	}
+      	if (id == 'space_configurator') {
+      		return 'iconbar_space';
+      	}
+		return id;
+};"/>
+   </function>
+   
+   <function description="It creates a mapping between a specific Topic Id and a Topic Guider Representation.">
+    <param name="id" type="String" description="The Topic Id."/>
+    <returnvalue type="String" description="Returns id of the "/>
+    <definition expression="def mapTopicIdToRepresentation(id) {
+      /* return 'topicguider_usm_hallertisch'; */
+      my product = CO_GLOBAL['additionaldata']['product'];
+      if (not StrLen(product)) {
+      	CO_GLOBAL['additionaldata']['product'] = 'haller';
+      	product = 'haller';
+      };
+      return 'topicguider_usm_' ++ product;
+}
+    "/>
+  </function>
+
+  <function description="It creates a mapping between a specific Topic Id and a Topic Guider Representation.">
+    <param name="id" type="String" description="The Topic Id."/>
+    <returnvalue type="String" description="Returns id of the "/>
+    <definition expression="def volumeBorderPosition(part,direction) {
+      my visible = true;
+      /* my groupid = USMPartGroupId(GetVolumeRefParts(vol)[0]);
+
+			my volumes = call groupIdVolumeList(groupid);	
+			volumes = FilterList(volumes,'element',`Round(PartPos(element)['z']) ne Round(PartPos(vol)['z']);`);
+      
+      */
+      return visible;
+}
+    "/>
+  </function> 
+  <function description="tested, ob auf der usm printzone teile stehen.">
+  	<param name="usmzone" description="usm printzone von USMGetPrintZeones()"/>
+  	<definition expression="
+def hasPartsOnPrintZone(usmzone) {
+	my p1= Vector(0,0,-10);
+	my p2= Vector(0,0,400);
+	/*p1 and p2 define the intersection ray in the local coordinate system of the 
+	 part*/
+	my zonepos = PolyCentroid(usmzone['pointlist']); 
+	my center= VectorAdd(zonepos, p1);
+	my direction= VectorSub(VectorAdd(zonepos,p2), center);
+	/* center and direction are now in the global coordinate system */
+	my info= GetIntersectionInfo(1000, Line(center, direction),'', null);
+	
+	if (info['part'] ne null) {
+	  return true;
+	} else {
+	  return false;
+	};
+};  	
+  	"/>
+  </function>
+  <function name="setCategory" description="which elements should be changed by category expression">
+	<param name="category id"/>
+	<returnvalue description="true false"/>
+	<definition expression="def setCategory(id) {
+			my state = false;
+		  if (id eq 'blacklines') {
+		  	state = IsSubTypeOf('rohr') or IsSubTypeOf('kugel') or 
+				        IsSubTypeOf('tischbein') or IsSubTypeOf('tischzarge') or 
+				        IsSubTypeOf('ct_saeule') or IsSubTypeOf('traegerrohr') or 
+				        IsSubTypeOf('ct_saeule_e_tisch') or IsSubTypeOf('ct_saeule_m_tisch');
+      } else if (id eq 'onlylines') {
+						state = IsSubTypeOf('ct_tischblatt');
+			} else if (id eq 'transparent') {  	
+						state = (IsSubTypeOf('haller_shelf_component') or 
+		                 IsSubTypeOf('ct_primo') or 
+		                 IsSubTypeOf('haller_table_component') or 
+		                 IsSubTypeOf('ct_kitos_component') or 
+		                 IsSubTypeOf('ct_kastenset')) 
+		                 and not call setCategory('blacklines')
+		                 and not IsSubTypeOf('tischblatt') 
+		                 and not call setCategory('onlylines');
+		      }
+      return state;
+    }
+"/>
+</function>
+<function>
+	<definition expression="
+def hasInvalidVolumes() {
+	my sub_assemblies = ChildrenListOfTypeDeep(Forest('mainstructure'), 'sub_assembly');
+	return Size(sub_assemblies) gt 0;
+};	
+	"/>
+</function>
+<function>
+	<definition expression="
+def getSelectedVolumeList() {
+	return call hasInvalidVolumes() ? List() : FilterList(GetVolumeList(), 'v', `not (IsSelected('mainstructure',v));`);
+};	
+	"/>
+</function>
+<!-- handle code -->
+	<function name="isVolumeOnSide" description="returns if volume is at given side of shelf">
+		<param name="part" type="volume" description="one volume in column"/>
+		<param name="side" description="left/right"/>
+		<returnvalue description="list of volumes sorted from top"/>
+		<definition expression="
+def isVolumeOnSide(volume, side) {
+	my volumes = Feature(volume, 'f_volumes_list');
+	
+	if (Size(volumes)) {
+		return InList(call getVolumesOnSide(volumes, side), volume);
+	};
+	
+	return false;
+};		
+	"/>
+	</function>
+	<function name="getVolumesOnSide" description="get volumes on given side">
+		<param name="part" type="volume" description="one volume in column"/>
+		<param name="side" description="left/right"/>
+		<returnvalue description="list of volumes on given side"/>
+		<definition expression="
+def getVolumesOnSide(volumes, side) {
+	my filterstr = '';
+	my refpart = SortByValue(volumes, `Round(RelativePartPos(element, volumes[0])['x']);`)[0];
+	if (side eq 'left') {
+		volumes = SortByValue(volumes, `-Round(RelativePartPos(element, refpart)['x']);`);
+		my ref_x = Round(RelativePartPos(volumes[0], refpart)['x']);
+		filterstr = `my x = Round(RelativePartPos(p, refpart)['x']); 
+		my ok = (x) eq ref_x;
+		not ok;`;
+		volumes = FilterList(volumes, 'p', filterstr);
+		
+	} else 
+	if (side eq 'right') {
+		volumes = SortByValue(volumes, `Round(RelativePartPos(element, refpart)['x']);`);
+		my ref_x = Round(RelativePartPos(volumes[0], refpart)['x']);
+		filterstr = `my x = Round(RelativePartPos(p, refpart)['x']); 
+		my ok = (x) eq ref_x;
+		not ok;`;
+		volumes = FilterList(volumes, 'p', filterstr);
+	} else 
+	if (side eq 'top') {
+		volumes = SortByValue(volumes, `Round(RelativePartPos(element, refpart)['z']);`);
+		my ref_z = Round(RelativePartPos(volumes[0], refpart)['z']);
+		filterstr = `my z = Round(RelativePartPos(p, refpart)['z']); 
+		my ok = (z) eq ref_z;
+		not ok;`;
+		volumes = FilterList(volumes, 'p', filterstr);
+	}; 
+	
+	volumes;
+};		
+	"/>
+	</function>
+	<function name="getAllVolumesOfConnectionId" description="get all volumes with same connectionid of given volume">
+		<param name="part" type="volume" description="one volume in column"/>
+		<returnvalue description="list of volumes sorted from top"/>
+		<definition expression="
+def getAllVolumesOfConnectionId(part) {
+	my volumes = GetVolumeList();
+	my connectionid = ConnectionId(part);
+	volumes = FilterList(volumes, 'p', `not (ConnectionId(p) eq connectionid);`);
+	volumes = SortByValue(volumes, `-Round(RelativePartPos(element, part)['z']);`);
+	volumes;
+};		
+	"/>
+	</function>
+	<function name="getVolumesInColumn" description="get all volumes in column of given volume, sorted from top">
+		<param name="part" type="volume" description="one volume in column"/>
+		<returnvalue description="list of volumes in column, sorted from top"/>
+		<definition expression="
+def getVolumesInColumn(startvolume, part) {
+	my volumes =  GetPlaneVolumeList(part, 'yz');
+	if (startvolume) {
+		volumes = FilterList(volumes, 'v', `not (PartPos(v)['z'] ge PartPos(startvolume)['z']);`);
+	};
+	volumes = SortByValue(volumes, `-PartPos(element)['z'];`);
+	volumes;
+};		
+	"/>
+	</function>
+	<function name="getVolumesInColumn" description="get all volumes in column of given volume, sorted from top">
+		<param name="part" type="volume" description="one volume in column"/>
+		<returnvalue description="list of volumes in column, sorted from top"/>
+		<definition expression="
+def getVolumesInColumn(part) {
+	call getVolumesInColumn(null, part);
+};		
+	"/>
+	</function>
+	<function name="getVolumesInRow" description="get all volumes in row of given volume, sorted from right">
+		<param name="part" type="volume" description="one volume in row"/>
+		<returnvalue description="list of volumes in row sorted from right"/>
+		<definition expression="
+def getVolumesInRow(startvolume, part) {
+	my volumes =  GetPlaneVolumeList(part, 'xy');
+	if (startvolume) {
+		volumes = FilterList(volumes, 'v', `not (PartPos(v)['x'] ge PartPos(startvolume)['x']);`);
+	};
+	volumes = SortByValue(volumes, `Round(RelativePartPos(element, part)['x']);`);
+	volumes;
+};		
+	"/>
+	</function>
+	<function name="getVolumesInRow" description="get all volumes in row of given volume, sorted from right">
+		<param name="part" type="volume" description="one volume in row"/>
+		<returnvalue description="list of volumes in row sorted from right"/>
+		<definition expression="
+def getVolumesInRow(part) {
+	call getVolumesInRow(null, part);
+};		
+	"/>
+	</function>
+	<function name="getRowVolumesAbove" description="get all volumes in row of given volume, sorted from right">
+		<param name="part" type="volume" description="one volume in row"/>
+		<returnvalue description="list of volumes in column, sorted from right"/>
+		<definition expression="
+def getRowVolumesAbove(part) {
+	my volumes =  GetPlaneVolumeList(part, 'xz');
+	volumes = FilterList(volumes, 'v', `(Round(RelativePartPos(part, v)['z']) le 0);`);
+	volumes = SortByValue(volumes, `-Round(RelativePartPos(element, part)['z']);`);
+	volumes;
+};		
+	"/>
+	</function>
+	<function name="getColumnVolumesLeft" description="get all volumes in row of given volume, sorted from top">
+		<param name="part" type="volume" description="one volume in row"/>
+		<returnvalue description="list of volumes in column, sorted from top"/>
+		<definition expression="
+def getColumnVolumesLeft(part) {
+	my volumes =  GetPlaneVolumeList(GetNeighbourVolume(part, 4)[0], 'xy');
+	volumes = FilterList(volumes, 'v', `(Round(RelativePartPos(part, v)['x']) ge 0);`);
+	volumes = SortByValue(volumes, `Round(RelativePartPos(element, part)['x']);`);
+	volumes;
+};		
+	"/>
+	</function>
+	<function name="getColumnVolumesRight" description="get all volumes in row of given volume, sorted from top">
+		<param name="part" type="volume" description="one volume in row"/>
+		<returnvalue description="list of volumes in column, sorted from top"/>
+		<definition expression="
+def getColumnVolumesRight(part) {
+	my volumes =  GetPlaneVolumeList(GetNeighbourVolume(part, 4)[0], 'xy');
+	volumes = FilterList(volumes, 'v', `(Round(RelativePartPos(part, v)['x']) le 0);`);
+	volumes = SortByValue(volumes, `-Round(RelativePartPos(element, part)['x']);`);
+	volumes;
+};		
+	"/>
+	</function>
+	<function description="checks if given section is activ">
+		<param name="section" type="string" description="section name"/>
+		<returnvalue description="true/false"/>
+		<definition expression="
+def sectionActive(section) {
+		return EnvValue('ActiveSection', 'struktur') eq section and not Bool(CO_GLOBAL['resize']['problem']); 
+};		
+	"/>
+	</function>
+	<function description="checks if given section is activ">
+		<definition expression="
+def tableMaterialEnabled(material) {
+	my tisch = call getTisch();
+	my tischblatt = tisch ? ChildOfType(tisch, 'tischblatt') :  null;
+	my length = tischblatt ? PartAttr(tischblatt, 'laenge') : '';
+	my depth = tischblatt ? PartAttr(tischblatt, 'breite') : '';
+	if ( material eq 'glas' and length gt 200){
+		return false;
+	};
+	
+	if (material eq 'holz' or material eq 'mdf' or material eq 'glas') {
+		return depth ne '50';
+	};
+	
+	return true;
+};		
+	"/>
+	</function>
+	<function name="IsBaseVolume"
+		
+	>
+		<definition expression="
+	def isBaseVolume(volume) {
+			
+		return PartAlive(volume) and GetVolumeList()[0] eq volume ;
+		
+		
+	};"/>
+	</function>
+	<function name="getHintVolumes">
+		<param name="type" type="string" description="volumecontentype e.g ausziehtuerset"/>
+		<param name="inside" type="boolean" description="inside volume, like tablar"/>
+		<definition expression="
+def getHintVolumes(type, inside) {
+	my volumes = GetVolumeList();
+	volumes = inside ? FilterList(volumes, 'v', `ChildOfTypeDeep(v, 'glastuerset');`) : FilterList(volumes, 'p', `not (ChildCount(p) eq 0);`);
+	
+	my result = List();
+	my hintvolumes = List();
+	
+	my columns = List();
+	my values = List();
+	
+	my content_table = FilterList(VOLUME_CONTENT, 'e', `not (e['type'] ~ type);`);
+	if (Size(content_table)) {
+		for (my v: volumes) {
+			if (content_table[0]['height'] eq 'floating') {
+				columns = List('width', 'depth');
+				values = String(List(Feature(v, 'xlength')*10, Feature(v,'ylength')*10));
+			};
+			
+			if (Size(TableRows(content_table, columns,values, false))) {
+				ListAdd(hintvolumes, v);
+			}; 
+		}
+		
+	};
+	
+	hintvolumes;
+};		
+		"/>
+	</function>
+	
+	<!-- pricing -->
+	<function>
+		<definition expression="
+def calc_preis(articlenr) {
+	call calc_preis(articlenr, true);
+};
+def calc_preis(articlenr, with_vep_factor) {
+	//my articlenr= articlerow['articlenr'];
+	my pricekey = call getPriceKey(NamedNode('documentsettings'));
+	my color = SubStr(articlenr, IndexOfSubStr(articlenr, '.')+1);
+	my spez_color= EndsWith(articlenr,'.99');
+	articlenr= spez_color ? StrReplace(articlenr,'.99','.__'): articlenr;
+	my spez_lock=EndsWith(articlenr,'.999');
+	my specialcolorcostfactor = 100;
+	my spez_color_factor = 1 + 100 / 100;
+	my spez_lock_factor = 1 + 100 / 100;
+	my val= 0;
+	my spez = 'false';
+	my vep_price_factor = 1;
+	if (spez ne 'true') {
+	  val =  BASE['Anr',articlenr][pricekey];
+	  
+	  /* ms: wenn article nicht gefunden, suche in ECO (nur für fr-fr relevant) */
+	  if (StrLen(val) eq 0) {
+	  	val = ECO['Anr',articlenr][pricekey];
+	  };
+	  if (with_vep_factor) {
+	  	vep_price_factor = NodeValue(NamedNode('documentsettings'), 'vep_price_factor'); 
+	  };
+	  my factor = NodeValue(NamedNode('documentsettings'), 'country_price_factor') * vep_price_factor;
+	  val = val * 1;
+	  /* TEST: Rundungsfehler
+		val = spez_color ? Round(Round(val * spez_color_factor ,0.000000001),0.01):Round(Round(val,0.000000001),0.01);
+		val = spez_lock ? Round(Round(val * spez_lock_factor ,0.000000001),0.01) : Round(Round(val,0.000000001),0.01);
+		*/
+		val = Round(val * factor ,0.000000001);
+	}else{
+	  val = -99999.99;
+	} ;
+	if (EndsWith(color,'_xxx')) {
+	  val= 99999.99;
+	}
+  val;
+	};		
+		
+		"/>
+	</function>
+	<function name="sizeAvailable">
+		<param name="hint"  description="length/width/height"/>
+		<param name="size"  description="the size to be checked"/>
+		<definition expression="
+def sizeAvailable(hint, size) {
+	return Bool(g_table[hint]['size',size]['available']);
+};		
+		
+		"/>
+	</function>
+	
+	<!-- ms: sizeEnabled 
+		this code checks for size not settable on the volume because it already has volume content
+	-->
+	<function name="sizeEnabled">
+		<param name="hint"  description="length/width/height"/>
+		<param name="size"  description="the size to be checked"/>
+		<definition expression="
+def sizeEnabled(hint, size) {
+	my with_content = Env('Volume.ResizeWithContent', 'true');
+	call sizeEnabled(hint, size, with_content)
+};
+def sizeEnabled(hint, size, with_content) {
+	my mode = call getInteractionMode();
+	
+	my ok = false;
+	
+	if (mode ne 'none' and not with_content) {
+		ok = Bool(g_table[hint]['size',size]['selected']);
+	} else {
+		if (with_content) {
+			ok = Bool(g_table[hint]['size',size]['available_if_empty']);
+			
+			/* ms: check for pflanzen volumes to disable size change */
+			if (ok and hint eq 'height' and size lt 175) {
+				my volumes = List();
+				my selected_volumes = call getSelectedVolumeList();
+				for (my v: selected_volumes) {
+					ListExtend(volumes, call getVolumesInRow(v));
+				}
+				if (not Size(volumes) gt 0)  {
+					volumes = GetVolumeList();	
+				}
+				
+				my svolumes = List();
+				for (my v: volumes) {
+					my is_pflanzen_volume = Size(call getAllPflanzenOfVolume(v)) gt 0;
+					is_pflanzen_volume ? ListAdd(svolumes, v) : null;
+					
+				}
+				return Size(svolumes) eq 0;
+			} else 
+			if (ok and (hint eq 'width' or hint eq 'length') and size lt 350) { /* tiefe oder breite kleiner 350 */
+				my volumes = List();
+				my selected_volumes = call getSelectedVolumeList();
+				for (my v: selected_volumes) {
+					ListExtend(volumes, call getVolumesInColumn(v));
+				}
+				if (not Size(volumes) gt 0)  {
+					volumes = GetVolumeList();	
+				}
+				
+				my svolumes = List();
+				for (my v: volumes) {
+					my is_inos_volume = Size(ChildrenListOfTypeDeep(v, 'kastenset')) gt 0;
+					is_inos_volume ? ListAdd(svolumes, v) : null;
+					
+				}
+				return Size(svolumes) eq 0;
+			} else {
+				return ok;
+			};
+		} else {
+			ok = Bool(g_table[hint]['size',size]['available_if_empty']);
+		}
+	};
+	if (ok) {
+		my volumes = call getSelectedVolumeList();
+		if (Size(volumes) eq 0 ) {
+			volumes = GetVolumeList();
+			if (Size(volumes) gt 0) {
+				my fname = hint eq 'width' ? 'ylength' : hint eq 'length' ? 'xlength' : 'zlength';
+				my vsize = Round(Feature(volumes[0], fname) *10);
+				my values = UniqueList(FeatureValuesFromPartList(volumes, fname));
+				if (Size(values) gt 1) {
+					return true;
+				}
+				
+				my vsizes = List();
+				
+				for (my e: values) {
+					ListAdd(vsizes, e*10);
+				};
+				
+				if (InList(vsizes, Number(size))) {
+					return false;
+				};
+			};
+		};
+		my check_volumes = List();
+		if (hint eq 'width' and Size(volumes) gt 0) {
+			check_volumes = call getAllVolumesOfConnectionId(volumes[0]);
+		} else { 
+		for (my v: volumes) {
+				if (hint eq 'width') {
+					
+				} else {
+					hint eq 'length' ? ListExtend(check_volumes, call getVolumesInColumn(v)) : ListExtend(check_volumes, call getVolumesInRow(v));
+				}
+			}
+		};
+		
+		
+		if (not Env('Volume.ResizeWithContent', 'true')) {
+			for (my v: check_volumes) {
+				if (ChildCount(v) gt 0) {
+					ok = false;
+					break;
+				}
+			};
+		};
+	}	
+	return ok;
+};	
+		
+		"/>
+	</function>
+	<!-- <function name="currentSizeDepth" description="is the given size of the selected items">
+		<param name="items" description="length/depth/height"/>
+		<param name="size" description="the size to be checked"/>
+		<definition expression="
+	def currentSizeDepth(hint, size) {
+		
+	
+	};
+		"/>
+	</function> -->
+
+	<function name="currentSize_old" description="is the given size the one of selected volumes">
+		<param name="hint"  description="length/width/height"/>
+		<param name="size"  description="the size to be checked"/>
+		<definition expression="
+def currentSize(hint, size) {
+	
+	my mode = call getInteractionMode();
+	
+	my ok = false;
+	my volumes = call getSelectedVolumeList();
+	if (Size(volumes) eq 0 ) {
+		volumes = GetVolumeList();
+	};
+	my ok = false;
+	if (Size(volumes)) {
+		my check_volumes = List();
+		my size_list = List();
+		if (hint eq 'width') {
+			size_list = UniqueList(FeatureValuesFromPartList(volumes, 'ylength'));
+		} else 
+		if (hint eq 'length') {
+			size_list = UniqueList(FeatureValuesFromPartList(volumes, 'xlength'));
+		} else 
+		if (hint eq 'height') {
+			size_list = UniqueList(FeatureValuesFromPartList(volumes, 'zlength'));
+		}
+		
+		my vsizes = List();
+		
+		for (my e: size_list) {
+			ListAdd(vsizes, e*10);
+		};
+		
+		if (InList(vsizes, Number(size))) {
+			return true;
+		};
+		
+	}	
+	return ok;
+};		
+		
+		"/>
+	</function>
+	
+	<function name="getSelectionOfType">
+		<param name="type" type="string" description="parttype to search for in selection"/>
+		<returnvalue type="list" description="selected part list of given type or empty list"/>
+		<definition expression="
+def getSelectionOfType(type) {
+	my partlist = FilterList(GetSelectedPartList('mainstructure') , 'p', `not (IsSubTypeOf(p, type));`);
+	
+
+};"/>
+	</function>
+	<function name="hasSelectionOfType">
+		<param name="type" type="string" description="parttype to search for in selection"/>
+		<definition expression="
+def hasSelectionOfType(type) {
+	
+	return Size(call getSelectionOfType(type)) gt 0;
+
+};"/>
+	</function>
+	<function name="hasContentOfType">
+		<param name="volumes" type="string" description="list of volumes to check for"/>
+		<param name="type" type="string" description="parttype to search for in volume list"/>
+		<returnvalue type="boolean" description="true/false"/>
+		<definition expression="
+def hasContentOfType(volumes, type) {
+	call hasContentOfType(volumes, type, '');
+};
+def hasContentOfType(volumes, type, filtercontenttype) {
+	my result = false;
+	for (my v: volumes) {
+		my children = FilterList(ChildrenListOfTypeDeep(v, type), 'p', `IsSubTypeOf(p, filtercontenttype);`);
+		if (Size(children) gt 0) {
+			result = true;
+			break;
+		};
+	
+	};
+	
+	return result;
+
+};"/>
+	</function>
+	
+	<function>
+		<definition expression="
+def getInteractionMode() {
+	return EnvValue('InteractionMode', 'none');
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def checkInteractionMode(mode) {
+	return call getInteractionMode() eq mode;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def getFocusPointList(volume) {
+	my volumes = Feature(volume, 'f_volumes_list');
+	my base = FilterList(volumes, 'v', `not (call isBaseVolume(v));`)[0];
+	my bbox = base ? Feature(base, 'bbox') : null;
+	my offset = 50;
+	my p1 = PartPos(base); p1['y'] = p1['y'] - 100;
+	my p2 = VectorAdd(p1, Vector(bbox['extent']['x']+offset, 0,0));
+	my p3 = VectorAdd(p2, Vector(0, 0, bbox['extent']['z']+offset));
+	my p4 = VectorAdd(p1, Vector(0, 0, bbox['extent']['z']+offset));
+	
+	my pointlist = List(p1,p2,p3,p4);
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasVolumeGlastuereRollen() {
+	my list = GetComponentListOfType('glashalter');
+	ListExtend(list, GetComponentListOfType('glasscharnier'));
+	ListExtend(list, GetComponentListOfType('glastablar'));
+	Size(list) gt 0;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasVolumeRollen() {
+	my list = GetComponentListOfType('rollen');
+	Size(list) gt 0;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasVolumeDepth(depth) {
+	my volumes = GetVolumeList();
+	
+	Size(volumes) gt 0 ? Feature(volumes[0], 'ylength')*10 eq depth : false;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def getGlobalColorCode() {
+	/**
+	CO_GLOBAL['colorcode'];
+	*/
+	
+	return EnvValue('GlobalColorcode', '30');
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasBottomVolume(volume) {
+	Size(GetNeighbourVolume(volume, 4)) gt 0;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasVolumesBottomVolume(volumes) {
+	my result = false;
+	for (my volume: volumes) {
+		my size = Size(GetNeighbourVolume(volume, 4));
+		if (size eq 0) {
+			return true;
+		};
+	};
+	
+	return result;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasTopVolume(volume) {
+	Size(GetNeighbourVolume(volume, 5)) gt 0;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasLeftVolume(volume) {
+	Size(GetNeighbourVolume(volume, 3)) gt 0;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def hasRightVolume(volume) {
+	Size(GetNeighbourVolume(volume, 1)) gt 0;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def isInBetweenColumn(volumes) {
+	
+	my result = false;
+	
+	if (Size(volumes)) { 
+		my has_left = false;
+		my has_right = false;
+		for (my volume: volumes) { 
+			my left = GetNeighbourVolume(volume, 3)[0];
+			my right = GetNeighbourVolume(volume, 1)[0];
+			has_left = not has_left ? left and not IsSelected('mainstructure', left) : has_left;
+			has_right = not has_right ? right and not IsSelected('mainstructure', right) : has_right;
+			
+			result = has_left and has_right;
+			
+			if (result) {
+				
+				break;
+			};
+		}
+	 }	
+	
+	return result;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def isInBetweenRow(volumes) {
+	
+	my result = false;
+	
+	if (Size(volumes)) { 
+		my has_top = false;
+		my has_bot = false;
+		for (my volume: volumes) { 
+			my top = GetNeighbourVolume(volume, 5)[0];
+			my bot = GetNeighbourVolume(volume, 4)[0];
+			has_top = not has_top ? top and not IsSelected('mainstructure', top) : has_top;
+			has_bot = not has_bot ? bot and not IsSelected('mainstructure', bot) : has_bot;
+			
+			result = has_top and has_bot;
+			
+			if (result) {
+				
+				break;
+			};
+		}
+	 }	
+	
+	return result;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="
+def allBottomVolumesSelected(volumes) {
+	
+	my result = false;
+	
+	if (Size(volumes)) { 
+		my has_top = false;
+		my has_bot = false;
+		for (my volume: volumes) { 
+			my bot = GetNeighbourVolume(volume, 4)[0];
+			if (not bot) {
+				my bottomrow = call getVolumesInRow(volume);
+				my selectedbottomrow = FilterList(bottomrow, 'v', `not (IsSelected('mainstructure', v));`);
+				if (Size(selectedbottomrow) eq Size(bottomrow)) {
+					return true;
+				} else {
+					my bottomcolumn = call getVolumesInColumn(volume);
+					my selectedbottomcolumn = FilterList(bottomcolumn, 'v', `not (IsSelected('mainstructure', v));`);
+					return Size(selectedbottomcolumn) ne Size(bottomcolumn);
+				};
+			};
+			
+		}
+	 }	
+	
+	return result;
+}		
+		"/>
+	</function>
+	<function>
+	<param name="given_color" description=""/>
+	<definition expression="def checkBlechColor(given_color) {
+		my ctList = GetSelectedComponentList('mainstructure');
+		if (Size(ctList) eq 0) {
+			ctList = GetComponentList();
+		}
+		
+		my filterstr = `not (not IsSubTypeOf(e, 'kugel') and not IsSubTypeOf(e, 'rohr') and not IsSubTypeOf(e, 'bodenelement') and PropertyActive(e, 'metallverkleidungsFarbe_lokal'));`;
+		my filteredCTList = FilterList(ctList, 'e', filterstr);
+		my colors = FeatureValuesFromPartList(filteredCTList, 'Metallfarbe');
+		
+		my uniqueColors = UniqueList(colors);
+		
+		InList(uniqueColors, given_color) or call checkKastensetFarbe(given_color);
+	} ;"/>
+	</function>
+	
+	<function>
+	<param name="given_Kastensetfarbe"/>
+	<definition expression="def checkKastensetFarbe(given_color){
+		my ctList = GetSelectedComponentList('mainstructure');
+		if (Size(ctList) eq 0) {
+			ctList = GetComponentList();
+		}
+		
+		my filterstr = `not (IsSubTypeOf(e, 'ct_kastenset') and PropertyActive(e, 'schalentypmaterialfarbig'));`;
+		my filteredCTList = FilterList(ctList, 'e', filterstr);
+		my color = FeatureValuesFromPartList(filteredCTList, 'Schalentypmaterialfarbig');
+		my uniqueColors = UniqueList(color);
+		InList(uniqueColors, given_color);
+	};"/>
+	</function>
+	
+	<function description="list of all unique color (Metallfarbe material) in selection or scene">
+		<param name="volumesonly" />
+		<definition expression="
+		def colorList() {
+			return call colorList(false);
+		};
+		def colorList(volumesonly) {
+			my ctList = GetSelectedComponentList('mainstructure');
+			if (Size(ctList) eq 0) {
+				ctList = GetComponentList();
+			}
+			
+			my filterstr = ``;
+			if (volumesonly) {
+				filterstr = `not (IsSubTypeOf(e, 'metallverkleidung') and not IsSubTypeOf(e, 'kugel') and not IsSubTypeOf(e, 'rohr') and not IsSubTypeOf(e, 'bodenelement') and HasFeature(e, 'Metallfarbe'));`;
+			} else {
+				filterstr = `not (not IsSubTypeOf(e, 'kugel') and not IsSubTypeOf(e, 'rohr') and not IsSubTypeOf(e, 'bodenelement') and HasFeature(e, 'Metallfarbe'));`;
+			};
+			my filteredCTList = FilterList(ctList, 'e', filterstr);
+			my colors = FeatureValuesFromPartList(filteredCTList, 'Metallfarbe');
+			ListExtend(colors, FeatureValuesFromPartList(GetComponentListOfType('schalenkasten'), 'Schalentypmaterialfarbig'));
+			my uniqueColors = UniqueList(colors);
+			uniqueColors;
+		} ;"/>
+		</function>
+	
+	<!-- Function uset for 2D-DWG concat start -->
+	<function description="List of unique kugelposition">
+		<definition expression="
+def kugelPosition() {
+	my selectedlist = GetComponentList();
+	my kugel_list = FilterList(selectedlist,'element',`not IsSubTypeOf(element,'kugel');`);
+	my kugel_table = List();
+					
+	for (my k : kugel_list)	
+	{
+		my row = List();
+		row['pos_x'] = Round((PartPos(k)[0]), 0.05);
+		row['pos_y'] = Round((PartPos(k)[1]), 0.05);
+		
+		ListAdd(kugel_table, row);
+	}; kugel_table = CompressTable(kugel_table, List('pos_x', 'pos_y'),''); kugel_table; 
+};		
+		"/>
+	</function>
+	
+	<function description="List of unique rohr position and length">
+		<definition expression="
+def rohrPosition() {
+	my rohr_list = ComponentListWithFeatureValue('f_direction', 'Horizontal','rohr');
+	my rohr_table = List();
+	
+	for (my r : rohr_list)
+	{
+		my row = List();
+		row['pos_x'] = Round((PartPos(r)[0]), 0.05);
+		row['pos_y'] = Round((PartPos(r)[1]), 0.05);
+		row['rot_x'] = PartRot(r)[0];
+		row['rot_y'] = PartRot(r)[1];
+		row['rot_z'] = PartRot(r)[2];
+		row['hc_len'] = PartAttr(r, 'hc_length');
+		row['horizontal_front'] = Feature(r, 'f_horizontal_front') eq 'true' ? 'horiz' : 'vertic';
+		
+		ListAdd(rohr_table, row);
+	}; rohr_table = CompressTable(rohr_table, List('pos_x', 'pos_y','hc_len','horizontal_front'),''); rohr_table;
+};		
+		"/>
+	</function>
+	
+	<function description="List of unique volume with position and dimension">
+		<definition expression="
+def volumePosition() {
+	my volumes = GetVolumeList();
+	my volumes_table = List();
+	
+	for ( v : volumes)
+	{
+		my row = List();
+		row['pos_x'] = Round((PartPos(v)[0]), 0.05);
+		row['pos_y'] = Round((PartPos(v)[1]), 0.05);
+		row['xlength'] =  Feature(v,'xlength')*10;
+		row['ylength'] =  Feature(v,'ylength') * 10;
+		
+		ListAdd(volumes_table, row);
+	}; volumes_table = CompressTable(volumes_table, List('pos_x', 'pos_y'),''); volumes_table;
+};		
+		"/>
+	</function>
+	
+	
+	<!-- <function description="List of unique blech position and dimension">
+		<definition expression="
+def blechPosition() {
+	my blech_list = ComponentListWithFeatureValue('tablschlitz', '0');
+	my blech_table = List();
+	
+	for (my b : blech_list)
+	{
+		my row = List();
+		row['pos_x'] = Round((PartPos(b)[0]), 0.05);
+		row['pos_y'] = Round((PartPos(b)[1]), 0.05);
+		row['dimension'] = call blechDimension(b);
+				
+		ListAdd(blech_table, row);
+	}; blech_table = CompressTable(blech_table, List('pos_x', 'pos_y','dimension'),''); blech_table;
+};		
+		"/>
+	</function>
+	
+	<function description="List of unique blech position and dimension">
+		<definition expression="
+def blechPosition2() {
+	my selectedlist = GetComponentList();
+	my blech_list = FilterList(selectedlist,'element',`not IsSubTypeOf(element,'verkleidung');`);
+	my blech_table = List();
+	
+	for (my b : blech_list)
+	{
+		my row = List();
+		row['pos_x'] = Round((PartPos(b)[0]), 0.05);
+		row['pos_y'] = Round((PartPos(b)[1]), 0.05);
+		row['rot0'] =VectorLength(PartRot(b));
+				
+		ListAdd(blech_table, row);
+	}; blech_table = CompressTable(blech_table, List('pos_x', 'pos_y','rot0'),''); blech_table;
+};		
+		"/>
+	</function> -->
+	
+	<!-- Function uset for 2D-DWG concat end -->
+	
+	<function description="workaround for ch number localization for 1000 tick">
+		<definition expression="
+def customLocalizeNumber(number, precision) {
+	my num = StrReplace(LocalizeNumber(number, precision), ASCIIChar(8217), ASCIIChar(39));
+	
+	num;
+};		
+		"/>
+	</function>
+	<function description="workaround for ch number localization for 1000 tick">
+		<definition expression="
+def customLocalizeNumber(number) {
+	my precision = NodeValue(NamedNode('documentsettings'), 'locale') eq 'ja-jp' ? 0 : 2;
+	call customLocalizeNumber(number, precision);
+	
+};		
+		"/>
+	</function>
+	<function description="workaround for ch number localization for 1000 tick">
+		<definition expression="
+def customLocalizeNumberWithCurrency(number, currency) {
+	
+	my locale = NodeValue(NamedNode('documentsettings'), 'locale');
+	
+	if (locale eq 'zh-cn'){
+		number = Round(number);
+	}
+	
+	my number = call customLocalizeNumber(number);
+	my pre = InList(List('de-ch','fr-ch','it-ch','en-us','en-gb','en-nz','en-au', 'ja-jp'), locale);
+
+	my space = locale eq 'ja-jp' or locale ~ '-ch' ? ' ' : '';
+	
+	if (pre) {
+		return currency ++ space ++ number;
+	};
+	
+
+	
+	return number ++ ' '++currency;
+	
+};		
+		"/>
+	</function>
+	
+	<function>
+		<definition expression="
+def isKorpus(groupid) {
+    my group_parts = call groupIdPartList(groupid);
+    my dim = call groupIdDimemsions(group_parts,'both'); 
+    my height = dim[0];
+    my width = dim[1]; /* kurze Seite */
+    my depth = dim[2]; /* lange Seite */
+    my schubladen = GetComponentListOfType('schublade');
+    my schublade = schubladen[0];
+    if (schublade) { 
+      my dim1 = width eq 395 and depth eq 500 and height lt 745;
+      /* wdith wird zu depth, da breiter als tiefe */
+      my dim2 = width eq 500 and depth eq 750 and height le 789;
+      if (dim1 or dim2) { 
+        return true;
+      }
+    }
+   
+   return false;
+}		
+		"/>
+	</function>
+	<function>
+		<definition expression="def isKorpus() {
+			my groupidlist = call partGroupIdList('usm_haller');
+			my is_korpus = Size(groupidlist) gt 0 and call isKorpus(groupidlist[0]);
+			
+			return is_korpus;
+		};"/>
+	</function>
+	<function description="Gibt co_eco_dummy zurueck">
+  <returnvalue description="co_eco_dummy" type="Object" />
+  <definition expression="def ecoDummy() {
+   return GetComponentListOfType('co_eco_dummy')[0];
+  }"/>
+</function>
+	<function description="price condition string.">
+	<param name="locale"/>
+  <returnvalue description="condions text" type="string with html)" />
+  <definition expression="def getPriceConditions(locale) {
+  	my price_conditions = '';
+	my price_conditions_prefix = LOCALE['key', locale]['price_condition_prefix'];
+	my price_conditions_url = 'price_condition_url';
+	my price_conditions_name = LOCALE['key', locale]['price_condition_name'];
+	
+	my retail = StrLen(CO_GLOBAL['additionaldata']['key']) gt 0 and not Bool(CO_GLOBAL['additionaldata']['usm']);
+	
+	if (Size(price_conditions_prefix)) {
+		price_conditions =  price_conditions_prefix;
+	}
+	if (StrLen(price_conditions_url) gt 0) { 
+		if (StrLen(price_conditions_name)) {
+		    if (retail) {
+				price_conditions =  price_conditions;
+			} else {
+				price_conditions = price_conditions ++ ', ' ++ASCIIChar(60)++'a style='++ASCIIChar(34)++' text-decoration: underline; '++ASCIIChar(34)++ ' href='++ASCIIChar(34)++price_conditions_url++ASCIIChar(34)++ASCIIChar(62)++price_conditions_name++ASCIIChar(60)++'/a'++ASCIIChar(62);
+			} 
+		} else {
+			price_conditions =  price_conditions ++ ASCIIChar(60) ++'a style='++ASCIIChar(34)++' text-decoration: underline; '++ASCIIChar(34)++ ' href='++ASCIIChar(34)++price_conditions_url++ASCIIChar(34)++ASCIIChar(62)++ASCIIChar(60)++'/a'++ASCIIChar(62); 
+		}
+	} else
+	if (StrLen(price_conditions_name)) { 
+		if (Size(price_conditions_name)) {
+			price_conditions =  price_conditions ++ ', ' ++ ' &lt;a href=&quot;' ++price_conditions_url++'&quot;&gt;' ++ ' '++price_conditions_name; 
+		}
+	}
+	
+	
+	return PXFormattingToHTML(price_conditions, true);
+	
+  }"/>
+</function>
+<function>
+	<definition expression="
+def getSeitenVerkleidung() {	
+	return FilterList(GetComponentListOfType('verkleidung'), 'p', `not (Abs(Round(PartRot(p)['y'])) eq 90);`);
+		
+};	"/>
+</function>
+<function>
+	<definition expression="
+def getTopBottomVerkleidung() {	
+	return FilterList(GetComponentListOfType('verkleidung'), 'p', `not (Abs(Round(PartRot(p)['x'])) eq 0 and Abs(Round(PartRot(p)['y'])) eq 0);`);
+		
+};	"/>
+</function>
+<function>
+	<definition expression="
+def canDeleteVerkleidung(blech) {	
+	
+	my can_delete = true;
+	my seitenverkleidung = call getSeitenVerkleidung();
+	my topbottomverkleidung = call getTopBottomVerkleidung();
+	if (InList(seitenverkleidung, blech)) {
+		for (my v: GetRefVolumes(blech, 'mainstructure')) {
+			my content = ChildOfType(v, 'volumecontent');
+			if (content) {
+				can_delete = (not ChildOfType(content, 'einbauset') or ChildOfType(content, 'schubladenauszugset')) and not ChildOfType(content, 'tablar'); 
+			} else {
+				can_delete = not ChildOfType(v, 'glastuerset');
+			};
+			if (not can_delete) {
+				break;
+			};
+		};
+	}
+	if (can_delete and InList(topbottomverkleidung, blech)) {
+		for (my v: GetRefVolumes(blech, 'mainstructure')) {
+			my content = ChildOfType(v, 'volumecontent');
+			if (content) {
+				can_delete = not ChildOfType(content, 'schubladenauszugset');
+			}
+			if (can_delete and PartPos(blech)['z'] lt 8) {
+				can_delete = not call isKorpus();
+			}; 
+			if (not can_delete) {
+				break;
+			};
+			
+		};
+	}
+	return can_delete;	
+};	"/>
+</function>
+<function description="list of all unique color (Metallfarbe material) in the scene">
+		<param name="partlist" description="componentlist"/>
+		<definition expression="
+def mostColorcode(partlist) {
+	my allfarbcodes = call globalColorList(partlist, true,false);		   
+	my farbcodes = FilterList(UniqueList(allfarbcodes), 'p', `StrLen(p) eq 0;`);
+	my result = List();
+	
+	my allfarbcodesstr = ListToString(allfarbcodes, ':');
+	
+	my max = 0;
+	my maxcolor = '';
+	for (my c: farbcodes) {
+		my count = StrCountOccurrence(allfarbcodesstr, c);
+		if (count gt max) {
+			maxcolor = c;
+			max = count;
+		}
+		/*
+		my entry = List();
+		entry['farbcode'] = c;
+		entry['count'] = count;
+		ListAdd(result, entry);
+		*/
+		maxcolor;
+	};
+}; 
+
+	"/>
+	</function>
+	<function description="list of all unique color (Tischmaterial) in the scene">
+		<param name="partlist" description="componentlist"/>
+		<definition expression="
+def mostMaterialcode(partlist) {
+	my allfarbcodes = FeatureValuesFromPartList(partlist, 'Tischmaterial');		   
+	my farbcodes = FilterList(UniqueList(allfarbcodes), 'p', `StrLen(p) eq 0;`);
+	my result = List();
+	
+	my allfarbcodesstr = ListToString(allfarbcodes, ':');
+	
+	my max = 0;
+	my maxcolor = '';
+	for (my c: farbcodes) {
+		my count = StrCountOccurrence(allfarbcodesstr, c);
+		if (count gt max) {
+			maxcolor = c;
+			max = count;
+		}
+		/*
+		my entry = List();
+		entry['farbcode'] = c;
+		entry['count'] = count;
+		ListAdd(result, entry);
+		*/
+		maxcolor;
+	};
+}; 
+
+	"/>
+	</function>
+	<function description="get link for the pdfs">
+		<param name="partlist" description="componentlist"/>
+		<definition expression="
+def setWebLink() {
+	my ANDCHAR = ASCIIChar(38);
+	my url = CO_GLOBAL['additionaldata']['url'] ++ '?id='
+			++ CO_GLOBAL['additionaldata']['id'];
+			/*
+			++ANDCHAR++'locale='++LowerCase(CO_GLOBAL['additionaldata']['locale'])
+			++ANDCHAR++'product='++CO_GLOBAL['additionaldata']['product'];
+			
+			*/
+    /*
+	if(StrLen(CO_GLOBAL['additionaldata']['SalesPartnerId']) and StrLen(CO_GLOBAL['additionaldata']['key'])) {
+		if (not (CO_GLOBAL['additionaldata']['url'] ~ 'localhost')) {
+			my host = url ~ 'test' ? 'https://webconfigurator-test.usm.com' : 'https://webconfigurator.usm.com';
+			host = host++'/usmconfig/pages.mainUIWeb.risc';
+			
+			url = host;
+		};
+		url = url
+			++ '?id='++ CO_GLOBAL['additionaldata']['id'] 
+			++ ANDCHAR++'SalesPartnerId='++CO_GLOBAL['additionaldata']['SalesPartnerId']
+			++ANDCHAR++'key='++CO_GLOBAL['additionaldata']['key']
+			++ANDCHAR++'product='++CO_GLOBAL['additionaldata']['product'];
+		
+	};
+	*/
+	
+	CO_GLOBAL['additionaldata']['print_link'] = url;
+	return url;
+	
+}; 
+
+	"/>
+	</function>
+	<function description="return next value for smaller/lager depth">
+		<param name="tisch" description="part of type tisch_einheit"/>
+		<param name="type" description="smaller/lager depth"/>
+		<definition expression="
+	def getNextValidTischdepth(tisch, type){
+		my tischblatt = ChildOfType(tisch, 'tischblatt');
+		my tischbein = ChildOfType(tisch, 'tischbein');
+		my hoehe = '74';
+    	if (tischbein) {
+    		if (GetTypeName(tischbein) ~ '_37') {
+    			hoehe = '37';	
+    		};
+    	}
+    	
+		my length =  PartAttr(tischblatt, 'laenge');
+		my depth =  PartAttr(tischblatt, 'breite');
+		my found = false;
+		my next = depth;
+		if (tischblatt){
+			if (type eq 'larger') {
+				while (not found and next lt 100) {
+					next = String(next + 25);
+					found = InTable(HALLERTISCH_SIZES, List('length', 'depth', 'height'), List(length, next, hoehe));
+				}
+				if (found) {
+					depth = next;
+				};
+			} else
+			if (type eq 'smaller') {
+				while (not found and next gt 75) {
+					next = String(next - 25);
+					found = InTable(HALLERTISCH_SIZES, List('length', 'depth','height'), List(length, next, hoehe));
+				}
+				if (found) {
+					depth = next;
+				};
+			}
+			
+		};	
+		
+		
+		return depth;
+	};"/>
+	</function>
+	
+	<function>
+	<definition expression="
+		def getTableHeight(tisch){
+			my tischblatt = ChildOfType(tisch, 'tischblatt');
+			my tischbein = ChildOfType(tisch, 'tischbein');
+			my hoehe = '74';
+	    	if (tischbein) {
+   				if (GetTypeName(tischbein) ~ '_37') {
+   					hoehe = '37';	
+   				};
+   			}
+   			return hoehe; 
+   		};"/>
+	</function>
+	
+	<function description="returns next value for smaller/larger">
+			<param name="tisch" description="part of type tisch_einheit"/>
+			<param name="type" description="smaller/larger"/>
+			<definition expression="
+	 def getNextValidTischLength(tisch, type){
+		my tischblatt = ChildOfType(tisch, 'tischblatt');
+		my tischbein = ChildOfType(tisch, 'tischbein');
+		my hoehe = '74';
+    	if (tischbein) {
+    		if (GetTypeName(tischbein) ~ '_37') {
+    			hoehe = '37';	
+    		};
+    	}
+		my length =  PartAttr(tischblatt, 'laenge');
+		my depth =  PartAttr(tischblatt, 'breite');
+		my found = false;
+		my next = length;
+		if (tischblatt){
+			if (type eq 'larger') {
+				while (not found and next lt 300) {
+					next = String(next + 25);
+					found = InTable(HALLERTISCH_SIZES, List('length', 'depth', 'height'), List(next, depth, hoehe));
+				}
+				if (found) {
+					length = next;
+				};
+			} else
+			if (type eq 'smaller') {
+				while (not found and next gt 75) {
+					next = String(next - 25);
+					found = InTable(HALLERTISCH_SIZES, List('length', 'depth','height'), List(next, depth, hoehe));
+				}
+				if (found) {
+					length = next;
+				};
+			}
+			
+		};	
+		return length;
+		};"/>
+		</function>
+		<function name="getTisch" description="returns selected tisch or one tisch in forest">
+			<returnvalue description="tisch part or null"/>
+			<definition expression="
+	def getTisch() {
+		my tisch = GetSelectedPart('mainstructure');
+		if (not tisch or not IsSubTypeOf(tisch, 'tisch_einheit_classic')) {
+			/*
+			*/
+			tisch = ChildOfType(Forest('mainstructure'), 'tisch_einheit_classic');
+			if (not tisch) {
+				tisch = ChildOfType(Forest('mainstructure'), 'tisch_einheit');
+				};
+			};
+		return tisch;
+	};		
+			
+			"/>
+		</function>
+		<function name="tableSizeEnabled">
+			<param name="hint"  description="length/depth/height"/>
+			<param name="size"  description="the size to be checked"/>
+			<definition expression="
+	def tableSizeEnabled(hint, size) {
+		my result = false;
+		my tisch = call getTisch();
+		if (not tisch) {
+			return false;
+		};
+		my hoehe = call getTableHeight(tisch);
+		my tischblatt = ChildOfType(tisch,'tischblatt');
+		my material = Feature(tischblatt, 'f_materialSubKategorie');
+		if (hint eq 'length' and material eq 'glas' and size gt 200){
+			return false;
+		}
+		if (hint eq 'depth') {
+			my depth = size;
+			my length = PartAttr(tischblatt, 'laenge');
+			my height = hoehe;
+		} else
+		if (hint eq 'length') {
+			my depth = PartAttr(tischblatt, 'breite');
+			my length = size;
+			my height = hoehe;
+		
+		} else 
+		
+		if (hint eq 'height') {
+			my depth = PartAttr(tischblatt, 'breite');
+			my length = PartAttr(tischblatt, 'laenge');
+			my height = size;
+		
+		}
+		
+		result = InTable(HALLERTISCH_SIZES, List('length', 'depth', 'height'), List(length, depth, height));
+	};"/>
+		</function>
+		<function name="currentTableSize">
+			<param name="hint"  description="length/depth/height"/>
+			<param name="size"  description="the size to be checked"/>
+			<definition expression="
+	def currentTableSize(hint, size) {
+		my result = false;
+		my tisch = call getTisch();
+		if (not tisch) {
+			return false;
+		};
+		my hoehe = call getTableHeight(tisch);
+		my tischblatt = ChildOfType(tisch,'tischblatt');
+		my material = Feature(tischblatt, 'f_materialSubKategorie');
+		if (hint eq 'length'){
+			return PartAttr(tischblatt, 'laenge') eq size;
+		} else
+		if (hint eq 'depth') {
+			return PartAttr(tischblatt, 'breite') eq size;
+		
+		} else 
+		
+		if (hint eq 'height') {
+			
+			return hoehe eq size;
+		
+		}
+		
+	};"/>
+		</function>
+		<function name="currentTableMaterial">
+			<param name="material"  description="kelco, holz, linoleum, fenix, mdf, glas"/>
+			<param name="typ"  description="the typ to be checked"/>
+			<definition expression="
+	def currentTableMaterial(material, typ) {
+		my result = false;
+		my tisch = call getTisch();
+		if (not tisch or not IsSubTypeOf(tisch, 'tisch_einheit_classic')) {
+		}
+		if (not tisch) {
+			return false;
+		};
+		my tischblatt = ChildOfType(tisch,'tischblatt');
+		my tischmaterial = Feature(tischblatt, 'Tischmaterial'); 
+		my kategorie = Feature(tischblatt, 'f_materialSubKategorie');
+		if (material eq 'kelco'){
+			return tischmaterial eq typ;
+		} else
+		if (material eq 'holz') {
+			return tischmaterial eq typ;
+		} else 
+		if (material eq 'linoleum') {
+			return tischmaterial eq typ;
+		} else 
+		if (material eq 'fenix') {
+			return tischmaterial eq typ;
+		} else 
+		if (material eq 'mdf') {
+			return tischmaterial eq typ;
+		} else 
+		
+		if (material eq 'glas') {
+			
+			return tischmaterial eq typ; 
+		
+		}
+		
+		
+	};"/>
+		</function>
+		<function name="enabledTableMaterial">
+			<param name="material"  description="kelco, holz, linoleum, fenix, mdf, glas"/>
+			<param name="typ"  description="the typ to be checked"/>
+			<definition expression="
+	def enabledTableMaterial(material, typ) {
+		my result = true;
+		my tisch = call getTisch();
+		
+		if (not tisch) {
+			return false;
+		};
+		my tischblatt = ChildOfType(tisch,'tischblatt');
+		my tischmaterial = Feature(tischblatt, 'Tischmaterial'); 
+		my kategorie = Feature(tischblatt, 'f_materialSubKategorie');
+		my length = PartAttr(ChildOfType(tisch, 'tischblatt'), 'laenge');
+		my depth = PartAttr(ChildOfType(tisch, 'tischblatt'), 'breite');
+		if (length eq 125 and depth eq 50) {
+			result = InList(List('02','41','58'), typ);
+		};
+		
+		result;
+	};"/>
+		</function>
+		<function name="textMessageGlas(glas)">
+			<definition expression="
+	def textMessageGlas(){
+		my result = false;
+		my tisch = call getTisch();
+		if (not tisch or Bool(CO_GLOBAL['resize']['problem'])) {
+			return false;
+		};
+		my tischblatt = tisch ? ChildOfType(tisch,'tischblatt') : null;
+		my tischmaterial = tischblatt ? Feature(tischblatt, 'Tischmaterial') : '';
+		my length = tisch ? PartAttr(ChildOfType(tisch, 'tischblatt'), 'laenge') : 125;
+		if(tischmaterial eq '80' or length gt '200'){
+			result = true;
+		}		
+		return result;
+	};"/>
+		</function>
+		
+		<function name="textMessage500()">
+			<definition expression="
+	def textMessage500(){
+		my result = false;
+		my tisch = call getTisch();
+		if (not tisch or Bool(CO_GLOBAL['resize']['problem'])) {
+			return false;
+		};
+		my tischblatt = tisch ? ChildOfType(tisch,'tischblatt') : null;
+		my tischmaterial = tischblatt ? Feature(tischblatt, 'Tischmaterial') : '';
+		my length = tisch ? PartAttr(ChildOfType(tisch, 'tischblatt'), 'laenge') : 125;
+		my depth = tisch ? PartAttr(ChildOfType(tisch, 'tischblatt'), 'breite') : 75;
+		if(length eq '125' and depth eq '50'){
+			result = true;
+		}		
+		return result;
+	};"/>
+		</function>
+		
+		<function name="def currentBoxFarbe">
+			<param name="boxfarbe"  description="anthrazitgrau, hellgrau"/>
+			<definition expression="def currentboxFarbe(boxfarbe) {
+		my boxen = GetSelectedPartList('mainstructure');
+		
+		if (Size(boxen) eq 0) {
+			boxen = ChildrenListOfTypeDeep(Forest('mainstructure'), 'as_inosBox');
+		};
+		my colors = FeatureValuesFromPartList(boxen, 'f_inosBoxMaterial_top');
+		my uniqueColors = UniqueList(colors);
+		InList(uniqueColors, boxfarbe);
+	};"/>
+		</function>
+		
+		<function name="def currentUnterteilungFarbe">
+			<param name="boxfarbe"  description="anthrazitgrau, hellgrau"/>
+			<definition expression="
+	def currentUnterteilungFarbe(unterteilungfarbe) {
+		my result = false;
+		
+		my boxen = call getInosBoxen();
+		if (Size(boxen)) {
+			result = Feature(boxen[0], 'f_inosBoxUnterteilungMaterial_top') eq unterteilungfarbe;
+		};
+		result;
+	};"/>
+		</function>
+		<function name="getInosBoxen">
+			<definition expression="
+	def getInosBoxen() {
+		my part = GetSelectedPartList('mainstructure');
+		if (part eq List())
+		{
+			
+		}
+		return ChildrenListOfTypeDeep(Forest('mainstructure'), 'as_inosBox');
+	};"/>
+		</function>
+		
+	<function name="partBelongsToVolumeList" description="return true if part is child or reference part of one of the volumes">
+		<definition expression="def partBelongsToVolumeList(part, volumes) {
+			my result = false;
+			my volume = ParentOfType(part, 'mainstructure', 'normal_volume');
+			if (volume) {
+				result = InList(volumes, volume);
+			};
+			if (result) {
+				my refvolumes = GetRefVolumes(part, 'mainstructure');
+				for (my v: refvolumes) {
+					result = InList(volumes, v);
+					if (result) {
+						break;
+					};
+				};
+			};
+			
+			return result;
+		}"/>
+	</function>
+	<function name="checkWebProduct" description="returns true/false for product">
+		<definition expression="def checkWebProduct(product) {
+			return CO_GLOBAL['additionaldata']['product'] eq product;
+		}"/>
+	</function>
+	<function name="getProductCartInfoText" description="returns the safety information text">
+		<definition expression="def getProductCartInfoText(product, safety) {
+			my result = '';
+			my articles = CopyTable(CO_GLOBAL['articles']);
+			if (product eq 'haller') {
+				my infotext = '@B'++Localize('Ihr USM Haller Möbel')++'@B@n@n';
+				infotext = infotext ++ call gatherConfigInfos(articles[0]['groupid'], articles);
+				infotext = PXFormattingToHTML(infotext);
+				my safetytext = safety ? Localize('infoTextaddToCartHaller') : '';
+				safetytext = PXFormattingToHTML(safetytext);
+				result = ASCIIChar(60)++'div style='++ASCIIChar(34)++' position: absolute; top: 0; left: 0; '++ASCIIChar(34) ++ASCIIChar(62)++infotext++ ASCIIChar(60)++'/div'++ASCIIChar(62);
+				result = result ++ ASCIIChar(60)++'div style='++ASCIIChar(34)++' position: absolute; bottom: 0; left: 0; '++ASCIIChar(34) ++ASCIIChar(62)++safetytext++ ASCIIChar(60)++'/div'++ASCIIChar(62);
+			} else 
+			if (product eq 'hallertisch') {
+				my infotext = '@B'++Localize('Ihr USM Haller Tisch')++'@B@n@n';
+				infotext = infotext ++ call gatherConfigInfos(CO_GLOBAL['articles'][0]['groupid'], CO_GLOBAL['articles']);
+				infotext = PXFormattingToHTML(infotext);
+				result = ASCIIChar(60)++'div style='++ASCIIChar(34)++' position: absolute; top: 0; left: 0; '++ASCIIChar(34) ++ASCIIChar(62)++infotext++ ASCIIChar(60)++'/div'++ASCIIChar(62);
+				//result = Localize('infoTextaddToCartHallertisch');
+			};
+			
+			
+			return result;
+		}"/>
+	</function>
+	<function name="getMyUSMSafeInfoText" description="returns the save information text in myusm mode ">
+		<definition expression="def getProductCartInfoText(safety) {
+			my result = '';
+			my text = Localize('Möchten Sie die Konfiguration in Ihrem myUSM-Profil speichern?');
+			my infotext = '@n@n@n'++text++'@B@n@n';
+			infotext = PXFormattingToHTML(infotext);
+			my safetytext = safety ? Localize('infoTextaddToCartHaller') : '';
+			safetytext = PXFormattingToHTML(safetytext);
+			result = ASCIIChar(60)++'div style='++ASCIIChar(34)++' position: absolute; bottom: 30%; left: 0; font-size: 20px; '++ASCIIChar(34) ++ASCIIChar(62)++infotext++ ASCIIChar(60)++'/div'++ASCIIChar(62);
+			result = result ++ ASCIIChar(60)++'div style='++ASCIIChar(34)++' position: absolute; bottom: 0; left: 0; '++ASCIIChar(34) ++ASCIIChar(62)++safetytext++ ASCIIChar(60)++'/div'++ASCIIChar(62);
+			
+			
+			return result;
+		}"/>
+	</function>
+</code>
