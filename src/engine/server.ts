@@ -50,6 +50,27 @@ function readRawBody(req: any): Promise<Buffer> {
   return new Promise((res) => { const cs: Buffer[] = []; req.on("data", (c: Buffer) => cs.push(c)); req.on("end", () => res(Buffer.concat(cs))); });
 }
 
+// The lock: verify the caller's Supabase JWT against /auth/v1/user. Enforced only when SUPABASE_URL
+// is set (production host); unset => local dev, open. Result cached 60s to avoid a round-trip/request.
+const SUPA_URL = process.env.SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_KEY ?? "";
+const authCache = new Map<string, { exp: number; user: any }>();
+async function verifyJwt(req: any): Promise<any | null> {
+  if (!SUPA_URL) return { dev: true }; // auth not configured -> local dev
+  const h = String(req.headers["authorization"] ?? "");
+  const tok = h.startsWith("Bearer ") ? h.slice(7) : "";
+  if (!tok) return null;
+  const now = Date.now(), c = authCache.get(tok);
+  if (c && c.exp > now) return c.user;
+  try {
+    const r = await fetch(`${SUPA_URL}/auth/v1/user`, { headers: { Authorization: `Bearer ${tok}`, apikey: SUPA_KEY } });
+    if (!r.ok) return null;
+    const user = await r.json();
+    authCache.set(tok, { exp: now + 60000, user });
+    return user;
+  } catch { return null; }
+}
+
 const send = (r: any, code: number, body: string, type = "application/json") =>
   r.writeHead(code, { "content-type": type, "cache-control": "no-store" }).end(body);
 
@@ -79,8 +100,11 @@ const server = createServer(async (req, res) => {
       }
       const pl = JSON.parse(readFileSync(pf, "utf8"));
       const query = (req.url ?? "").split("?")[1] ?? "";
-      if (/coords=(realitykit|ios)/.test(query)) return send(res, 200, JSON.stringify(placementToRK(pl)));
-      return send(res, 200, JSON.stringify(pl));
+      if (/coords=(realitykit|ios)/.test(query)) { // app-facing one52 payload -> require auth
+        if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
+        return send(res, 200, JSON.stringify(placementToRK(pl)));
+      }
+      return send(res, 200, JSON.stringify(pl)); // raw (internal/editor; expose only on localhost)
     }
 
     if (req.method === "POST" && url === "/api/override") {
@@ -99,6 +123,7 @@ const server = createServer(async (req, res) => {
     // Ingest an uploaded .pxpz project: extract config.px5 server-side, solve, return the one52
     // (RealityKit) payload. The app uploads the proprietary file and gets back one52-only data.
     if (req.method === "POST" && url === "/api/solve-pxpz") {
+      if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
       const buf = await readRawBody(req);
       const cfg = extractConfigPx5(buf);
       if (!cfg) return send(res, 400, JSON.stringify({ error: "no config.px5 found in .pxpz" }));

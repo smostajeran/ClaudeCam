@@ -54,10 +54,18 @@ Done: schema applied (`part_catalog`, `private_article` [service-role only], `pr
 443-row seed in `supabase/seed_catalog.sql`). Security advisor clean (the only notice — RLS-enabled-
 no-policy on `private_article` — is intentional: that table is locked to service_role).
 
+## JWT enforcement (built)
+`server.ts` verifies the caller's Supabase JWT via `/auth/v1/user`. Enforcement is config-gated:
+- set `SUPABASE_URL` (+ `SUPABASE_ANON_KEY`) in the host env → the app-facing endpoints
+  (`POST /api/solve-pxpz`, `GET /api/placement?coords=realitykit`) require `Authorization: Bearer
+  <supabase-jwt>`; missing/invalid → **401**. Verified results cached 60 s.
+- unset (local dev) → open, so the rule editor runs locally without auth.
+- the internal editor endpoints (`/api/model`, overrides, manifest…) stay open — expose the host's
+  app endpoints publicly, keep the editor on localhost.
+
 ## Next (engine host — architecture B)
-1. Run the engine (`server.ts`) on a small container with the Supabase **service_role** key in env.
-2. Verify the caller's Supabase JWT on `/api/solve-pxpz` (the lock), then solve and return the one52
-   payload; optionally upsert `placement`.
-3. Upload proprietary engine data (`model.json`, `database.xml`, …) to the `proprietary` bucket; the
-   host reads them with the service role (or keeps them on the host only).
-4. App: sign in with Supabase Auth → call the host with the JWT → render the one52 payload.
+1. Run `server.ts` on a small container with env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and the
+   **service_role** key (for reading `private_article` / the `proprietary` bucket).
+2. Upload proprietary engine data (`model.json`, `database.xml`, …) to the `proprietary` bucket (or
+   keep on the host); never ship them in the app.
+3. App: sign in with Supabase Auth → `POST /api/solve-pxpz` with the JWT → render the one52 payload.
