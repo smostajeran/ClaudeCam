@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { placementToRK } from "./export_ios.ts";
 import { extractConfigPx5 } from "./pxpz.ts";
+import { bootstrap } from "./bootstrap.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".."); // usm-engine/
 const MODEL = join(ROOT, "out", "model.json");
@@ -77,6 +78,7 @@ const send = (r: any, code: number, body: string, type = "application/json") =>
 const server = createServer(async (req, res) => {
   const url = (req.url ?? "/").split("?")[0];
   try {
+    if (req.method === "GET" && url === "/health") return send(res, 200, JSON.stringify({ ok: true, model: existsSync(MODEL), auth: !!SUPA_URL }));
     if (req.method === "GET" && (url === "/" || url === "/index.html")) return send(res, 200, readFileSync(UI, "utf8"), "text/html; charset=utf-8");
     if (req.method === "GET" && url === "/api/model") return send(res, 200, JSON.stringify(mergedModel()));
     if (req.method === "GET" && url === "/api/overrides") return send(res, 200, JSON.stringify(loadOverlay()));
@@ -149,4 +151,5 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`USM rule editor -> http://localhost:${PORT}  (overlay: ${OVERLAY})`));
+await bootstrap(); // hosted deploys: fetch engine data from the locked bucket if missing (no-op locally)
+server.listen(PORT, () => console.log(`USM engine -> http://localhost:${PORT}  (auth: ${SUPA_URL ? "Supabase JWT" : "open/local"})`));

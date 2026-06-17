@@ -1,7 +1,11 @@
-export const APPCODES_DIR = "C:/Virtual-LastU/snx2xml/co/appcodes";
-export const SNX = "C:/Virtual-LastU/snx2xml/co/packages/hallerpackage";
-export const CART = SNX + "/cartridge";
-export const REP = SNX + "/representation";
+import { join } from "node:path";
+// Decoded-cartridge root. Override on a server (Railway etc.) with USM_DATA, e.g. /app/data;
+// defaults to the local Windows decode for development.
+const ROOT = process.env.USM_DATA ?? "C:/Virtual-LastU/snx2xml";
+export const APPCODES_DIR = join(ROOT, "co/appcodes");
+export const SNX = join(ROOT, "co/packages/hallerpackage");
+export const CART = join(SNX, "cartridge");
+export const REP = join(SNX, "representation");
 
 export const FILES = {
   componentsystem: CART + "/componentsystem.xml",

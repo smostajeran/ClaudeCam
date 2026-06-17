@@ -5,8 +5,12 @@
   "type": "module",
   "description": "Internal USM configurator engine (Haller-first), imported from decoded Perspectix VCML.",
   "scripts": {
+    "start": "node src/engine/server.ts",
     "import": "node src/import/run.ts",
     "test:golden": "node src/test/golden/run.ts"
+  },
+  "engines": {
+    "node": ">=24"
   },
   "dependencies": {
     "fast-xml-parser": "^5.9.2"
