@@ -63,7 +63,7 @@ function family(t: string): string {
   if (/trafo|verbraucher|safety|klemm|griff|schloss|scheren|winkel|zapfen/.test(x)) return "hardware";
   return "other";
 }
-const identity = (type: string) => { const label = prettyName(type); return { part: slug(label) || "part", label, family: family(type) }; };
+export const identity = (type: string) => { const label = prettyName(type); return { part: slug(label) || "part", label, family: family(type), resolved: label !== type }; };
 
 // Convert a solved placement to the one52 iOS payload (own ids/labels + RealityKit transforms only).
 export function placementToRK(pl: any): any {
