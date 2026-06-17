@@ -4,3 +4,6 @@ out/
 # oracle project data (user's P'X5 export; regenerable by extracting the .pxpz)
 *.pxpz
 oracle/test_project/
+
+# proprietary USM article catalog (prices/weights/names) — local only, do not publish
+database.xml

@@ -9,7 +9,8 @@ import { loadScene, installPartFns } from "./scene.ts";
 import { Host } from "./partgraph.ts";
 import { loadAppcodes } from "../vcml/appcode.ts";
 import { evalVCML } from "../vcml/interp.ts";
-import { APPCODES_DIR } from "../import/paths.ts";
+import { APPCODES_DIR, SNX } from "../import/paths.ts";
+import { loadCatalog, loadComponentArtNo } from "./catalog.ts";
 import { trs, mul, invRigid, euler, ident, applyPoint, getTranslation, matToQuat, quatAngleDeg, dist } from "./geom.ts";
 import type { Mat4, Vec3 } from "./geom.ts";
 
@@ -24,7 +25,7 @@ function findFile(dir: string, name: string): string | null {
 const cfg = process.argv[2] ?? findFile("oracle/test_project", "config.px5");
 if (!cfg) { console.log("no config.px5 (extract a .pxpz into oracle/test_project)"); process.exit(0); }
 
-interface GPart { id: string; type: string; pos: Vec3; rot: Vec3; e: string | null; docks: { type: string; index: number; dockid: string; partner: string }[] }
+interface GPart { id: string; type: string; pos: Vec3; rot: Vec3; e: string | null; artnr: string; docks: { type: string; index: number; dockid: string; partner: string }[] }
 const num = (s: string | undefined) => { const n = Number(s); return Number.isNaN(n) ? 0 : n; };
 // Haller-E (electrification) role from a part's saved features: the live electrical path.
 function eRole(type: string, f: Record<string, string>): string | null {
@@ -47,7 +48,7 @@ const parts: GPart[] = csNodes.map((cs, i) => {
     id: attr(cs, "_PXI_unique_comp_id") ?? String(i), type,
     pos: [num(attr(pos, "x")), num(attr(pos, "y")), num(attr(pos, "z"))],
     rot: [num(attr(rot, "x")), num(attr(rot, "y")), num(attr(rot, "z"))],
-    e: eRole(type, feat),
+    e: eRole(type, feat), artnr: feat.f_artnr ?? "",
     docks: byTag(k, "connecteddock").map((d) => ({ type: attr(d, "type")!, index: num(attr(d, "index")) || 1, dockid: attr(d, "dockid")!, partner: attr(d, "connecteddockid")! })),
   };
 });
@@ -248,12 +249,34 @@ function panelQuad(p: GPart, W: Mat4): { quad: number[][]; kind: string } | null
   return { quad: [corner(false, false), corner(true, false), corner(true, true), corner(false, true)], kind: /glas/.test(p.type) ? "glass" : "panel" };
 }
 
+// Article catalog (database.xml) + component->article-number map: resolve each part to its billable
+// article for official naming + a priced BOM. Only parts with a literal article number resolve here
+// (tubes via art_number, + f_artnr); composite articles need the article-assignment system (TODO).
+const catalog = loadCatalog("database.xml");
+const compArtNo = loadComponentArtNo(`${SNX}/cartridge/componentsystem.xml`);
+const resolveArtNo = (p: GPart): string | null => {
+  const a = compArtNo.get(p.type) ?? p.artnr;
+  return a && /^\d[\d.]*$/.test(a) ? a : null; // literal numbers only (skip VCML exprs for now)
+};
+
 import("node:fs").then(({ writeFileSync }) => {
   const out = parts.filter((p) => world.has(p.id)).map((p) => {
     const W = world.get(p.id)!;
     const pq = panelQuad(p, W);
-    return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)), ...(p.e ? { e: p.e } : {}), ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}) };
+    const artNo = resolveArtNo(p); const art = artNo ? catalog.get(artNo) : null;
+    return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)),
+      ...(p.e ? { e: p.e } : {}), ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}),
+      ...(art ? { artNo, name: art.en, price: art.price, weight: art.weight } : artNo ? { artNo } : {}) };
   });
+  // priced BOM rollup (parts that resolved to a catalog article)
+  const bomMap = new Map<string, { artNo: string; name: string; qty: number; price: number; weight: number }>();
+  let priced = 0;
+  for (const p of out) if ((p as any).price != null) { priced++; const a = (p as any).artNo; const e = bomMap.get(a) ?? { artNo: a, name: (p as any).name, qty: 0, price: (p as any).price, weight: (p as any).weight }; e.qty++; bomMap.set(a, e); }
+  const bom = [...bomMap.values()].sort((x, y) => y.qty * y.price - x.qty * x.price);
+  const total = bom.reduce((s, b) => s + b.qty * b.price, 0), totalKg = bom.reduce((s, b) => s + b.qty * b.weight, 0);
+  console.log(`\n  === BOM (priced from database.xml) — ${priced}/${out.length} parts resolved to a catalog article ===`);
+  for (const b of bom) console.log(`     ${b.qty}× ${b.artNo.padEnd(8)} ${b.name.slice(0, 40).padEnd(40)} @ €${b.price.toFixed(2)} = €${(b.qty * b.price).toFixed(2)}`);
+  console.log(`     TOTAL (resolved parts): €${total.toFixed(2)}   ${totalKg.toFixed(2)} kg   [composite articles need the article-assignment system]`);
   const eCount: Record<string, number> = {};
   for (const p of parts) if (p.e) eCount[p.e] = (eCount[p.e] ?? 0) + 1;
   console.log(`  Haller-E roles: ${Object.entries(eCount).map(([k, n]) => `${k} ${n}`).join(", ") || "none"}`);
@@ -262,6 +285,6 @@ import("node:fs").then(({ writeFileSync }) => {
   for (const p of parts) if (world.has(p.id)) for (const e of adj.get(p.id)!) if (world.has(e.them.id)) {
     const k = [p.id, e.them.id].sort().join("-"); if (seen.has(k)) continue; seen.add(k); conns.push([p.id, e.them.id]);
   }
-  writeFileSync("out/placement.json", JSON.stringify({ source: "usm-engine dock solver", parts: out, connections: conns }, null, 1));
+  writeFileSync("out/placement.json", JSON.stringify({ source: "usm-engine dock solver", parts: out, connections: conns, bom, pricedTotal: +total.toFixed(2), pricedKg: +totalKg.toFixed(2), pricedCount: priced }, null, 1));
   console.log(`\n  wrote out/placement.json (${out.length} parts + ${conns.length} connections) — consumable world transforms`);
 });

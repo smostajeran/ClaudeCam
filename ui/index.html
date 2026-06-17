@@ -83,6 +83,7 @@
   <span class="badge" id="ovBadge">no edits</span>
   <button class="ghost" id="resetBtn">Reset edits</button>
   <button id="view3dBtn">3D View</button>
+  <button id="bomBtn">BOM €</button>
   <button id="solveBtn">Solve placement</button>
   <button id="conflictsBtn">Check conflicts</button>
   <button class="primary" id="validateBtn">Validate vs P'X5</button>
@@ -245,6 +246,18 @@ async function run(script, title) {
     $("#runOut").textContent = r.stdout || r.error || "(no output)";
   } catch(e){ $("#runStatus").innerHTML='<span class="err">failed</span>'; $("#runOut").textContent=String(e); }
 }
+$("#bomBtn").onclick = async () => {
+  $("#runTitle").textContent = "Bill of materials (priced from USM catalog)"; $("#runStatus").textContent = "loading…"; $("#runOut").textContent = "…"; $("#drawer").classList.add("show");
+  try {
+    const P = await (await fetch("/api/placement")).json();
+    const lines = (P.bom||[]).map(b => `${String(b.qty).padStart(3)} × ${b.artNo.padEnd(8)} ${b.name}`.padEnd(58) + `€${b.price.toFixed(2)} ea  =  €${(b.qty*b.price).toFixed(2)}`);
+    $("#runOut").textContent = (lines.join("\n") || "(run Solve first)")
+      + `\n\nTOTAL (priced parts): €${(P.pricedTotal||0).toFixed(2)}    ${(P.pricedKg||0).toFixed(2)} kg`
+      + `\nResolved ${P.pricedCount||0} / ${(P.parts||[]).length} parts (tubes carry article numbers).`
+      + `\nBalls, panels, glass, fittings & drawers roll up via the article-assignment system — not yet built, so not priced here.`;
+    $("#runStatus").innerHTML = '<span class="ok">from database.xml</span>';
+  } catch(e){ $("#runStatus").innerHTML='<span class="err">failed</span>'; $("#runOut").textContent=String(e); }
+};
 $("#validateBtn").onclick = () => run("validate","Validate features vs P'X5");
 $("#conflictsBtn").onclick = () => run("conflicts","Check conflicts vs P'X5");
 $("#solveBtn").onclick = () => run("solve","Solve placement vs P'X5");
@@ -353,7 +366,9 @@ function showPick(part){
   picked=part.id; hiTypes=null;
   const props=propsForType(part.type), clauses=clausesForType(part.type);
   const rule=(tab,key,k,extra)=>`<div class="rule" data-tab="${tab}" data-key="${esc(key)}"><span class="k">${k}</span> ${esc(key)}${extra||""}</div>`;
-  $("#pick3d").innerHTML = `<h3>${esc(prettyName(part.type))}</h3><div class="pmeta"><code>${esc(part.type)}</code> · #${esc(part.id)}<br>pos [${part.pos.map(x=>x.toFixed(1))}]  quat [${part.quat.map(x=>x.toFixed(3))}]</div>`
+  const title = part.name || prettyName(part.type);
+  const artLine = part.artNo ? `<br>art ${esc(part.artNo)}${part.price!=null?` · €${part.price.toFixed(2)} · ${part.weight} kg`:""}` : "";
+  $("#pick3d").innerHTML = `<h3>${esc(title)}</h3><div class="pmeta"><code>${esc(part.type)}</code> · #${esc(part.id)}${artLine}<br>pos [${part.pos.map(x=>x.toFixed(1))}]  quat [${part.quat.map(x=>x.toFixed(3))}]</div>`
     + `<div class="sec">Properties (${props.length})</div>` + (props.length?props.map(p=>rule("properties",p.type,"prop",` <span class="k">→ ${esc(p.feature)}</span>`)).join(""):`<div class="none">none</div>`)
     + `<div class="sec">Clauses (${clauses.length})</div>` + (clauses.length?clauses.map(c=>rule("clauses",c.type,"clause")).join(""):`<div class="none">none</div>`);
   $("#pick3d").classList.add("show");
