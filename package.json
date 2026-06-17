@@ -1,0 +1,14 @@
+{
+  "name": "usm-engine",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Internal USM configurator engine (Haller-first), imported from decoded Perspectix VCML.",
+  "scripts": {
+    "import": "node src/import/run.ts",
+    "test:golden": "node src/test/golden/run.ts"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.9.2"
+  }
+}
