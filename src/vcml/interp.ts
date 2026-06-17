@@ -8,7 +8,7 @@ import type { Host, Value } from "../engine/partgraph.ts";
 
 // ---------- lexer ----------
 type Tok = { k: string; v: string };
-const KW = new Set(["my", "call", "return", "eq", "ne", "lt", "gt", "le", "ge", "and", "or", "not", "true", "false", "null"]);
+const KW = new Set(["my", "call", "return", "if", "else", "eq", "ne", "lt", "gt", "le", "ge", "and", "or", "not", "true", "false", "null"]);
 function lex(src: string): Tok[] {
   const t: Tok[] = [];
   let i = 0;
@@ -17,6 +17,7 @@ function lex(src: string): Tok[] {
     const c = src[i];
     if (c === " " || c === "\t" || c === "\r" || c === "\n") { i++; continue; }
     if (c === "'") { let j = i + 1, s = ""; while (j < n && src[j] !== "'") s += src[j++]; t.push({ k: "str", v: s }); i = j + 1; continue; }
+    if (c === "`") { let j = i + 1, s = ""; while (j < n && src[j] !== "`") s += src[j++]; t.push({ k: "str", v: s }); i = j + 1; continue; }
     if (c >= "0" && c <= "9" || (c === "." && src[i + 1] >= "0" && src[i + 1] <= "9")) {
       let j = i; while (j < n && /[0-9.eE+\-]/.test(src[j]) && !(src[j] === "+" || src[j] === "-") || (j > i && (src[j] === "e" || src[j] === "E"))) j++;
       // simpler: consume a numeric token
@@ -25,9 +26,10 @@ function lex(src: string): Tok[] {
       t.push({ k: "num", v: num }); i += num.length; continue;
     }
     if (/[A-Za-z_]/.test(c)) { let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++; const w = src.slice(i, j); t.push({ k: KW.has(w) ? w : "ident", v: w }); i = j; continue; }
-    if (c === "+" && src[i + 1] === "+") { t.push({ k: "op", v: "++" }); i += 2; continue; }
-    if (c === "=") { t.push({ k: "op", v: "=" }); i++; continue; }
-    if ("+-*/()[],;?:".includes(c)) { t.push({ k: c === "(" || c === ")" || c === "[" || c === "]" || c === "," || c === ";" || c === "?" || c === ":" ? c : "op", v: c }); i++; continue; }
+    // operators/punctuation: token KIND is the symbol itself (so a string literal like '-' can't
+    // be mistaken for the minus operator — is() matches on kind, not value).
+    if (c === "+" && src[i + 1] === "+") { t.push({ k: "++", v: "++" }); i += 2; continue; }
+    if ("+-*/(){}[],;?:=".includes(c)) { t.push({ k: c, v: c }); i++; continue; }
     throw new Error(`VCML lex: unexpected '${c}' at ${i}`);
   }
   t.push({ k: "eof", v: "" });
@@ -42,13 +44,24 @@ class Parser {
   peek() { return this.t[this.p]; }
   next() { return this.t[this.p++]; }
   eat(k: string) { const x = this.next(); if (x.k !== k && x.v !== k) throw new Error(`VCML parse: expected ${k}, got ${x.k} '${x.v}'`); return x; }
-  is(v: string) { return this.peek().k === v || this.peek().v === v; }
+  is(v: string) { return this.peek().k === v; }
 
   program(): Node { const stmts: Node[] = []; while (!this.is("eof")) { stmts.push(this.statement()); if (this.is(";")) this.next(); } return { t: "block", stmts }; }
   statement(): Node {
     if (this.is("my")) { this.next(); const name = this.eat("ident").v; this.eat("="); return { t: "let", name, e: this.expr() }; }
     if (this.is("return")) { this.next(); return { t: "ret", e: this.expr() }; }
+    if (this.is("if")) return this.ifStmt();
+    if (this.is("{")) return this.block();
+    if (this.peek().k === "ident" && this.t[this.p + 1] && this.t[this.p + 1].v === "=") { const name = this.next().v; this.eat("="); return { t: "assign", name, e: this.expr() }; }
     return { t: "expr", e: this.expr() };
+  }
+  block(): Node { this.eat("{"); const stmts: Node[] = []; while (!this.is("}") && !this.is("eof")) { stmts.push(this.statement()); if (this.is(";")) this.next(); } this.eat("}"); return { t: "block", stmts }; }
+  ifStmt(): Node {
+    this.eat("if"); this.eat("("); const cond = this.expr(); this.eat(")");
+    const then = this.is("{") ? this.block() : this.statement();
+    let els: Node = null;
+    if (this.is("else")) { this.next(); els = this.is("if") ? this.ifStmt() : this.is("{") ? this.block() : this.statement(); }
+    return { t: "if", cond, then, els };
   }
   expr(): Node { return this.ternary(); }
   ternary(): Node { let c = this.or(); if (this.is("?")) { this.next(); const a = this.expr(); this.eat(":"); const b = this.expr(); return { t: "tern", c, a, b }; } return c; }
@@ -92,6 +105,18 @@ export const BUILTINS: Record<string, Builtin> = {
   StrReplace: (a) => String(a[0]).split(String(a[1])).join(String(a[2])),
   StringToList: (a) => String(a[0]).split(String(a[1] ?? "")),
   Vector: (a) => ({ x: Number(a[0]) || 0, y: Number(a[1]) || 0, z: Number(a[2]) || 0 }),
+  Number: (a) => Number(a[0]),
+  UpperCase: (a) => String(a[0]).toUpperCase(),
+  IsNumeric: (a) => a[0] != null && a[0] !== "" && !globalThis.Number.isNaN(globalThis.Number(a[0])),
+  IndexOfSubStr: (a) => String(a[0]).indexOf(String(a[1])),
+  VarDefined: (a) => a[0] != null,
+  Transformation: (a) => (a.length >= 6
+    ? { pos: { x: +a[0], y: +a[1], z: +a[2] }, rot: { x: +a[3], y: +a[4], z: +a[5] } }
+    : { pos: a[0], rot: a[1] }),
+  AccumulateTransformation: (a) => ({ base: a[0], delta: a[1] }), // TODO: real matrix compose
+  FilterList: (a, h) => (Array.isArray(a[0])
+    ? a[0].filter((el) => truthy(evalVCML(String(a[2]), h, { [String(a[1])]: el })))
+    : []),
   EnvValue: (a, h) => (h.env.has(String(a[0])) ? h.env.get(String(a[0])) : a[1] ?? null),
   Scenario: (_a, h) => h.env.get("scenario") ?? "co",
   IsSubTypeOf: (a, h) => h.isSubTypeOf(String(a[0]), String(a[1])),
@@ -99,7 +124,10 @@ export const BUILTINS: Record<string, Builtin> = {
 // part-dependent builtins: resolved against the live PartGraph (Host.partFns) or fail loud.
 export const PART_BUILTINS = ["Feature", "PartAttr", "GetTypeName", "Dock", "DockGetConnectedPart",
   "DockGetConnectedDock", "ConnectedDocksOfType", "GetDOFValue", "GetComponentListOfType", "FindPart",
-  "Parent", "ParentOfType", "PartPos", "PartRot", "RelativePartPos"];
+  "Parent", "ParentOfType", "PartPos", "PartRot", "RelativePartPos",
+  // part/scene-dependent functions surfaced by the coverage pass:
+  "PartBoundingBox", "RegisteredPart", "GetRefVolumes", "GetVolumeRefParts", "ChildCountDeep",
+  "ConnectedDockCount", "GetComponentListOfConnectionId", "USMPartPrintZone", "Height", "ConnectionId"];
 for (const name of PART_BUILTINS) {
   BUILTINS[name] = (args, host) => {
     const fn = (host as any).partFns?.[name];
@@ -113,7 +141,8 @@ function truthy(v: Value): boolean { return !(v === false || v == null || v === 
 function evalNode(node: Node, env: Map<string, Value>, host: Host): Value {
   switch (node.t) {
     case "block": { let last: Value = null; for (const s of node.stmts) { const v = evalNode(s, env, host); if (s.t === "ret") return v; last = v; } return last; }
-    case "let": { const v = evalNode(node.e, env, host); env.set(node.name, v); return v; }
+    case "let": case "assign": { const v = evalNode(node.e, env, host); env.set(node.name, v); return v; }
+    case "if": { if (truthy(evalNode(node.cond, env, host))) return evalNode(node.then, env, host); return node.els ? evalNode(node.els, env, host) : null; }
     case "ret": case "expr": return evalNode(node.e, env, host);
     case "num": case "str": case "lit": return node.v;
     case "var": return env.has(node.name) ? env.get(node.name) : null;
