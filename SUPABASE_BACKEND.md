@@ -54,6 +54,18 @@ Done: schema applied (`part_catalog`, `private_article` [service-role only], `pr
 443-row seed in `supabase/seed_catalog.sql`). Security advisor clean (the only notice — RLS-enabled-
 no-policy on `private_article` — is intentional: that table is locked to service_role).
 
+## Supabase MCP (project-scoped, for Claude Code)
+`.mcp.json` adds a Supabase MCP server **read-only** and **pinned to `--project-ref=jbmbhhbglcclgnpagwhg`**
+(can't touch the org's other projects). To enable it:
+1. Create a **personal access token**: Supabase dashboard → Account → Access Tokens (NOT the
+   service_role or anon key).
+2. Set it in the env that launches Claude Code: `SUPABASE_ACCESS_TOKEN=<pat>` (Windows: set a user
+   env var; macOS/Linux: export in your shell profile).
+3. Launch Claude Code from `usm-engine/` and approve the `supabase` server when prompted.
+- Drop `--read-only` from `.mcp.json` if you need write access (migrations/seed); read-only is the
+  safe default. On Windows, if `npx` isn't found, change `command` to `cmd` and prepend `"/c","npx"`
+  to `args`.
+
 ## JWT enforcement (built)
 `server.ts` verifies the caller's Supabase JWT via `/auth/v1/user`. Enforcement is config-gated:
 - set `SUPABASE_URL` (+ `SUPABASE_ANON_KEY`) in the host env → the app-facing endpoints
