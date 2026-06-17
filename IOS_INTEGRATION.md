@@ -14,32 +14,44 @@ P'X5 cartridge ──► usm-engine (solve) ──► placement.json ──► i
 
 ---
 
-## 1. What the engine gives you
+## 0. IP separation — internal vs shipped (protect one52's rights)
 
-`out/placement.json` — one record per placed part:
+There are **two** artifacts; keep them apart:
 
-```json
-{ "id":"387", "type":"glasscharnier_vorne_oben_l",
-  "pos":[-49.48,-18.96,184.75],            // centimetres, P'X5 frame (Z-up, right-handed)
-  "quat":[0,0,1,0],                         // x,y,z,w  world orientation
-  "panelKind":"glass", "quad":[[..],[..],[..],[..]],   // panels only: 4 world corners (cm)
-  "e":"live", "artNo":"10736", "name":"USM Haller, tube, 350 mm", "price":11.37, "weight":0.17 }
-```
+| Artifact | Contents | Audience |
+|---|---|---|
+| `out/placement.json` (**internal**) | full data incl. raw German codes, USM article numbers, prices, catalog names | one52 tooling only — do **not** bundle in the app |
+| `out/placement.ios.json` / `?coords=realitykit` (**shipped**) | one52's own IDs + English labels + geometry only | the iOS app |
 
-You do **not** have to do the coordinate math on device — the engine emits a RealityKit-ready
-variant (metres, **Y-up**, quaternion conjugated):
+The shipped payload is **one52's own derived representation**: our stable IDs, our labels, and the
+solved transforms (geometry is a mathematical fact). It deliberately **excludes** the proprietary
+Perspectix/USM source identifiers — raw cartridge codes, article numbers, prices — which are
+processed internally and never redistributed. (Verified: shipped keys are `id, part, label,
+family, pos, quat, role, quad` — no `type`/`artNo`/`price`/`name`.) This protects one52's work
+product and keeps USM proprietary data out of the app bundle. (Not legal advice — have counsel
+review before distribution.)
+
+## 1. What the app gets (one52 schema)
 
 - **File:** `node src/engine/export_ios.ts` → `out/placement.ios.json`
 - **HTTP:** `GET http://<host>:5152/api/placement?coords=realitykit`
 
 ```json
-{ "frame":"RealityKit", "units":"m", "up":"Y",
-  "parts":[ { "id":"387", "type":"glasscharnier_vorne_oben_l",
-              "pos":[-0.49484,1.8475,0.18957], "quat":[0,1,0,0], ... } ] }
+{ "meta": { "owner":"one52", "frame":"RealityKit", "units":"m", "up":"Y", "notice":"…" },
+  "parts": [
+    { "id":"387",
+      "part":"glass-hinge-front-upper-left",   // one52 stable id (our own)
+      "label":"Glass hinge (front, upper, left)",
+      "family":"fitting", "role":"…",
+      "pos":[-0.49484,1.8475,0.18957],          // metres, RealityKit (Y-up, right-handed)
+      "quat":[0,1,0,0],                          // x,y,z,w
+      "quad":[[..],[..],[..],[..]] }             // panels only: 4 world corners (m)
+  ],
+  "catalog": [ { "part":"tube-350", "label":"Tube 350 mm", "family":"tube" }, … ] }  // distinct parts
 ```
 
-The conversion is a single basis change `RotX(-90°)` for **every** part:
-`pos(x,y,z)cm → (x, z, -y) m` and `quat' = qR · quat · qR*` with `qR = (-√½,0,0,√½)`. (See
+Coordinate bridge (done by the engine): a single basis change `RotX(-90°)` for **every** part —
+`pos(x,y,z)cm → (x, z, -y) m`, `quat' = qR · quat · qR*`, `qR = (-√½,0,0,√½)`. (See
 `src/engine/export_ios.ts`.)
 
 ---
@@ -60,23 +72,22 @@ consume the engine's.
 ## 3. Applying a part in RealityKit
 
 ```swift
-struct PlacedPart: Decodable { let id, type: String; let pos, quat: [Float]; let name: String? }
+struct PlacedPart: Decodable { let id, part, label, family: String; let pos, quat: [Float] }
 
-let s = 0.01  // (already metres in placement.ios.json; keep =1.0 there)
 for p in placement.parts {
-    guard let mesh = meshURL(for: p.type) else { continue }      // type → .usdc (see §4)
+    guard let mesh = meshURL(for: p.part) else { continue }       // one52 id → .usdc (see §4)
     let entity = try ModelEntity.load(contentsOf: mesh)
 
-    entity.position    = SIMD3<Float>(p.pos[0], p.pos[1], p.pos[2])
+    entity.position    = SIMD3<Float>(p.pos[0], p.pos[1], p.pos[2])  // already metres
     let world = simd_quatf(ix: p.quat[0], iy: p.quat[1], iz: p.quat[2], r: p.quat[3])
 
     // Per-MESH authored-frame correction (constant per .usdc — see §5):
-    entity.orientation = world * meshCorrection(for: p.type)
+    entity.orientation = world * meshCorrection(for: p.part)
     anchor.addChild(entity)
 }
 ```
 
-If you fetch the **raw** `placement.json` (P'X5 cm/Z-up) instead, do the basis change yourself:
+If you fetch the **internal** `placement.json` (P'X5 cm/Z-up) instead, do the basis change yourself:
 
 ```swift
 let qR = simd_quatf(angle: -.pi/2, axis: [1,0,0])
@@ -86,15 +97,15 @@ let world = qR * simd_quatf(ix:p.quat[0],iy:p.quat[1],iz:p.quat[2],r:p.quat[3]) 
 
 ---
 
-## 4. type → mesh mapping
+## 4. one52 id → mesh mapping
 
-The engine emits the part `type` (e.g. `glasscharnier_vorne_oben_l`, `rohr350`). Maintain a small
-manifest mapping type → `.usdc` asset. Tips:
-- Many types share one mesh scaled by a dimension (`rohr350/500/750` = one tube mesh, different
-  length). Parse the trailing number, or keep one asset per length.
-- L/R variants (`..._l` / `..._r`) are mirror meshes — keep both assets; the engine's quat already
-  encodes which way each instance faces.
-- `glossary.json` (served at `/api/glossary`) gives a human label per type for debugging/QA overlays.
+The shipped payload keys every part by a one52 id (`part`, e.g. `glass-hinge-front-upper-left`,
+`tube-350`) — our own stable identifiers, decoupled from USM codes. The `catalog` array lists the
+distinct ids in the scene, so the app can build a `part → .usdc` manifest directly from it. Tips:
+- Parts sharing a base mesh at different sizes (`tube-350`/`tube-500`/`tube-750`) can map to one
+  asset scaled by the dimension carried in the id/label.
+- left/right ids are mirror meshes — keep both; the engine's quat already encodes facing.
+- `label` + `family` are there for QA overlays and a parts list in the app UI.
 
 ---
 
