@@ -2,6 +2,8 @@
 // are implemented vs part-builtins vs named-ops vs unknown. Drives interpreter build priority.
 import { readFileSync } from "node:fs";
 import { BUILTINS, PART_BUILTINS } from "./interp.ts";
+import { loadAppcodes } from "./appcode.ts";
+import { APPCODES_DIR } from "../import/paths.ts";
 
 const NAMED_OPS = new Set(("MyBrokenConnection aztSperrstangen befestigungsSetGlasSchloss beschlagsMaterialGlasTuere blechDimension blechStatus canChangeToAusgeschnitten canChangeToBiblio canChangeToEinsatz canChangeToLochBlech canChangeToNormal canChangeToPerfBlech canChangeToPflanzenblech canChangeToVerkuerztBlech centerPart checkAkustikAssignment checkCleanUpHallerE checkConnectedKabelausschnittPosition checkDeprecatedArticles checkKabelausschnittPosition colormatch_dark colormatch_light connectedInosParts connectedPartsByDockType connectionReCalculation currentTopfFarbe directionOfLight displayHallerE extendedModeHallerE filterSchublade findStuetzprofile findTrafoFeature formatDistanceWeb getAllVolumesOfConnectionId getDefaultValue getDoorLength getGlobalColorCode getNKTcomponents getRelativeBBoxOfPartListPosition getSelectedVolumeList getTopffarbe getVolumeMountingInformation getVolumesOnSide glasHalterListe globalMaterial hasQSArticle hasURohr horizontalPart horizontalPipeVolumeFrontDockTransformation inosBoxAllowHoch inosBoxDeckelGross inosBoxDeckelklein inosBoxHoch inosBoxMaxHeight inosBoxNiedrig inosBoxRelHeight isAZTablarOverGlas isEinschubtuerBelowVerkuerztBlech isEinschubtuerUnderAZTablar isGlasUnderAZTablar isKugelLeitend isUSM joinHallerE kugelStrukturEinsatzStabilitaet leitendeRohre lichtFarbeE lichtVerbraucherFarbeE maxPlattenGGW montageEinzelrohr movedPartsHallerE partIsRohrWithDirection powerReCalculation printzonevolumelength rohrBefestigung rohrDoppelLoch rohrMaterial rohrRichtungDefault rohrRichtungValid selectedComponentType separateHallerE setChromMaterial setHallerRohrEditE setSperrstangen shelfIsMovable showPlattenGGW showVerbraucherPos sperrstangenMountStatus sperrstangenTransX stromkreisMaterial table_kelco table_sheet table_sheet_buntglas trafoTypeE validLochRohre validSchlitzRohre validUSBhallerE verbraucherHorizontalVerkleidung verbraucherLeistung verbraucherMaterial verbraucherTuere vertikalBlech volHasChildOfType volIsSelected volRefpartOfType volumeDimension volumeHallerE volumeIsRotated yDirectionGGW boxDockActive checkActiveDock").split(" "));
 
@@ -57,3 +59,15 @@ top("stub", 12);
 top("namedop", 12);
 if (buckets.unknown.length) top("unknown", 20);
 console.log("  control-flow keywords in exprs (parser must support):", ctrlTop.map(([f, c]) => `${f}(${c})`).join("  "));
+
+// how many named-ops now have a loaded appcode def?
+const loadedOps = loadAppcodes(APPCODES_DIR);
+const nLoaded = buckets.namedop.filter(([f]) => loadedOps.has(f));
+const nMissing = buckets.namedop.filter(([f]) => !loadedOps.has(f));
+const loadedCalls = nLoaded.reduce((s, [, n]) => s + n, 0);
+const realCalls = callsIn("real") + callsIn("stub"); // stub = wired against PartGraph
+console.log("=== with appcode named-ops loaded ===");
+console.log(`  appcode defs available: ${loadedOps.size}`);
+console.log(`  named-ops with a loaded def: ${nLoaded.length}/${buckets.namedop.length}  (calls ${loadedCalls}/${callsIn("namedop")} = ${pct(loadedCalls)})`);
+console.log(`  => total resolvable calls (impl builtins + part-builtins + loaded named-ops): ${pct(callsIn("real") + callsIn("stub") + loadedCalls)}`);
+if (nMissing.length) console.log("  named-ops still missing a def:", nMissing.slice(0, 12).map(([f, c]) => `${f}(${c})`).join("  "));

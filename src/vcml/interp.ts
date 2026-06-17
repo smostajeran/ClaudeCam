@@ -119,7 +119,7 @@ export const BUILTINS: Record<string, Builtin> = {
     : []),
   EnvValue: (a, h) => (h.env.has(String(a[0])) ? h.env.get(String(a[0])) : a[1] ?? null),
   Scenario: (_a, h) => h.env.get("scenario") ?? "co",
-  IsSubTypeOf: (a, h) => h.isSubTypeOf(String(a[0]), String(a[1])),
+  IsSubTypeOf: (a, h) => h.isSubTypeOf(a[0] && typeof a[0] === "object" ? String(a[0].type) : String(a[0]), String(a[1])),
 };
 // part-dependent builtins: resolved against the live PartGraph (Host.partFns) or fail loud.
 export const PART_BUILTINS = ["Feature", "PartAttr", "GetTypeName", "Dock", "DockGetConnectedPart",
@@ -150,7 +150,19 @@ function evalNode(node: Node, env: Map<string, Value>, host: Host): Value {
     case "not": return !truthy(evalNode(node.e, env, host));
     case "tern": return truthy(evalNode(node.c, env, host)) ? evalNode(node.a, env, host) : evalNode(node.b, env, host);
     case "index": { const o = evalNode(node.e, env, host); const k = evalNode(node.k, env, host); return o == null ? null : (o as any)[k as any]; }
-    case "call": { const fn = BUILTINS[node.name]; if (!fn) throw new Error(`VCML: unknown function '${node.name}' (named-op not loaded)`); return fn(node.args.map((x: Node) => evalNode(x, env, host)), host); }
+    case "call": {
+      const args = node.args.map((x: Node) => evalNode(x, env, host));
+      const fn = BUILTINS[node.name];
+      if (fn) return fn(args, host);
+      const op = (host as any).namedOps?.get(node.name);     // loaded appcode `def`
+      if (op) {
+        if (!op.ast) op.ast = new Parser(lex(op.body)).program();
+        const local = new Map<string, Value>([["part", host.current]]); // implicit part context
+        op.params.forEach((p: string, i: number) => local.set(p, args[i]));
+        return evalNode(op.ast, local, host);
+      }
+      throw new Error(`VCML: unknown function '${node.name}' (no builtin or loaded named-op)`);
+    }
     case "bin": {
       const op = node.op;
       if (op === "and") return truthy(evalNode(node.l, env, host)) && truthy(evalNode(node.r, env, host));
