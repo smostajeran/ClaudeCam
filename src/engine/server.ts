@@ -55,6 +55,9 @@ function readRawBody(req: any): Promise<Buffer> {
 // is set (production host); unset => local dev, open. Result cached 60s to avoid a round-trip/request.
 const SUPA_URL = process.env.SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_KEY ?? "";
+// public Supabase config for the login page (client-safe; defaults to the usm-engine project).
+const PUB_URL = process.env.SUPABASE_URL ?? "https://jbmbhhbglcclgnpagwhg.supabase.co";
+const PUB_KEY = process.env.SUPABASE_ANON_KEY ?? "sb_publishable_vQmkcd0V_hXs0HQeFT0lFQ_xwdGzG9x";
 const authCache = new Map<string, { exp: number; user: any }>();
 async function verifyJwt(req: any): Promise<any | null> {
   if (!SUPA_URL) return { dev: true }; // auth not configured -> local dev
@@ -79,6 +82,8 @@ const server = createServer(async (req, res) => {
   const url = (req.url ?? "/").split("?")[0];
   try {
     if (req.method === "GET" && url === "/health") return send(res, 200, JSON.stringify({ ok: true, model: existsSync(MODEL), auth: !!SUPA_URL }));
+    if (req.method === "GET" && url === "/login") return send(res, 200, readFileSync(join(ROOT, "ui", "login.html"), "utf8"), "text/html; charset=utf-8");
+    if (req.method === "GET" && url === "/api/config") return send(res, 200, JSON.stringify({ supabaseUrl: PUB_URL, supabaseAnonKey: PUB_KEY, authEnforced: !!SUPA_URL }));
     if (req.method === "GET" && (url === "/" || url === "/index.html")) return send(res, 200, readFileSync(UI, "utf8"), "text/html; charset=utf-8");
     if (req.method === "GET" && url === "/api/model") return send(res, 200, JSON.stringify(mergedModel()));
     if (req.method === "GET" && url === "/api/overrides") return send(res, 200, JSON.stringify(loadOverlay()));
