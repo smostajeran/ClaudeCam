@@ -149,6 +149,18 @@ function prettyName(type){
   return name.charAt(0).toUpperCase()+name.slice(1);
 }
 const prettyFeature = (n) => GLOSS.features?.[n] || n;
+// stem-only English for one side of a dock code (no dims/qualifiers)
+function stemName(tok){ let best="",eng=""; for(const k in GLOSS.stems){ if(tok.startsWith(k)&&k.length>best.length){best=k;eng=GLOSS.stems[k];} } return eng||null; }
+// dock/connection code -> "ball-to-tube" etc.
+function prettyDock(d){
+  if(!d) return d;
+  const key=String(d).toLowerCase().replace(/_2_/g,"2");
+  if(GLOSS.connections?.[key]) return GLOSS.connections[key];
+  const parts=key.split("2");
+  if(parts.length===2){ const a=stemName(parts[0]), b=stemName(parts[1]); if(a&&b) return `${a} → ${b}`; }
+  return d;
+}
+const isDockCode = (v) => /[a-z]2[a-z]|_2_/.test(String(v).toLowerCase());
 
 async function load() {
   try { GLOSS = await (await fetch("/api/glossary")).json(); } catch {}
@@ -220,7 +232,13 @@ function detailClause(c) {
 function renderTree(n) {
   if (!n) return '<span class="at">(none)</span>';
   const cls = n.tag==="part"?"part":n.tag==="clause"?"clause":n.tag==="not"?"not":"";
-  const attrs = Object.entries(n.attrs||{}).map(([k,v])=>` <span class="at">${esc(k)}=</span><span class="av">${esc(v)}</span>`).join("");
+  const attrs = Object.entries(n.attrs||{}).map(([k,v])=>{
+    let disp=v;
+    if(k==="type") disp = isDockCode(v) ? prettyDock(v) : (v==="volume"||v==="component" ? v : prettyName(v));
+    else if(k==="name") disp = prettyFeature(v);
+    const t = disp!==v ? ` title="${esc(v)}"` : "";
+    return ` <span class="at">${esc(k)}=</span><span class="av"${t}>${esc(disp)}</span>`;
+  }).join("");
   const kids = (n.children||[]).map(renderTree).join("");
   return `<div class="node"><div class="h"><span class="tag ${cls}">${esc(n.tag)}</span>${attrs}</div>${kids}</div>`;
 }
@@ -231,7 +249,7 @@ function detailAssembly(a) {
 }
 function detailComponent(c) {
   $("#detail").innerHTML = `<h2>${esc(prettyName(c.type))}</h2><div class="meta"><code>${esc(c.type)}</code> · supertype <b>${esc(c.supertype||"—")}</b> · ${(c.docks||[]).length} dock(s)</div>
-    <div class="field"><label>Docks</label><div class="chips">${(c.docks||[]).map(d=>`<span class="chip">${esc(typeof d==="string"?d:d.id||d.type||JSON.stringify(d))}</span>`).join("")||'<span class="chip">—</span>'}</div></div>`;
+    <div class="field"><label>Docks</label><div class="chips">${(c.docks||[]).map(d=>{const dt=(typeof d==="string"?d:(d.type||d.id||""));return `<span class="chip" title="${esc(dt)}">${esc(prettyDock(dt))}</span>`;}).join("")||'<span class="chip">—</span>'}</div></div>`;
 }
 
 async function override(kind, key, patch) {

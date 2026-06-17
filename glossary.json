@@ -93,7 +93,11 @@
     "schieber": "slider",
     "rillenplatte": "grooved plate",
     "winkel": "bracket",
-    "boden": "base"
+    "boden": "base",
+    "anything": "any part",
+    "safety": "safety module",
+    "volcontconnector": "volume connector",
+    "comp": "component"
   },
   "qualifiers": {
     "l": "left", "r": "right", "links": "left", "rechts": "right",
