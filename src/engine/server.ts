@@ -70,8 +70,8 @@ const server = createServer(async (req, res) => {
 
     if (req.method === "POST" && url === "/api/run") {
       const { script } = await readBody(req);
-      const file = script === "conflicts" ? "src/engine/clauses.ts" : script === "validate" ? "src/engine/validate.ts" : null;
-      if (!file) return send(res, 400, JSON.stringify({ error: "script must be validate|conflicts" }));
+      const file = script === "conflicts" ? "src/engine/clauses.ts" : script === "validate" ? "src/engine/validate.ts" : script === "solve" ? "src/engine/solve.ts" : null;
+      if (!file) return send(res, 400, JSON.stringify({ error: "script must be validate|conflicts|solve" }));
       const r = spawnSync(process.execPath, [file], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
       return send(res, 200, JSON.stringify({ ok: r.status === 0, stdout: (r.stdout ?? "") + (r.stderr ? "\n[stderr]\n" + r.stderr : "") }));
     }

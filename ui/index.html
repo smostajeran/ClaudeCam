@@ -72,6 +72,7 @@
   <span class="spacer"></span>
   <span class="badge" id="ovBadge">no edits</span>
   <button class="ghost" id="resetBtn">Reset edits</button>
+  <button id="solveBtn">Solve placement</button>
   <button id="conflictsBtn">Check conflicts</button>
   <button class="primary" id="validateBtn">Validate vs P'X5</button>
 </header>
@@ -198,6 +199,7 @@ async function run(script, title) {
 }
 $("#validateBtn").onclick = () => run("validate","Validate features vs P'X5");
 $("#conflictsBtn").onclick = () => run("conflicts","Check conflicts vs P'X5");
+$("#solveBtn").onclick = () => run("solve","Solve placement vs P'X5");
 
 function esc(s){ return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
 let toastT; function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }
