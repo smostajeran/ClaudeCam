@@ -56,8 +56,9 @@ class Parser {
     if (this.is("if")) return this.ifStmt();
     if (this.is("for")) return this.forStmt();
     if (this.is("{")) return this.block();
-    if (this.peek().k === "ident" && this.t[this.p + 1] && this.t[this.p + 1].v === "=") { const name = this.next().v; this.eat("="); return { t: "assign", name, e: this.expr() }; }
-    return { t: "expr", e: this.expr() };
+    const e = this.expr();
+    if (this.is("=")) { this.next(); return { t: "setlval", target: e, value: this.expr() }; } // var or member assignment
+    return { t: "expr", e };
   }
   block(): Node { this.eat("{"); const stmts: Node[] = []; while (!this.is("}") && !this.is("eof")) { stmts.push(this.statement()); if (this.is(";")) this.next(); } this.eat("}"); return { t: "block", stmts }; }
   forStmt(): Node {
@@ -83,7 +84,7 @@ class Parser {
   add(): Node { let l = this.mul(); while (this.is("+") || this.is("-") || this.is("++")) { const op = this.next().v; l = { t: "bin", op, l, r: this.mul() }; } return l; }
   mul(): Node { let l = this.unary(); while (this.is("*") || this.is("/")) { const op = this.next().v; l = { t: "bin", op, l, r: this.unary() }; } return l; }
   unary(): Node { if (this.is("not")) { this.next(); return { t: "not", e: this.unary() }; } if (this.is("-")) { this.next(); return { t: "neg", e: this.unary() }; } return this.postfix(); }
-  postfix(): Node { let e = this.primary(); while (this.is("[")) { this.next(); const k = this.expr(); this.eat("]"); e = { t: "index", e, k }; } return e; }
+  postfix(): Node { let e = this.primary(); while (this.is("[")) { this.next(); const k = this.expr(); let def: Node = null; if (this.is(",")) { this.next(); def = this.expr(); } this.eat("]"); e = { t: "index", e, k, def }; } return e; } // o[key] or o[key, default]
   primary(): Node {
     const x = this.peek();
     if (x.k === "num") { this.next(); return { t: "num", v: Number(x.v) }; }
@@ -105,6 +106,11 @@ export type Builtin = (args: Value[], host: Host) => Value;
 export const BUILTINS: Record<string, Builtin> = {
   List: (a) => a.slice(),
   IndexList: (a) => (Array.isArray(a[0]) ? a[0].map((_, i) => i) : []),
+  UniqueList: (a) => [...new Set(Array.isArray(a[0]) ? a[0] : [])],
+  ListToString: (a) => (Array.isArray(a[0]) ? a[0].join(a[1] != null ? String(a[1]) : "") : String(a[0])),
+  Abs: (a) => Math.abs(Number(a[0])),
+  Property: () => null,   // TODO: property-descriptor access
+  NodeValue: () => null,  // TODO: project node values
   ListAdd: (a) => { (a[0] as Value[]).push(a[1]); return a[0]; },
   ListExtend: (a) => (a[0] as Value[]).concat(a[1]),
   Size: (a) => (Array.isArray(a[0]) ? a[0].length : String(a[0]).length),
@@ -156,6 +162,7 @@ function evalNode(node: Node, env: Map<string, Value>, host: Host): Value {
   switch (node.t) {
     case "block": { let last: Value = null; for (const s of node.stmts) { const v = evalNode(s, env, host); if (s.t === "ret") return v; last = v; } return last; }
     case "let": case "assign": { const v = evalNode(node.e, env, host); env.set(node.name, v); return v; }
+    case "setlval": { const v = evalNode(node.value, env, host); const tg = node.target; if (tg.t === "var") env.set(tg.name, v); else if (tg.t === "index") { const o = evalNode(tg.e, env, host); if (o != null) (o as any)[evalNode(tg.k, env, host) as any] = v; } return v; }
     case "if": { if (truthy(evalNode(node.cond, env, host))) return evalNode(node.then, env, host); return node.els ? evalNode(node.els, env, host) : null; }
     case "foreach": { const list = evalNode(node.list, env, host); if (Array.isArray(list)) for (const el of list) { env.set(node.name, el); evalNode(node.body, env, host); } return null; }
     case "for": { env.set(node.name, evalNode(node.init, env, host)); let guard = 0; while (truthy(evalNode(node.cond, env, host))) { evalNode(node.body, env, host); env.set(node.incrName, evalNode(node.incrExpr, env, host)); if (++guard > 100000) throw new Error("VCML for: iteration cap"); } return null; }
@@ -166,9 +173,16 @@ function evalNode(node: Node, env: Map<string, Value>, host: Host): Value {
     case "neg": return -Number(evalNode(node.e, env, host));
     case "not": return !truthy(evalNode(node.e, env, host));
     case "tern": return truthy(evalNode(node.c, env, host)) ? evalNode(node.a, env, host) : evalNode(node.b, env, host);
-    case "index": { const o = evalNode(node.e, env, host); const k = evalNode(node.k, env, host); return o == null ? null : (o as any)[k as any]; }
+    case "index": {
+      const o = evalNode(node.e, env, host);
+      if (o == null) return node.def != null ? evalNode(node.def, env, host) : null;
+      const val = (o as any)[evalNode(node.k, env, host) as any];
+      return (val === undefined || val === null) && node.def != null ? evalNode(node.def, env, host) : (val ?? null);
+    }
     case "call": {
       const args = node.args.map((x: Node) => evalNode(x, env, host));
+      const pf = (host as any).partFns?.[node.name];          // scene-backed (authoritative when a scene is loaded)
+      if (pf) return pf(args, host);
       const fn = BUILTINS[node.name];
       if (fn) return fn(args, host);
       const op = (host as any).namedOps?.get(node.name);     // loaded appcode `def`

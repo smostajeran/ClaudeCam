@@ -63,6 +63,21 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
   const isSub = (t: string, of: string) => t === of || host.isSubTypeOf(t, of);
   const ofType = (t: string) => scene.filter((p) => isSub(p.type, t));
   const featOf = (a: any[]) => (a.length > 1 ? [a[0], a[1]] : [host.current, a[0]]) as [ScenePart, string];
+
+  // connected components over dock links -> connection ids; each cluster is a "volume".
+  const idOf = new Map<ScenePart, number>();
+  let cid = 0;
+  for (const p of scene) {
+    if (idOf.has(p)) continue;
+    const stack: ScenePart[] = [p];
+    idOf.set(p, cid);
+    while (stack.length) { const x = stack.pop() as ScenePart; for (const d of x.docks) { const c = d.connectedPart; if (c && !idOf.has(c)) { idOf.set(c, cid); stack.push(c); } } }
+    cid++;
+  }
+  const volumes = new Map<number, any>();
+  for (const p of scene) { const c = idOf.get(p) as number; if (!volumes.has(c)) volumes.set(c, { id: "vol" + c, type: "normal_volume", parts: [] }); volumes.get(c).parts.push(p); }
+  const volOf = (p: ScenePart) => (p ? volumes.get(idOf.get(p) as number) : null);
+
   (host as any).partFns = {
     GetTypeName: (a: any[]) => a[0]?.type ?? null,
     Feature: (a: any[]) => { const [p, k] = featOf(a); return p?.features?.get(k) ?? null; },
@@ -76,5 +91,21 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
     ParentOfType: () => null,
     GetComponentListOfType: (a: any[]) => ofType(String(a[0])),
     FindPart: (a: any[]) => (a[0]?.docks ?? []).map((d: any) => d.connectedPart).find((c: ScenePart) => c && isSub(c.type, String(a[1]))) ?? null,
+    // volume / connection graph
+    GetRefVolumes: (a: any[]) => { const v = volOf(a[0]); return v ? [v] : []; },
+    GetVolumeRefParts: (a: any[]) => a[0]?.parts ?? [],
+    ConnectionId: (a: any[]) => (a[0] ? idOf.get(a[0]) ?? -1 : -1),
+    GetComponentListOfConnectionId: (a: any[]) => scene.filter((p) => idOf.get(p) === Number(a[0])),
+    Height: (a: any[]) => (a[0]?.pos ? a[0].pos.z : 0),
+    PropertyActive: () => true, // TODO: real property active-condition resolution
+    NamedNode: () => null,      // TODO: project-root named nodes (n/a for a single prototype)
+    RelativePartPos: (a: any[]) => { const p = a[0]?.pos, q = a[1]?.pos; return p && q ? { x: p.x - q.x, y: p.y - q.y, z: p.z - q.z } : { x: 0, y: 0, z: 0 }; },
+    ConnectedDockCount: (a: any[]) => (a[0]?.docks ?? []).filter((d: any) => d.connectedPart).length,
+    ChildOfTypeDeep: (a: any[]) => { const v = volOf(a[0]); return v ? v.parts.find((p: ScenePart) => isSub(p.type, String(a[1]))) ?? null : null; },
+    ChildCountDeep: (a: any[]) => { const v = volOf(a[0]); return v ? v.parts.filter((p: ScenePart) => isSub(p.type, String(a[1]))).length : 0; },
+    RegisteredPart: () => null,                                   // TODO: part registry
+    PartBoundingBox: () => ({ extent: { x: 0, y: 0, z: 0 }, min: { x: 0, y: 0, z: 0 } }), // TODO: from mesh geometry
+    USMPartPrintZone: () => null,
+    GlobalDockPos: (a: any[]) => a[0]?.pos ?? { x: 0, y: 0, z: 0 },
   };
 }
