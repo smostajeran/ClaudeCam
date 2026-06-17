@@ -7,6 +7,8 @@
 //
 // Frame: P'X5 (cm, Z-up, RH) -> RealityKit (m, Y-up, RH) via one RotX(-90°) for every part.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 export type V3 = [number, number, number];
 export type Q = [number, number, number, number]; // x, y, z, w
@@ -25,7 +27,10 @@ export const quatToRK = (q: Q): Q => qmul(qmul(QR, q), QRc).map((x) => +x.toFixe
 
 // --- one52 identity: derive our own stable id + English label from the glossary (no USM codes) ---
 let GLOSS: any = { stems: {}, qualifiers: {}, features: {} };
-try { GLOSS = JSON.parse(readFileSync("glossary.json", "utf8")); } catch { /* fall back to slugged code */ }
+// resolve glossary.json relative to THIS module (not cwd) so the conversion works when the server
+// spawns it from any directory — otherwise labels/ids fall back to raw USM codes (an IP leak).
+const GLOSS_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "glossary.json");
+try { GLOSS = JSON.parse(readFileSync(GLOSS_PATH, "utf8")); } catch { /* fall back to slugged code */ }
 
 function prettyName(type: string): string {
   if (!type) return type;

@@ -15,6 +15,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { placementToRK } from "./export_ios.ts";
+import { extractConfigPx5 } from "./pxpz.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".."); // usm-engine/
 const MODEL = join(ROOT, "out", "model.json");
@@ -44,6 +45,9 @@ function mergedModel() {
 
 function readBody(req: any): Promise<any> {
   return new Promise((res) => { let b = ""; req.on("data", (c: any) => (b += c)); req.on("end", () => { try { res(b ? JSON.parse(b) : {}); } catch { res({}); } }); });
+}
+function readRawBody(req: any): Promise<Buffer> {
+  return new Promise((res) => { const cs: Buffer[] = []; req.on("data", (c: Buffer) => cs.push(c)); req.on("end", () => res(Buffer.concat(cs))); });
 }
 
 const send = (r: any, code: number, body: string, type = "application/json") =>
@@ -85,6 +89,20 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url === "/api/reset") { saveOverlay(emptyOverlay()); return send(res, 200, JSON.stringify({ ok: true })); }
+
+    // Ingest an uploaded .pxpz project: extract config.px5 server-side, solve, return the one52
+    // (RealityKit) payload. The app uploads the proprietary file and gets back one52-only data.
+    if (req.method === "POST" && url === "/api/solve-pxpz") {
+      const buf = await readRawBody(req);
+      const cfg = extractConfigPx5(buf);
+      if (!cfg) return send(res, 400, JSON.stringify({ error: "no config.px5 found in .pxpz" }));
+      const tmp = join(ROOT, "out", "upload_config.px5");
+      writeFileSync(tmp, cfg.data);
+      const r = spawnSync(process.execPath, ["src/engine/solve.ts", tmp], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
+      const pf = join(ROOT, "out", "placement.json");
+      if (r.status !== 0 || !existsSync(pf)) return send(res, 500, JSON.stringify({ error: "solver failed", log: (r.stdout ?? "") + (r.stderr ?? "") }));
+      return send(res, 200, JSON.stringify(placementToRK(JSON.parse(readFileSync(pf, "utf8")))));
+    }
 
     if (req.method === "POST" && url === "/api/run") {
       const { script } = await readBody(req);

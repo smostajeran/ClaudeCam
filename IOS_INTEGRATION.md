@@ -33,8 +33,18 @@ review before distribution.)
 
 ## 1. What the app gets (one52 schema)
 
-- **File:** `node src/engine/export_ios.ts` → `out/placement.ios.json`
-- **HTTP:** `GET http://<host>:5152/api/placement?coords=realitykit`
+Three ways to obtain it — the engine does all USM parsing (`.pxpz` unzip+gunzip, `config.px5`,
+catalog) **server-side**, so the app never touches the proprietary formats:
+
+- **Upload a project (recommended):** `POST http://<host>:5152/api/solve-pxpz` with the raw `.pxpz`
+  bytes → engine extracts `config.px5`, solves, returns the one52 payload below.
+- **Pre-solved scene:** `GET .../api/placement?coords=realitykit`
+- **File export:** `node src/engine/export_ios.ts` → `out/placement.ios.json`
+
+The `.pxpz` reader (`src/engine/pxpz.ts`) is dependency-free; verified on a real 442-part project
+(extracts the 454 KB `config.px5`, solves, returns 424 parts / 41 distinct, zero raw USM codes).
+The payload's `catalog` is one52's own parts list (id/label/family) — USM prices/article numbers
+are **not** included.
 
 ```json
 { "meta": { "owner":"one52", "frame":"RealityKit", "units":"m", "up":"Y", "notice":"…" },
@@ -61,7 +71,7 @@ Coordinate bridge (done by the engine): a single basis change `RotX(-90°)` for 
 | Option | How | When |
 |---|---|---|
 | **A. Batch export (simplest)** | Run `solve.ts` for a config, bundle/fetch `placement.ios.json`, app applies it. | Fixed / pre-defined configurations. **Start here.** |
-| **B. Placement service** | Run `server.ts` as an HTTP service; app POSTs a config and fetches `/api/placement?coords=realitykit`. | Live/interactive configuration. |
+| **B. Placement service** | Run `server.ts`; app `POST`s the raw `.pxpz` to `/api/solve-pxpz` and gets the one52 payload back. **Engine parses all USM formats server-side.** | Live config / loading saved projects. |
 | **C. Port solver to Swift** | Re-implement `solve.ts` in Swift. | Only if fully offline + interactive is required. Highest cost; the TS engine stays the oracle to test against. |
 
 Recommended: **A now, B when you need live configuration.** Never re-derive transforms in Swift —
