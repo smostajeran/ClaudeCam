@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { placementToRK } from "./export_ios.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".."); // usm-engine/
 const MODEL = join(ROOT, "out", "model.json");
@@ -66,7 +67,10 @@ const server = createServer(async (req, res) => {
         const r = spawnSync(process.execPath, ["src/engine/solve.ts"], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
         if (!existsSync(pf)) return send(res, 200, JSON.stringify({ parts: [], connections: [], error: "solver produced no placement", log: r.stdout }));
       }
-      return send(res, 200, readFileSync(pf, "utf8"));
+      const pl = JSON.parse(readFileSync(pf, "utf8"));
+      const query = (req.url ?? "").split("?")[1] ?? "";
+      if (/coords=(realitykit|ios)/.test(query)) return send(res, 200, JSON.stringify(placementToRK(pl)));
+      return send(res, 200, JSON.stringify(pl));
     }
 
     if (req.method === "POST" && url === "/api/override") {
