@@ -127,7 +127,24 @@ let MODEL = null, TAB = "clauses", SEL = null;
 const TABS = [["clauses","Clauses"],["properties","Properties"],["assemblyRules","Assembly"],["components","Components"]];
 const keyOf = (it) => it.type; // clauses/properties/components/assemblyRules are all keyed by .type
 
+// ---- German code -> English friendly names (curated glossary, editable at glossary.json) ----
+let GLOSS = { stems:{}, qualifiers:{}, features:{} };
+function prettyName(type){
+  if(!type) return type;
+  const low=String(type).toLowerCase();
+  let stem="", eng="";
+  for(const k in GLOSS.stems){ if(low.startsWith(k) && k.length>stem.length){ stem=k; eng=GLOSS.stems[k]; } }
+  if(!eng) return type; // unknown stem -> keep the raw code
+  const dim = type.match(/(\d{2,4})[_x\/](\d{2,4})/) || type.match(/(\d{2,4})/);
+  const size = dim ? (dim[2] ? ` ${+dim[1]}×${+dim[2]}` : ` ${+dim[1]}`) : "";
+  const rest = low.slice(stem.length).replace(/\d+/g," ").split(/[_\/\s]/).filter(Boolean);
+  const quals = rest.map(t=>GLOSS.qualifiers[t]).filter(Boolean);
+  return eng + size + (quals.length ? ` (${quals.join(", ")})` : "");
+}
+const prettyFeature = (n) => GLOSS.features?.[n] || n;
+
 async function load() {
+  try { GLOSS = await (await fetch("/api/glossary")).json(); } catch {}
   MODEL = await (await fetch("/api/model")).json();
   $("#modelMeta").textContent = `Haller · ${MODEL.components.length} parts · ${MODEL.properties.length} props · ${MODEL.clauses.length} clauses · ${MODEL.assemblyRules.length} rules`;
   renderTabs(); renderOverlay(); renderList();
@@ -144,10 +161,11 @@ function renderList() {
   const q = $("#q").value.trim().toLowerCase();
   let items = MODEL[TAB];
   if (q) items = items.filter(it => JSON.stringify(it).toLowerCase().includes(q));
-  const sub = TAB==="properties" ? (it)=>it.feature : TAB==="components" ? (it)=>it.supertype||"" : "";
+  const nameOf = TAB==="components" ? (it)=>prettyName(it.type) : (it)=>keyOf(it);
+  const sub = TAB==="properties" ? (it)=>prettyFeature(it.feature) : TAB==="components" ? (it)=>it.type : "";
   $("#list").innerHTML = items.slice(0,800).map(it => {
     const k = keyOf(it);
-    return `<div class="row ${k===SEL?"sel":""}" data-k="${esc(k)}">${it._edited?'<span class="dot"></span>':""}<span class="nm">${esc(k)}</span><span class="t">${esc(typeof sub==="function"?sub(it):"")}</span></div>`;
+    return `<div class="row ${k===SEL?"sel":""}" data-k="${esc(k)}">${it._edited?'<span class="dot"></span>':""}<span class="nm">${esc(nameOf(it))}</span><span class="t">${esc(typeof sub==="function"?sub(it):"")}</span></div>`;
   }).join("") + (items.length>800?`<div class="empty">… ${items.length-800} more (refine search)</div>`:"");
   $("#list").querySelectorAll(".row").forEach(r => r.onclick = () => { SEL=r.dataset.k; renderList(); renderDetail(); });
 }
@@ -166,7 +184,7 @@ function detailProperty(p) {
   const dom = p.domain && p.domain.kind==="discrete" ? p.domain.values : null;
   $("#detail").innerHTML = `
     <h2>${esc(p.type)} ${p._edited?'<span class="badge on">edited</span>':""}</h2>
-    <div class="meta">feature <b>${esc(p.feature)}</b> · ${p.evalOnAccess?"evalOnAccess":"eager"} · ${p.overwritable?"overwritable":"locked"}</div>
+    <div class="meta">feature <b>${esc(p.feature)}</b> — ${esc(prettyFeature(p.feature))} · ${p.evalOnAccess?"evalOnAccess":"eager"} · ${p.overwritable?"overwritable":"locked"}</div>
     <div class="field"><label>Applies to (${p.assignedTo.length})</label><div class="chips">${p.assignedTo.map(t=>`<span class="chip">${esc(t)}</span>`).join("")||'<span class="chip">—</span>'}</div></div>
     <div class="field"><label>Default expression (VCML)</label><textarea id="expr">${esc(p.defaultExpr??"")}</textarea></div>
     ${dom?`<div class="field"><label>Domain values (discrete)</label><div class="dom" id="dom">${dom.map(v=>`<input value="${esc(v)}"/>`).join("")}<button class="ghost" id="addDom">+</button></div></div>`:""}
@@ -205,7 +223,7 @@ function detailAssembly(a) {
     <div class="field"><label>Definition</label><textarea readonly style="min-height:260px">${esc(JSON.stringify(a.morphologies,null,2))}</textarea></div>`;
 }
 function detailComponent(c) {
-  $("#detail").innerHTML = `<h2>${esc(c.type)}</h2><div class="meta">component · supertype <b>${esc(c.supertype||"—")}</b> · ${(c.docks||[]).length} dock(s)</div>
+  $("#detail").innerHTML = `<h2>${esc(prettyName(c.type))}</h2><div class="meta"><code>${esc(c.type)}</code> · supertype <b>${esc(c.supertype||"—")}</b> · ${(c.docks||[]).length} dock(s)</div>
     <div class="field"><label>Docks</label><div class="chips">${(c.docks||[]).map(d=>`<span class="chip">${esc(typeof d==="string"?d:d.id||d.type||JSON.stringify(d))}</span>`).join("")||'<span class="chip">—</span>'}</div></div>`;
 }
 
@@ -293,10 +311,10 @@ function draw(){
     ctx.fillStyle=opt.color||"#cfd6e2"; ctx.fillText(txt,rx+4,ry+11);
   }
   const find=(id)=>screenParts.find(s=>s.id===id);
-  if(picked){ const s=find(picked); if(s) label(s.sx,s.sy,s.type+" #"+picked,{force:true,color:"#fff",bold:true}); }
-  if(hoverId&&hoverId!==picked){ const s=find(hoverId); if(s) label(s.sx,s.sy,s.type,{force:true,color:"#7ee0a0"}); }
+  if(picked){ const s=find(picked); if(s) label(s.sx,s.sy,prettyName(s.type),{force:true,color:"#fff",bold:true}); }
+  if(hoverId&&hoverId!==picked){ const s=find(hoverId); if(s) label(s.sx,s.sy,prettyName(s.type),{force:true,color:"#7ee0a0"}); }
   if($("#optE").checked){ for(const s of screenParts){ if(s.e && s.id!==picked && s.id!==hoverId) label(s.sx,s.sy,s.e,{color:eColor[s.e]}); } }
-  if($("#optLabels").checked){ const skip=/^(kugel_std|rohr|kugel)/; for(const s of screenParts){ if(s.id===picked||s.id===hoverId||skip.test(s.type)) continue; label(s.sx,s.sy,s.type); } }
+  if($("#optLabels").checked){ const skip=/^(kugel_std|rohr|kugel)/; for(const s of screenParts){ if(s.id===picked||s.id===hoverId||skip.test(s.type)) continue; label(s.sx,s.sy,prettyName(s.type)); } }
 }
 let drag=null, downAt=null, moved=false;
 cv.addEventListener("mousedown",e=>{drag={x:e.clientX,y:e.clientY}; downAt={x:e.clientX,y:e.clientY}; moved=false; cv.style.cursor="grabbing";});
@@ -335,7 +353,7 @@ function showPick(part){
   picked=part.id; hiTypes=null;
   const props=propsForType(part.type), clauses=clausesForType(part.type);
   const rule=(tab,key,k,extra)=>`<div class="rule" data-tab="${tab}" data-key="${esc(key)}"><span class="k">${k}</span> ${esc(key)}${extra||""}</div>`;
-  $("#pick3d").innerHTML = `<h3>${esc(part.type)}</h3><div class="pmeta">#${esc(part.id)} · pos [${part.pos.map(x=>x.toFixed(1))}]<br>quat [${part.quat.map(x=>x.toFixed(3))}]</div>`
+  $("#pick3d").innerHTML = `<h3>${esc(prettyName(part.type))}</h3><div class="pmeta"><code>${esc(part.type)}</code> · #${esc(part.id)}<br>pos [${part.pos.map(x=>x.toFixed(1))}]  quat [${part.quat.map(x=>x.toFixed(3))}]</div>`
     + `<div class="sec">Properties (${props.length})</div>` + (props.length?props.map(p=>rule("properties",p.type,"prop",` <span class="k">→ ${esc(p.feature)}</span>`)).join(""):`<div class="none">none</div>`)
     + `<div class="sec">Clauses (${clauses.length})</div>` + (clauses.length?clauses.map(c=>rule("clauses",c.type,"clause")).join(""):`<div class="none">none</div>`);
   $("#pick3d").classList.add("show");

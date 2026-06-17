@@ -55,6 +55,11 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url === "/api/model") return send(res, 200, JSON.stringify(mergedModel()));
     if (req.method === "GET" && url === "/api/overrides") return send(res, 200, JSON.stringify(loadOverlay()));
 
+    if (req.method === "GET" && url === "/api/glossary") {
+      const gf = join(ROOT, "glossary.json");
+      return send(res, 200, existsSync(gf) ? readFileSync(gf, "utf8") : JSON.stringify({ stems: {}, qualifiers: {}, features: {} }));
+    }
+
     if (req.method === "GET" && url === "/api/placement") {
       const pf = join(ROOT, "out", "placement.json");
       if (!existsSync(pf)) {
