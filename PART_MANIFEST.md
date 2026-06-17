@@ -9,7 +9,7 @@ Distinct resolvable parts: **443**
 | part (id) | label | family | dims (mm) | side | mesh | calibrated | scene |
 |---|---|---|---|---|---|---|---|
 | `ball-connector` | Ball connector | connector | — | — | `ball-connector.usdc` | ☐ |  |
-| `ball-connector-standard` | Ball connector (standard) | connector | — | — | `ball-connector-standard.usdc` | ☐ | 70 |
+| `ball-connector-standard` | Ball connector (standard) | connector | — | — | `ball-connector-standard.usdc` | ☐ | 100 |
 | `door-element` | Door element | door | — | — | `door-element.usdc` | ☐ |  |
 | `door-element-175` | Door element 175 mm | door | 175 | — | `door-element-175.usdc` | ☐ |  |
 | `door-element-175x500` | Door element 175 × 500 mm | door | 175 × 500 | — | `door-element-175x500.usdc` | ☐ |  |
@@ -20,8 +20,8 @@ Distinct resolvable parts: **443**
 | `door-element-350` | Door element 350 mm | door | 350 | — | `door-element-350.usdc` | ☐ |  |
 | `door-element-350x350` | Door element 350 × 350 mm | door | 350 × 350 | — | `door-element-350x350.usdc` | ☐ |  |
 | `door-element-350x395` | Door element 350 × 395 mm | door | 350 × 395 | — | `door-element-350x395.usdc` | ☐ |  |
-| `door-element-350x500` | Door element 350 × 500 mm | door | 350 × 500 | — | `door-element-350x500.usdc` | ☐ | 2 |
-| `door-element-350x750` | Door element 350 × 750 mm | door | 350 × 750 | — | `door-element-350x750.usdc` | ☐ | 2 |
+| `door-element-350x500` | Door element 350 × 500 mm | door | 350 × 500 | — | `door-element-350x500.usdc` | ☐ |  |
+| `door-element-350x750` | Door element 350 × 750 mm | door | 350 × 750 | — | `door-element-350x750.usdc` | ☐ | 14 |
 | `door-element-395` | Door element 395 mm | door | 395 | — | `door-element-395.usdc` | ☐ |  |
 | `door-element-395x500` | Door element 395 × 500 mm | door | 395 × 500 | — | `door-element-395x500.usdc` | ☐ |  |
 | `door-element-395x750` | Door element 395 × 750 mm | door | 395 × 750 | — | `door-element-395x750.usdc` | ☐ |  |
@@ -58,21 +58,21 @@ Distinct resolvable parts: **443**
 | `drawer-lower` | Drawer (lower) | drawer | — | — | `drawer-lower.usdc` | ☐ |  |
 | `drawer-upper` | Drawer (upper) | drawer | — | — | `drawer-upper.usdc` | ☐ |  |
 | `left-telescopic-runner` | Left telescopic runner | drawer | — | left | `left-telescopic-runner.usdc` | ☐ |  |
-| `left-telescopic-runner-350` | Left telescopic runner 350 mm | drawer | 350 | left | `left-telescopic-runner-350.usdc` | ☐ | 4 |
+| `left-telescopic-runner-350` | Left telescopic runner 350 mm | drawer | 350 | left | `left-telescopic-runner-350.usdc` | ☐ |  |
 | `left-telescopic-runner-500` | Left telescopic runner 500 mm | drawer | 500 | left | `left-telescopic-runner-500.usdc` | ☐ |  |
 | `left-telescopic-runner-750` | Left telescopic runner 750 mm | drawer | 750 | left | `left-telescopic-runner-750.usdc` | ☐ |  |
 | `pull-out-500` | Pull-out 500 mm | drawer | 500 | — | `pull-out-500.usdc` | ☐ |  |
 | `pull-out-stop` | Pull-out stop | drawer | — | — | `pull-out-stop.usdc` | ☐ |  |
 | `right-telescopic-runner` | Right telescopic runner | drawer | — | right | `right-telescopic-runner.usdc` | ☐ |  |
-| `right-telescopic-runner-350` | Right telescopic runner 350 mm | drawer | 350 | right | `right-telescopic-runner-350.usdc` | ☐ | 4 |
+| `right-telescopic-runner-350` | Right telescopic runner 350 mm | drawer | 350 | right | `right-telescopic-runner-350.usdc` | ☐ |  |
 | `right-telescopic-runner-500` | Right telescopic runner 500 mm | drawer | 500 | right | `right-telescopic-runner-500.usdc` | ☐ |  |
 | `right-telescopic-runner-750` | Right telescopic runner 750 mm | drawer | 750 | right | `right-telescopic-runner-750.usdc` | ☐ |  |
 | `telescopic-runner` | Telescopic runner | drawer | — | — | `telescopic-runner.usdc` | ☐ |  |
-| `clamp-holder` | Clamp holder | fitting | — | — | `clamp-holder.usdc` | ☐ | 10 |
+| `clamp-holder` | Clamp holder | fitting | — | — | `clamp-holder.usdc` | ☐ | 84 |
 | `glass-clamp` | Glass clamp | fitting | — | — | `glass-clamp.usdc` | ☐ |  |
 | `glass-clamp-105` | Glass clamp 105 mm | fitting | 105 | — | `glass-clamp-105.usdc` | ☐ |  |
 | `glass-clamp-75` | Glass clamp 75 mm | fitting | 75 | — | `glass-clamp-75.usdc` | ☐ |  |
-| `glass-clamp-standard` | Glass clamp (standard) | fitting | — | — | `glass-clamp-standard.usdc` | ☐ | 56 |
+| `glass-clamp-standard` | Glass clamp (standard) | fitting | — | — | `glass-clamp-standard.usdc` | ☐ |  |
 | `glass-hinge` | Glass hinge | fitting | — | — | `glass-hinge.usdc` | ☐ |  |
 | `glass-hinge-105-back-lower-left` | Glass hinge 105 mm (back, lower, left) | fitting | 105 | left | `glass-hinge-105-back-lower-left.usdc` | ☐ |  |
 | `glass-hinge-105-back-lower-right` | Glass hinge 105 mm (back, lower, right) | fitting | 105 | right | `glass-hinge-105-back-lower-right.usdc` | ☐ |  |
@@ -84,18 +84,18 @@ Distinct resolvable parts: **443**
 | `glass-hinge-75-back-upper-right` | Glass hinge 75 mm (back, upper, right) | fitting | 75 | right | `glass-hinge-75-back-upper-right.usdc` | ☐ |  |
 | `glass-hinge-back` | Glass hinge (back) | fitting | — | — | `glass-hinge-back.usdc` | ☐ |  |
 | `glass-hinge-back-left` | Glass hinge (back, left) | fitting | — | left | `glass-hinge-back-left.usdc` | ☐ |  |
-| `glass-hinge-back-lower-left` | Glass hinge (back, lower, left) | fitting | — | left | `glass-hinge-back-lower-left.usdc` | ☐ | 4 |
-| `glass-hinge-back-lower-right` | Glass hinge (back, lower, right) | fitting | — | right | `glass-hinge-back-lower-right.usdc` | ☐ | 4 |
+| `glass-hinge-back-lower-left` | Glass hinge (back, lower, left) | fitting | — | left | `glass-hinge-back-lower-left.usdc` | ☐ |  |
+| `glass-hinge-back-lower-right` | Glass hinge (back, lower, right) | fitting | — | right | `glass-hinge-back-lower-right.usdc` | ☐ |  |
 | `glass-hinge-back-right` | Glass hinge (back, right) | fitting | — | right | `glass-hinge-back-right.usdc` | ☐ |  |
-| `glass-hinge-back-upper-left` | Glass hinge (back, upper, left) | fitting | — | left | `glass-hinge-back-upper-left.usdc` | ☐ | 4 |
-| `glass-hinge-back-upper-right` | Glass hinge (back, upper, right) | fitting | — | right | `glass-hinge-back-upper-right.usdc` | ☐ | 4 |
+| `glass-hinge-back-upper-left` | Glass hinge (back, upper, left) | fitting | — | left | `glass-hinge-back-upper-left.usdc` | ☐ |  |
+| `glass-hinge-back-upper-right` | Glass hinge (back, upper, right) | fitting | — | right | `glass-hinge-back-upper-right.usdc` | ☐ |  |
 | `glass-hinge-front` | Glass hinge (front) | fitting | — | — | `glass-hinge-front.usdc` | ☐ |  |
 | `glass-hinge-front-left` | Glass hinge (front, left) | fitting | — | left | `glass-hinge-front-left.usdc` | ☐ |  |
-| `glass-hinge-front-lower-left` | Glass hinge (front, lower, left) | fitting | — | left | `glass-hinge-front-lower-left.usdc` | ☐ | 4 |
-| `glass-hinge-front-lower-right` | Glass hinge (front, lower, right) | fitting | — | right | `glass-hinge-front-lower-right.usdc` | ☐ | 4 |
+| `glass-hinge-front-lower-left` | Glass hinge (front, lower, left) | fitting | — | left | `glass-hinge-front-lower-left.usdc` | ☐ |  |
+| `glass-hinge-front-lower-right` | Glass hinge (front, lower, right) | fitting | — | right | `glass-hinge-front-lower-right.usdc` | ☐ |  |
 | `glass-hinge-front-right` | Glass hinge (front, right) | fitting | — | right | `glass-hinge-front-right.usdc` | ☐ |  |
-| `glass-hinge-front-upper-left` | Glass hinge (front, upper, left) | fitting | — | left | `glass-hinge-front-upper-left.usdc` | ☐ | 4 |
-| `glass-hinge-front-upper-right` | Glass hinge (front, upper, right) | fitting | — | right | `glass-hinge-front-upper-right.usdc` | ☐ | 4 |
+| `glass-hinge-front-upper-left` | Glass hinge (front, upper, left) | fitting | — | left | `glass-hinge-front-upper-left.usdc` | ☐ |  |
+| `glass-hinge-front-upper-right` | Glass hinge (front, upper, right) | fitting | — | right | `glass-hinge-front-upper-right.usdc` | ☐ |  |
 | `hinge` | Hinge | fitting | — | — | `hinge.usdc` | ☐ |  |
 | `left-metal-hinge` | Left metal hinge | fitting | — | left | `left-metal-hinge.usdc` | ☐ |  |
 | `metal-hinge` | Metal hinge | fitting | — | — | `metal-hinge.usdc` | ☐ |  |
@@ -112,19 +112,19 @@ Distinct resolvable parts: **443**
 | `metal-hinge-upper-left` | Metal hinge (upper, left) | fitting | — | left | `metal-hinge-upper-left.usdc` | ☐ |  |
 | `metal-hinge-upper-right` | Metal hinge (upper, right) | fitting | — | right | `metal-hinge-upper-right.usdc` | ☐ |  |
 | `right-metal-hinge` | Right metal hinge | fitting | — | right | `right-metal-hinge.usdc` | ☐ |  |
-| `chrome-handle` | Chrome handle | glass | — | — | `chrome-handle.usdc` | ☐ | 8 |
+| `chrome-handle` | Chrome handle | glass | — | — | `chrome-handle.usdc` | ☐ |  |
 | `glass` | Glass | glass | — | — | `glass.usdc` | ☐ |  |
 | `glass-250x250` | Glass 250 × 250 mm | glass | 250 × 250 | — | `glass-250x250.usdc` | ☐ |  |
 | `glass-350x250` | Glass 350 × 250 mm | glass | 350 × 250 | — | `glass-350x250.usdc` | ☐ |  |
-| `glass-350x350` | Glass 350 × 350 mm | glass | 350 × 350 | — | `glass-350x350.usdc` | ☐ | 10 |
+| `glass-350x350` | Glass 350 × 350 mm | glass | 350 × 350 | — | `glass-350x350.usdc` | ☐ |  |
 | `glass-395x250` | Glass 395 × 250 mm | glass | 395 × 250 | — | `glass-395x250.usdc` | ☐ |  |
 | `glass-395x350` | Glass 395 × 350 mm | glass | 395 × 350 | — | `glass-395x350.usdc` | ☐ |  |
 | `glass-395x500` | Glass 395 × 500 mm | glass | 395 × 500 | — | `glass-395x500.usdc` | ☐ |  |
 | `glass-500x250` | Glass 500 × 250 mm | glass | 500 × 250 | — | `glass-500x250.usdc` | ☐ |  |
-| `glass-500x350` | Glass 500 × 350 mm | glass | 500 × 350 | — | `glass-500x350.usdc` | ☐ | 4 |
+| `glass-500x350` | Glass 500 × 350 mm | glass | 500 × 350 | — | `glass-500x350.usdc` | ☐ |  |
 | `glass-500x500` | Glass 500 × 500 mm | glass | 500 × 500 | — | `glass-500x500.usdc` | ☐ |  |
 | `glass-750x250` | Glass 750 × 250 mm | glass | 750 × 250 | — | `glass-750x250.usdc` | ☐ |  |
-| `glass-750x350` | Glass 750 × 350 mm | glass | 750 × 350 | — | `glass-750x350.usdc` | ☐ | 4 |
+| `glass-750x350` | Glass 750 × 350 mm | glass | 750 × 350 | — | `glass-750x350.usdc` | ☐ |  |
 | `glass-750x500` | Glass 750 × 500 mm | glass | 750 × 500 | — | `glass-750x500.usdc` | ☐ |  |
 | `glass-door` | Glass door | glass | — | — | `glass-door.usdc` | ☐ |  |
 | `glass-door-handle` | Glass-door handle | glass | — | — | `glass-door-handle.usdc` | ☐ |  |
@@ -156,10 +156,10 @@ Distinct resolvable parts: **443**
 | `left-glass-door-395x500` | Left glass door 395 × 500 mm | glass | 395 × 500 | left | `left-glass-door-395x500.usdc` | ☐ |  |
 | `left-glass-door-500` | Left glass door 500 mm | glass | 500 | left | `left-glass-door-500.usdc` | ☐ |  |
 | `left-glass-door-500x250` | Left glass door 500 × 250 mm | glass | 500 × 250 | left | `left-glass-door-500x250.usdc` | ☐ |  |
-| `left-glass-door-500x350` | Left glass door 500 × 350 mm | glass | 500 × 350 | left | `left-glass-door-500x350.usdc` | ☐ | 2 |
+| `left-glass-door-500x350` | Left glass door 500 × 350 mm | glass | 500 × 350 | left | `left-glass-door-500x350.usdc` | ☐ |  |
 | `left-glass-door-500x500` | Left glass door 500 × 500 mm | glass | 500 × 500 | left | `left-glass-door-500x500.usdc` | ☐ |  |
 | `left-glass-door-750x250` | Left glass door 750 × 250 mm | glass | 750 × 250 | left | `left-glass-door-750x250.usdc` | ☐ |  |
-| `left-glass-door-750x350` | Left glass door 750 × 350 mm | glass | 750 × 350 | left | `left-glass-door-750x350.usdc` | ☐ | 2 |
+| `left-glass-door-750x350` | Left glass door 750 × 350 mm | glass | 750 × 350 | left | `left-glass-door-750x350.usdc` | ☐ |  |
 | `left-glass-door-750x500` | Left glass door 750 × 500 mm | glass | 750 × 500 | left | `left-glass-door-750x500.usdc` | ☐ |  |
 | `left-trapezoid-glass-door` | Left trapezoid glass door | glass | — | left | `left-trapezoid-glass-door.usdc` | ☐ |  |
 | `left-trapezoid-glass-door-250` | Left trapezoid glass door 250 mm | glass | 250 | left | `left-trapezoid-glass-door-250.usdc` | ☐ |  |
@@ -187,10 +187,10 @@ Distinct resolvable parts: **443**
 | `right-glass-door-395x500` | Right glass door 395 × 500 mm | glass | 395 × 500 | right | `right-glass-door-395x500.usdc` | ☐ |  |
 | `right-glass-door-500` | Right glass door 500 mm | glass | 500 | right | `right-glass-door-500.usdc` | ☐ |  |
 | `right-glass-door-500x250` | Right glass door 500 × 250 mm | glass | 500 × 250 | right | `right-glass-door-500x250.usdc` | ☐ |  |
-| `right-glass-door-500x350` | Right glass door 500 × 350 mm | glass | 500 × 350 | right | `right-glass-door-500x350.usdc` | ☐ | 2 |
+| `right-glass-door-500x350` | Right glass door 500 × 350 mm | glass | 500 × 350 | right | `right-glass-door-500x350.usdc` | ☐ |  |
 | `right-glass-door-500x500` | Right glass door 500 × 500 mm | glass | 500 × 500 | right | `right-glass-door-500x500.usdc` | ☐ |  |
 | `right-glass-door-750x250` | Right glass door 750 × 250 mm | glass | 750 × 250 | right | `right-glass-door-750x250.usdc` | ☐ |  |
-| `right-glass-door-750x350` | Right glass door 750 × 350 mm | glass | 750 × 350 | right | `right-glass-door-750x350.usdc` | ☐ | 2 |
+| `right-glass-door-750x350` | Right glass door 750 × 350 mm | glass | 750 × 350 | right | `right-glass-door-750x350.usdc` | ☐ |  |
 | `right-glass-door-750x500` | Right glass door 750 × 500 mm | glass | 750 × 500 | right | `right-glass-door-750x500.usdc` | ☐ |  |
 | `right-trapezoid-glass-door` | Right trapezoid glass door | glass | — | right | `right-trapezoid-glass-door.usdc` | ☐ |  |
 | `right-trapezoid-glass-door-250` | Right trapezoid glass door 250 mm | glass | 250 | right | `right-trapezoid-glass-door-250.usdc` | ☐ |  |
@@ -214,7 +214,7 @@ Distinct resolvable parts: **443**
 | `lock-handle` | Lock handle | hardware | — | — | `lock-handle.usdc` | ☐ |  |
 | `right-clamping-tongue` | Right clamping tongue | hardware | — | right | `right-clamping-tongue.usdc` | ☐ |  |
 | `right-clamping-tongue-2003` | Right clamping tongue 2003 mm | hardware | 2003 | right | `right-clamping-tongue-2003.usdc` | ☐ |  |
-| `transformer` | Transformer | hardware | — | — | `transformer.usdc` | ☐ | 1 |
+| `transformer` | Transformer | hardware | — | — | `transformer.usdc` | ☐ |  |
 | `grooved-plate` | Grooved plate | other | — | — | `grooved-plate.usdc` | ☐ |  |
 | `grooved-plate-350` | Grooved plate 350 mm | other | 350 | — | `grooved-plate-350.usdc` | ☐ |  |
 | `grooved-plate-500` | Grooved plate 500 mm | other | 500 | — | `grooved-plate-500.usdc` | ☐ |  |
@@ -275,7 +275,7 @@ Distinct resolvable parts: **443**
 | `biblio-panel-750x350` | Biblio panel 750 × 350 mm | panel | 750 × 350 | — | `biblio-panel-750x350.usdc` | ☐ |  |
 | `cladding` | Cladding | panel | — | — | `cladding.usdc` | ☐ |  |
 | `left-shelf-side-bracket` | Left shelf side bracket | panel | — | left | `left-shelf-side-bracket.usdc` | ☐ |  |
-| `left-shelf-side-bracket-350` | Left shelf side bracket 350 mm | panel | 350 | left | `left-shelf-side-bracket-350.usdc` | ☐ | 4 |
+| `left-shelf-side-bracket-350` | Left shelf side bracket 350 mm | panel | 350 | left | `left-shelf-side-bracket-350.usdc` | ☐ |  |
 | `left-shelf-side-bracket-500` | Left shelf side bracket 500 mm | panel | 500 | left | `left-shelf-side-bracket-500.usdc` | ☐ |  |
 | `left-shelf-side-bracket-750` | Left shelf side bracket 750 mm | panel | 750 | left | `left-shelf-side-bracket-750.usdc` | ☐ |  |
 | `lockable-metal-panel-395x350` | Lockable metal panel 395 × 350 mm | panel | 395 × 350 | — | `lockable-metal-panel-395x350.usdc` | ☐ |  |
@@ -321,7 +321,7 @@ Distinct resolvable parts: **443**
 | `metal-panel-275x625` | Metal panel 275 × 625 mm | panel | 275 × 625 | — | `metal-panel-275x625.usdc` | ☐ |  |
 | `metal-panel-275x750` | Metal panel 275 × 750 mm | panel | 275 × 750 | — | `metal-panel-275x750.usdc` | ☐ |  |
 | `metal-panel-350x250` | Metal panel 350 × 250 mm | panel | 350 × 250 | — | `metal-panel-350x250.usdc` | ☐ |  |
-| `metal-panel-350x350` | Metal panel 350 × 350 mm | panel | 350 × 350 | — | `metal-panel-350x350.usdc` | ☐ | 2 |
+| `metal-panel-350x350` | Metal panel 350 × 350 mm | panel | 350 × 350 | — | `metal-panel-350x350.usdc` | ☐ |  |
 | `metal-panel-350x550` | Metal panel 350 × 550 mm | panel | 350 × 550 | — | `metal-panel-350x550.usdc` | ☐ |  |
 | `metal-panel-350x625` | Metal panel 350 × 625 mm | panel | 350 × 625 | — | `metal-panel-350x625.usdc` | ☐ |  |
 | `metal-panel-395x250` | Metal panel 395 × 250 mm | panel | 395 × 250 | — | `metal-panel-395x250.usdc` | ☐ |  |
@@ -330,13 +330,13 @@ Distinct resolvable parts: **443**
 | `metal-panel-395x500` | Metal panel 395 × 500 mm | panel | 395 × 500 | — | `metal-panel-395x500.usdc` | ☐ |  |
 | `metal-panel-395x750` | Metal panel 395 × 750 mm | panel | 395 × 750 | — | `metal-panel-395x750.usdc` | ☐ |  |
 | `metal-panel-500x250` | Metal panel 500 × 250 mm | panel | 500 × 250 | — | `metal-panel-500x250.usdc` | ☐ |  |
-| `metal-panel-500x350` | Metal panel 500 × 350 mm | panel | 500 × 350 | — | `metal-panel-500x350.usdc` | ☐ | 14 |
+| `metal-panel-500x350` | Metal panel 500 × 350 mm | panel | 500 × 350 | — | `metal-panel-500x350.usdc` | ☐ | 18 |
 | `metal-panel-500x500` | Metal panel 500 × 500 mm | panel | 500 × 500 | — | `metal-panel-500x500.usdc` | ☐ |  |
 | `metal-panel-500x550` | Metal panel 500 × 550 mm | panel | 500 × 550 | — | `metal-panel-500x550.usdc` | ☐ |  |
 | `metal-panel-500x625` | Metal panel 500 × 625 mm | panel | 500 × 625 | — | `metal-panel-500x625.usdc` | ☐ |  |
 | `metal-panel-750x250` | Metal panel 750 × 250 mm | panel | 750 × 250 | — | `metal-panel-750x250.usdc` | ☐ |  |
-| `metal-panel-750x350` | Metal panel 750 × 350 mm | panel | 750 × 350 | — | `metal-panel-750x350.usdc` | ☐ | 14 |
-| `metal-panel-750x500` | Metal panel 750 × 500 mm | panel | 750 × 500 | — | `metal-panel-750x500.usdc` | ☐ |  |
+| `metal-panel-750x350` | Metal panel 750 × 350 mm | panel | 750 × 350 | — | `metal-panel-750x350.usdc` | ☐ | 16 |
+| `metal-panel-750x500` | Metal panel 750 × 500 mm | panel | 750 × 500 | — | `metal-panel-750x500.usdc` | ☐ | 22 |
 | `metal-panel-750x750` | Metal panel 750 × 750 mm | panel | 750 × 750 | — | `metal-panel-750x750.usdc` | ☐ |  |
 | `perforated-metal-panel` | Perforated metal panel | panel | — | — | `perforated-metal-panel.usdc` | ☐ |  |
 | `perforated-metal-panel-100x250` | Perforated metal panel 100 × 250 mm | panel | 100 × 250 | — | `perforated-metal-panel-100x250.usdc` | ☐ |  |
@@ -361,23 +361,23 @@ Distinct resolvable parts: **443**
 | `perforated-metal-panel-275x500` | Perforated metal panel 275 × 500 mm | panel | 275 × 500 | — | `perforated-metal-panel-275x500.usdc` | ☐ |  |
 | `perforated-metal-panel-350x100` | Perforated metal panel 350 × 100 mm | panel | 350 × 100 | — | `perforated-metal-panel-350x100.usdc` | ☐ |  |
 | `perforated-metal-panel-350x250` | Perforated metal panel 350 × 250 mm | panel | 350 × 250 | — | `perforated-metal-panel-350x250.usdc` | ☐ |  |
-| `perforated-metal-panel-350x350` | Perforated metal panel 350 × 350 mm | panel | 350 × 350 | — | `perforated-metal-panel-350x350.usdc` | ☐ | 3 |
+| `perforated-metal-panel-350x350` | Perforated metal panel 350 × 350 mm | panel | 350 × 350 | — | `perforated-metal-panel-350x350.usdc` | ☐ |  |
 | `perforated-metal-panel-350x395` | Perforated metal panel 350 × 395 mm | panel | 350 × 395 | — | `perforated-metal-panel-350x395.usdc` | ☐ |  |
 | `perforated-metal-panel-350x550` | Perforated metal panel 350 × 550 mm | panel | 350 × 550 | — | `perforated-metal-panel-350x550.usdc` | ☐ |  |
 | `perforated-metal-panel-350x750` | Perforated metal panel 350 × 750 mm | panel | 350 × 750 | — | `perforated-metal-panel-350x750.usdc` | ☐ |  |
 | `perforated-metal-panel-395x350` | Perforated metal panel 395 × 350 mm | panel | 395 × 350 | — | `perforated-metal-panel-395x350.usdc` | ☐ |  |
 | `perforated-metal-panel-500x175` | Perforated metal panel 500 × 175 mm | panel | 500 × 175 | — | `perforated-metal-panel-500x175.usdc` | ☐ |  |
 | `perforated-metal-panel-500x250` | Perforated metal panel 500 × 250 mm | panel | 500 × 250 | — | `perforated-metal-panel-500x250.usdc` | ☐ |  |
-| `perforated-metal-panel-500x350` | Perforated metal panel 500 × 350 mm | panel | 500 × 350 | — | `perforated-metal-panel-500x350.usdc` | ☐ |  |
+| `perforated-metal-panel-500x350` | Perforated metal panel 500 × 350 mm | panel | 500 × 350 | — | `perforated-metal-panel-500x350.usdc` | ☐ | 10 |
 | `perforated-metal-panel-500x395` | Perforated metal panel 500 × 395 mm | panel | 500 × 395 | — | `perforated-metal-panel-500x395.usdc` | ☐ |  |
 | `perforated-metal-panel-500x500` | Perforated metal panel 500 × 500 mm | panel | 500 × 500 | — | `perforated-metal-panel-500x500.usdc` | ☐ |  |
 | `perforated-metal-panel-750x500` | Perforated metal panel 750 × 500 mm | panel | 750 × 500 | — | `perforated-metal-panel-750x500.usdc` | ☐ |  |
 | `pull-out-shelf` | Pull-out shelf | panel | — | — | `pull-out-shelf.usdc` | ☐ |  |
 | `pull-out-shelf-350x395` | Pull-out shelf 350 × 395 mm | panel | 350 × 395 | — | `pull-out-shelf-350x395.usdc` | ☐ |  |
 | `pull-out-shelf-350x395-reversed` | Pull-out shelf 350 × 395 mm (reversed) | panel | 350 × 395 | — | `pull-out-shelf-350x395-reversed.usdc` | ☐ |  |
-| `pull-out-shelf-350x500` | Pull-out shelf 350 × 500 mm | panel | 350 × 500 | — | `pull-out-shelf-350x500.usdc` | ☐ | 2 |
+| `pull-out-shelf-350x500` | Pull-out shelf 350 × 500 mm | panel | 350 × 500 | — | `pull-out-shelf-350x500.usdc` | ☐ |  |
 | `pull-out-shelf-350x500-reversed` | Pull-out shelf 350 × 500 mm (reversed) | panel | 350 × 500 | — | `pull-out-shelf-350x500-reversed.usdc` | ☐ |  |
-| `pull-out-shelf-350x750` | Pull-out shelf 350 × 750 mm | panel | 350 × 750 | — | `pull-out-shelf-350x750.usdc` | ☐ | 2 |
+| `pull-out-shelf-350x750` | Pull-out shelf 350 × 750 mm | panel | 350 × 750 | — | `pull-out-shelf-350x750.usdc` | ☐ |  |
 | `pull-out-shelf-350x750-reversed` | Pull-out shelf 350 × 750 mm (reversed) | panel | 350 × 750 | — | `pull-out-shelf-350x750-reversed.usdc` | ☐ |  |
 | `pull-out-shelf-395` | Pull-out shelf 395 mm | panel | 395 | — | `pull-out-shelf-395.usdc` | ☐ |  |
 | `pull-out-shelf-395-reversed` | Pull-out shelf 395 mm (reversed) | panel | 395 | — | `pull-out-shelf-395-reversed.usdc` | ☐ |  |
@@ -394,7 +394,7 @@ Distinct resolvable parts: **443**
 | `pull-out-shelf-750x395` | Pull-out shelf 750 × 395 mm | panel | 750 × 395 | — | `pull-out-shelf-750x395.usdc` | ☐ |  |
 | `pull-out-shelf-reversed` | Pull-out shelf (reversed) | panel | — | — | `pull-out-shelf-reversed.usdc` | ☐ |  |
 | `right-shelf-side-bracket` | Right shelf side bracket | panel | — | right | `right-shelf-side-bracket.usdc` | ☐ |  |
-| `right-shelf-side-bracket-350` | Right shelf side bracket 350 mm | panel | 350 | right | `right-shelf-side-bracket-350.usdc` | ☐ | 4 |
+| `right-shelf-side-bracket-350` | Right shelf side bracket 350 mm | panel | 350 | right | `right-shelf-side-bracket-350.usdc` | ☐ |  |
 | `right-shelf-side-bracket-500` | Right shelf side bracket 500 mm | panel | 500 | right | `right-shelf-side-bracket-500.usdc` | ☐ |  |
 | `right-shelf-side-bracket-750` | Right shelf side bracket 750 mm | panel | 750 | right | `right-shelf-side-bracket-750.usdc` | ☐ |  |
 | `shelf` | Shelf | panel | — | — | `shelf.usdc` | ☐ |  |
@@ -404,15 +404,15 @@ Distinct resolvable parts: **443**
 | `shelf-350x750` | Shelf 350 × 750 mm | panel | 350 × 750 | — | `shelf-350x750.usdc` | ☐ |  |
 | `shelf-500x500` | Shelf 500 × 500 mm | panel | 500 × 500 | — | `shelf-500x500.usdc` | ☐ |  |
 | `shelf-500x750` | Shelf 500 × 750 mm | panel | 500 × 750 | — | `shelf-500x750.usdc` | ☐ |  |
-| `shelf-bracket` | Shelf bracket | panel | — | — | `shelf-bracket.usdc` | ☐ | 8 |
+| `shelf-bracket` | Shelf bracket | panel | — | — | `shelf-bracket.usdc` | ☐ |  |
 | `shelf-side-bracket` | Shelf side bracket | panel | — | — | `shelf-side-bracket.usdc` | ☐ |  |
 | `short-metal-panel` | Short metal panel | panel | — | — | `short-metal-panel.usdc` | ☐ |  |
 | `short-metal-panel-395x350` | Short metal panel 395 × 350 mm | panel | 395 × 350 | — | `short-metal-panel-395x350.usdc` | ☐ |  |
 | `short-metal-panel-395x500` | Short metal panel 395 × 500 mm | panel | 395 × 500 | — | `short-metal-panel-395x500.usdc` | ☐ |  |
 | `short-metal-panel-395x750` | Short metal panel 395 × 750 mm | panel | 395 × 750 | — | `short-metal-panel-395x750.usdc` | ☐ |  |
-| `short-metal-panel-500x350` | Short metal panel 500 × 350 mm | panel | 500 × 350 | — | `short-metal-panel-500x350.usdc` | ☐ | 2 |
+| `short-metal-panel-500x350` | Short metal panel 500 × 350 mm | panel | 500 × 350 | — | `short-metal-panel-500x350.usdc` | ☐ |  |
 | `short-metal-panel-500x500` | Short metal panel 500 × 500 mm | panel | 500 × 500 | — | `short-metal-panel-500x500.usdc` | ☐ |  |
-| `short-metal-panel-750x350` | Short metal panel 750 × 350 mm | panel | 750 × 350 | — | `short-metal-panel-750x350.usdc` | ☐ | 2 |
+| `short-metal-panel-750x350` | Short metal panel 750 × 350 mm | panel | 750 × 350 | — | `short-metal-panel-750x350.usdc` | ☐ |  |
 | `short-metal-panel-750x500` | Short metal panel 750 × 500 mm | panel | 750 × 500 | — | `short-metal-panel-750x500.usdc` | ☐ |  |
 | `mounting-aid-tube-100` | Mounting-aid tube 100 mm | tube | 100 | — | `mounting-aid-tube-100.usdc` | ☐ |  |
 | `mounting-aid-tube-150` | Mounting-aid tube 150 mm | tube | 150 | — | `mounting-aid-tube-150.usdc` | ☐ |  |
@@ -437,16 +437,16 @@ Distinct resolvable parts: **443**
 | `tube-100` | Tube 100 mm | tube | 100 | — | `tube-100.usdc` | ☐ |  |
 | `tube-125` | Tube 125 mm | tube | 125 | — | `tube-125.usdc` | ☐ |  |
 | `tube-150` | Tube 150 mm | tube | 150 | — | `tube-150.usdc` | ☐ |  |
-| `tube-175` | Tube 175 mm | tube | 175 | — | `tube-175.usdc` | ☐ | 10 |
+| `tube-175` | Tube 175 mm | tube | 175 | — | `tube-175.usdc` | ☐ |  |
 | `tube-200` | Tube 200 mm | tube | 200 | — | `tube-200.usdc` | ☐ |  |
-| `tube-250` | Tube 250 mm | tube | 250 | — | `tube-250.usdc` | ☐ | 10 |
+| `tube-250` | Tube 250 mm | tube | 250 | — | `tube-250.usdc` | ☐ |  |
 | `tube-275` | Tube 275 mm | tube | 275 | — | `tube-275.usdc` | ☐ |  |
-| `tube-350` | Tube 350 mm | tube | 350 | — | `tube-350.usdc` | ☐ | 75 |
+| `tube-350` | Tube 350 mm | tube | 350 | — | `tube-350.usdc` | ☐ | 85 |
 | `tube-395` | Tube 395 mm | tube | 395 | — | `tube-395.usdc` | ☐ |  |
-| `tube-500` | Tube 500 mm | tube | 500 | — | `tube-500.usdc` | ☐ | 28 |
+| `tube-500` | Tube 500 mm | tube | 500 | — | `tube-500.usdc` | ☐ | 71 |
 | `tube-550` | Tube 550 mm | tube | 550 | — | `tube-550.usdc` | ☐ |  |
 | `tube-625` | Tube 625 mm | tube | 625 | — | `tube-625.usdc` | ☐ |  |
-| `tube-750` | Tube 750 mm | tube | 750 | — | `tube-750.usdc` | ☐ | 28 |
+| `tube-750` | Tube 750 mm | tube | 750 | — | `tube-750.usdc` | ☐ | 71 |
 | `tube-handle` | Tube handle | tube | — | — | `tube-handle.usdc` | ☐ |  |
 | `tube-handle-350` | Tube handle 350 mm | tube | 350 | — | `tube-handle-350.usdc` | ☐ |  |
 | `tube-handle-395` | Tube handle 395 mm | tube | 395 | — | `tube-handle-395.usdc` | ☐ |  |

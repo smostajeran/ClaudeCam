@@ -41,6 +41,23 @@ The current engine is Node (reads multi-MB local files, spawns `solve.ts`). To r
 Recommendation: **B to start** (engine unchanged, fastest to a working locked door), migrate to **A**
 later if you want everything inside Supabase.
 
-## Apply
-Schema in `supabase/migrations/0001_init.sql`. Not applied yet — apply to `furniture-pim` only on
-your go-ahead (it modifies the live project).
+## Live (provisioned)
+Dedicated project **`usm-engine`** created (org `smostajeran's Org`, ap-south-1, $10/mo).
+- project id / ref: `jbmbhhbglcclgnpagwhg`
+- API URL: `https://jbmbhhbglcclgnpagwhg.supabase.co`
+- publishable key (client-safe): `sb_publishable_vQmkcd0V_hXs0HQeFT0lFQ_xwdGzG9x`
+- **service_role key is secret** — read it from the Supabase dashboard; it is what the engine host
+  uses to read `private_article` + the `proprietary` bucket. Never ship it in the app.
+
+Done: schema applied (`part_catalog`, `private_article` [service-role only], `project`, `placement`
+— all RLS); private storage bucket `proprietary` created; `part_catalog` seeded (proof rows; full
+443-row seed in `supabase/seed_catalog.sql`). Security advisor clean (the only notice — RLS-enabled-
+no-policy on `private_article` — is intentional: that table is locked to service_role).
+
+## Next (engine host — architecture B)
+1. Run the engine (`server.ts`) on a small container with the Supabase **service_role** key in env.
+2. Verify the caller's Supabase JWT on `/api/solve-pxpz` (the lock), then solve and return the one52
+   payload; optionally upsert `placement`.
+3. Upload proprietary engine data (`model.json`, `database.xml`, …) to the `proprietary` bucket; the
+   host reads them with the service role (or keeps them on the host only).
+4. App: sign in with Supabase Auth → call the host with the JWT → render the one52 payload.
