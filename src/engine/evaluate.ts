@@ -35,7 +35,7 @@ for (const part of scene) {
       const k =
         e.message.match(/unknown function '([^']+)'/)?.[1] ??
         e.message.match(/builtin '([^']+)'/)?.[1] ??
-        (e.message.startsWith("VCML parse") ? "<parse:for/syntax>" : e.message.slice(0, 36));
+        (e.message.startsWith("VCML parse") ? "parse: " + e.message.replace("VCML parse: ", "").slice(0, 34) : e.message.slice(0, 40));
       errs.set(k, (errs.get(k) ?? 0) + 1);
     }
   }

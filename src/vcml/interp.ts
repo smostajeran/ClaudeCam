@@ -8,7 +8,7 @@ import type { Host, Value } from "../engine/partgraph.ts";
 
 // ---------- lexer ----------
 type Tok = { k: string; v: string };
-const KW = new Set(["my", "call", "return", "if", "else", "eq", "ne", "lt", "gt", "le", "ge", "and", "or", "not", "true", "false", "null"]);
+const KW = new Set(["my", "call", "return", "if", "else", "for", "foreach", "eq", "ne", "lt", "gt", "le", "ge", "and", "or", "not", "true", "false", "null"]);
 function lex(src: string): Tok[] {
   const t: Tok[] = [];
   let i = 0;
@@ -16,6 +16,8 @@ function lex(src: string): Tok[] {
   while (i < n) {
     const c = src[i];
     if (c === " " || c === "\t" || c === "\r" || c === "\n") { i++; continue; }
+    if (c === "/" && src[i + 1] === "/") { while (i < n && src[i] !== "\n") i++; continue; }              // // line comment
+    if (c === "/" && src[i + 1] === "*") { i += 2; while (i < n && !(src[i] === "*" && src[i + 1] === "/")) i++; i += 2; continue; } // /* block */
     if (c === "'") { let j = i + 1, s = ""; while (j < n && src[j] !== "'") s += src[j++]; t.push({ k: "str", v: s }); i = j + 1; continue; }
     if (c === "`") { let j = i + 1, s = ""; while (j < n && src[j] !== "`") s += src[j++]; t.push({ k: "str", v: s }); i = j + 1; continue; }
     if (c >= "0" && c <= "9" || (c === "." && src[i + 1] >= "0" && src[i + 1] <= "9")) {
@@ -25,10 +27,11 @@ function lex(src: string): Tok[] {
       const num = m ? m[0] : src[i];
       t.push({ k: "num", v: num }); i += num.length; continue;
     }
-    if (/[A-Za-z_]/.test(c)) { let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++; const w = src.slice(i, j); t.push({ k: KW.has(w) ? w : "ident", v: w }); i = j; continue; }
+    if (/[A-Za-z_]/.test(c)) { let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++; const w = src.slice(i, j); const wl = w.toLowerCase(); t.push({ k: KW.has(wl) ? wl : "ident", v: w }); i = j; continue; } // keyword/operator words are case-insensitive (LT==lt, AND==and)
     // operators/punctuation: token KIND is the symbol itself (so a string literal like '-' can't
     // be mistaken for the minus operator — is() matches on kind, not value).
     if (c === "+" && src[i + 1] === "+") { t.push({ k: "++", v: "++" }); i += 2; continue; }
+    if (c === "=" && src[i + 1] === "=") { t.push({ k: "eq", v: "==" }); i += 2; continue; }
     if ("+-*/(){}[],;?:=".includes(c)) { t.push({ k: c, v: c }); i++; continue; }
     throw new Error(`VCML lex: unexpected '${c}' at ${i}`);
   }
@@ -51,11 +54,20 @@ class Parser {
     if (this.is("my")) { this.next(); const name = this.eat("ident").v; this.eat("="); return { t: "let", name, e: this.expr() }; }
     if (this.is("return")) { this.next(); return { t: "ret", e: this.expr() }; }
     if (this.is("if")) return this.ifStmt();
+    if (this.is("for")) return this.forStmt();
     if (this.is("{")) return this.block();
     if (this.peek().k === "ident" && this.t[this.p + 1] && this.t[this.p + 1].v === "=") { const name = this.next().v; this.eat("="); return { t: "assign", name, e: this.expr() }; }
     return { t: "expr", e: this.expr() };
   }
   block(): Node { this.eat("{"); const stmts: Node[] = []; while (!this.is("}") && !this.is("eof")) { stmts.push(this.statement()); if (this.is(";")) this.next(); } this.eat("}"); return { t: "block", stmts }; }
+  forStmt(): Node {
+    this.eat("for"); this.eat("("); this.eat("my"); const name = this.eat("ident").v;
+    if (this.is(":")) { this.next(); const list = this.expr(); this.eat(")"); return { t: "foreach", name, list, body: this.block() }; }
+    this.eat("="); const init = this.expr(); this.eat(";");
+    const cond = this.expr(); this.eat(";");
+    const incrName = this.eat("ident").v; this.eat("="); const incrExpr = this.expr(); this.eat(")");
+    return { t: "for", name, init, cond, incrName, incrExpr, body: this.block() };
+  }
   ifStmt(): Node {
     this.eat("if"); this.eat("("); const cond = this.expr(); this.eat(")");
     const then = this.is("{") ? this.block() : this.statement();
@@ -80,6 +92,7 @@ class Parser {
     if (x.k === "false") { this.next(); return { t: "lit", v: false }; }
     if (x.k === "null") { this.next(); return { t: "lit", v: null }; }
     if (x.k === "(") { this.next(); const e = this.expr(); this.eat(")"); return e; }
+    if (x.k === "[") { this.next(); const items: Node[] = []; if (!this.is("]")) { items.push(this.expr()); while (this.is(",")) { this.next(); items.push(this.expr()); } } this.eat("]"); return { t: "list", items }; }
     if (x.k === "call") { this.next(); const name = this.eat("ident").v; return this.callTail(name); }
     if (x.k === "ident") { this.next(); if (this.is("(")) return this.callTail(x.v); return { t: "var", name: x.v }; }
     throw new Error(`VCML parse: unexpected ${x.k} '${x.v}'`);
@@ -91,6 +104,7 @@ class Parser {
 export type Builtin = (args: Value[], host: Host) => Value;
 export const BUILTINS: Record<string, Builtin> = {
   List: (a) => a.slice(),
+  IndexList: (a) => (Array.isArray(a[0]) ? a[0].map((_, i) => i) : []),
   ListAdd: (a) => { (a[0] as Value[]).push(a[1]); return a[0]; },
   ListExtend: (a) => (a[0] as Value[]).concat(a[1]),
   Size: (a) => (Array.isArray(a[0]) ? a[0].length : String(a[0]).length),
@@ -143,8 +157,11 @@ function evalNode(node: Node, env: Map<string, Value>, host: Host): Value {
     case "block": { let last: Value = null; for (const s of node.stmts) { const v = evalNode(s, env, host); if (s.t === "ret") return v; last = v; } return last; }
     case "let": case "assign": { const v = evalNode(node.e, env, host); env.set(node.name, v); return v; }
     case "if": { if (truthy(evalNode(node.cond, env, host))) return evalNode(node.then, env, host); return node.els ? evalNode(node.els, env, host) : null; }
+    case "foreach": { const list = evalNode(node.list, env, host); if (Array.isArray(list)) for (const el of list) { env.set(node.name, el); evalNode(node.body, env, host); } return null; }
+    case "for": { env.set(node.name, evalNode(node.init, env, host)); let guard = 0; while (truthy(evalNode(node.cond, env, host))) { evalNode(node.body, env, host); env.set(node.incrName, evalNode(node.incrExpr, env, host)); if (++guard > 100000) throw new Error("VCML for: iteration cap"); } return null; }
     case "ret": case "expr": return evalNode(node.e, env, host);
     case "num": case "str": case "lit": return node.v;
+    case "list": return node.items.map((it: Node) => evalNode(it, env, host));
     case "var": return env.has(node.name) ? env.get(node.name) : null;
     case "neg": return -Number(evalNode(node.e, env, host));
     case "not": return !truthy(evalNode(node.e, env, host));
