@@ -24,17 +24,30 @@ function findFile(dir: string, name: string): string | null {
 const cfg = process.argv[2] ?? findFile("oracle/test_project", "config.px5");
 if (!cfg) { console.log("no config.px5 (extract a .pxpz into oracle/test_project)"); process.exit(0); }
 
-interface GPart { id: string; type: string; pos: Vec3; rot: Vec3; docks: { type: string; index: number; dockid: string; partner: string }[] }
+interface GPart { id: string; type: string; pos: Vec3; rot: Vec3; e: string | null; docks: { type: string; index: number; dockid: string; partner: string }[] }
 const num = (s: string | undefined) => { const n = Number(s); return Number.isNaN(n) ? 0 : n; };
+// Haller-E (electrification) role from a part's saved features: the live electrical path.
+function eRole(type: string, f: Record<string, string>): string | null {
+  if (/trafo/.test(type)) return "trafo";              // power source
+  if (/safety/.test(type)) return "safety";            // safety module
+  if (f.f_kugelEinspeisung === "true") return "feed";  // power-feed ball
+  if (f.f_rohrtyp === "rohr-leitend") return "live";   // conductive tube
+  for (const k of ["f_verbraucherM", "f_verbraucherL", "f_verbraucherR"]) if (f[k] && !/dummy/.test(f[k])) return "consumer";
+  return null;
+}
 const root = parseXmlFile(cfg);
 const csNodes: any[] = [];
 (function collect(nodes: any[]) { for (const n of nodes) { if (tagOf(n) === "componentset") csNodes.push(n); const k = kids(n); if (k.length) collect(k); } })(root);
 const parts: GPart[] = csNodes.map((cs, i) => {
   const k = kids(cs); const pos = byTag(k, "pos")[0], rot = byTag(k, "rot")[0];
+  const type = attr(cs, "type")!;
+  const fn = byTag(k, "features")[0]; const fa = (fn?.[":@"] ?? {}) as Record<string, string>;
+  const feat: Record<string, string> = {}; for (const key in fa) feat[key.replace(/^@_/, "")] = fa[key];
   return {
-    id: attr(cs, "_PXI_unique_comp_id") ?? String(i), type: attr(cs, "type")!,
+    id: attr(cs, "_PXI_unique_comp_id") ?? String(i), type,
     pos: [num(attr(pos, "x")), num(attr(pos, "y")), num(attr(pos, "z"))],
     rot: [num(attr(rot, "x")), num(attr(rot, "y")), num(attr(rot, "z"))],
+    e: eRole(type, feat),
     docks: byTag(k, "connecteddock").map((d) => ({ type: attr(d, "type")!, index: num(attr(d, "index")) || 1, dockid: attr(d, "dockid")!, partner: attr(d, "connecteddockid")! })),
   };
 });
@@ -238,8 +251,11 @@ import("node:fs").then(({ writeFileSync }) => {
   const out = parts.filter((p) => world.has(p.id)).map((p) => {
     const W = world.get(p.id)!;
     const pq = panelQuad(p, W);
-    return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)), ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}) };
+    return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)), ...(p.e ? { e: p.e } : {}), ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}) };
   });
+  const eCount: Record<string, number> = {};
+  for (const p of parts) if (p.e) eCount[p.e] = (eCount[p.e] ?? 0) + 1;
+  console.log(`  Haller-E roles: ${Object.entries(eCount).map(([k, n]) => `${k} ${n}`).join(", ") || "none"}`);
   // unique connection edges (the grid skeleton) between solved parts, for the 3D viewport.
   const seen = new Set<string>(), conns: [string, string][] = [];
   for (const p of parts) if (world.has(p.id)) for (const e of adj.get(p.id)!) if (world.has(e.them.id)) {

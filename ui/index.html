@@ -110,6 +110,7 @@
       <span class="spacer" style="flex:1"></span>
       <label class="sub"><input type="checkbox" id="optGlass" checked/> panels</label>
       <label class="sub"><input type="checkbox" id="optTriad" checked/> fitting orientation</label>
+      <label class="sub"><input type="checkbox" id="optE"/> Haller&nbsp;E</label>
       <label class="sub"><input type="checkbox" id="optLabels"/> labels</label>
       <button class="ghost" onclick="document.getElementById('view3d').classList.remove('show')">Close</button>
     </div>
@@ -236,6 +237,7 @@ let PLACE = null, cam = { yaw:-0.7, pitch:0.35, dist:400, cx:0, cy:0, cz:0, f:1 
 let picked = null, hiTypes = null, screenParts = [], hoverId = null;
 const famColor = (t) => /^kugel/.test(t)?"#8a93a6": /^rohr/.test(t)?"#6b7280": /^(blech|tablar|boden|abdeck|rueckwand|quertraverse)/.test(t)?"#aab0bd": /^(hallerfuss|fuss)/.test(t)?"#7a5a3a": /glas/.test(t)?"#4fd0e0": /(scharnier|halter)/.test(t)?"#ffb454": /(teleskop|auszug|tuer|schublade|winkel|klemm|griff|schloss|scheren)/.test(t)?"#ffd166":"#9aa3b2";
 const isFitting = (t)=>/scharnier|halter/.test(t);
+const eColor = {trafo:"#ff5dff", feed:"#ffe14a", live:"#ff7a3c", consumer:"#7ee0a0", safety:"#ff5d6c"};
 function qrot(q,v){ const [x,y,z,w]=q,[a,b,c]=v; const tx=2*(y*c-z*b),ty=2*(z*a-x*c),tz=2*(x*b-y*a); return [a+w*tx+(y*tz-z*ty), b+w*ty+(z*tx-x*tz), c+w*tz+(x*ty-y*tx)]; }
 function project(p){
   let x=p[0]-cam.cx, y=p[1]-cam.cy, z=p[2]-cam.cz;
@@ -265,8 +267,9 @@ function draw(){
       const C=p.quad.map(c=>project(c));
       if(C.every(Boolean)) prims.push({depth:P.depth,kind:"quad",C,glass:p.panelKind==="glass"});
     }
-    screenParts.push({id:p.id,sx:P.x,sy:P.y,type:p.type});
-    prims.push({depth:P.depth,kind:"dot",P,color:famColor(p.type),r:/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2,type:p.type,id:p.id});
+    screenParts.push({id:p.id,sx:P.x,sy:P.y,type:p.type,e:p.e});
+    const eOn=$("#optE").checked && p.e;
+    prims.push({depth:P.depth,kind:"dot",P,color:eOn?eColor[p.e]:famColor(p.type),r:eOn?4:(/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2),type:p.type,id:p.id,e:p.e});
     if($("#optTriad").checked && isFitting(p.type))
       for(const [ax,col] of [[[0,0,5],"#ff5d6c"],[[5,0,0],"#7ee0a0"]]){ const r=qrot(p.quat,ax); const E=project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]); if(E) prims.push({depth:P.depth-0.01,kind:"line",A:P,B:E,color:col,w:1.8}); }
   }
@@ -276,7 +279,8 @@ function draw(){
     else if(o.kind==="quad"){ ctx.fillStyle=o.glass?"rgba(79,208,224,0.16)":"rgba(150,160,175,0.13)"; ctx.strokeStyle=o.glass?"rgba(79,208,224,0.75)":"rgba(150,160,175,0.5)"; ctx.beginPath(); ctx.moveTo(o.C[0].x,o.C[0].y); for(let i=1;i<4;i++)ctx.lineTo(o.C[i].x,o.C[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
     else { const hi=isHi(o.type), sel=o.id===picked; ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,sel?o.r+2:o.r,0,7); ctx.fill();
       if(sel){ ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+5,0,7); ctx.stroke(); }
-      else if(hi){ ctx.strokeStyle="#ffd166"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); } }
+      else if(hi){ ctx.strokeStyle="#ffd166"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); }
+      else if($("#optE").checked && o.e){ ctx.strokeStyle=eColor[o.e]; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); } }
   }
   // ---- label pass (on top), collision-avoided so they never pile up ----
   const lrects=[];
@@ -291,6 +295,7 @@ function draw(){
   const find=(id)=>screenParts.find(s=>s.id===id);
   if(picked){ const s=find(picked); if(s) label(s.sx,s.sy,s.type+" #"+picked,{force:true,color:"#fff",bold:true}); }
   if(hoverId&&hoverId!==picked){ const s=find(hoverId); if(s) label(s.sx,s.sy,s.type,{force:true,color:"#7ee0a0"}); }
+  if($("#optE").checked){ for(const s of screenParts){ if(s.e && s.id!==picked && s.id!==hoverId) label(s.sx,s.sy,s.e,{color:eColor[s.e]}); } }
   if($("#optLabels").checked){ const skip=/^(kugel_std|rohr|kugel)/; for(const s of screenParts){ if(s.id===picked||s.id===hoverId||skip.test(s.type)) continue; label(s.sx,s.sy,s.type); } }
 }
 let drag=null, downAt=null, moved=false;
@@ -305,6 +310,11 @@ addEventListener("mousemove",e=>{
 });
 cv.addEventListener("wheel",e=>{e.preventDefault(); cam.dist*=e.deltaY>0?1.1:0.9; draw();},{passive:false});
 for(const id of ["optGlass","optTriad","optLabels"]) $("#"+id).onchange=draw;
+$("#optE").onchange=()=>{ draw();
+  if(!PLACE) return;
+  if($("#optE").checked){ const c={}; for(const p of PLACE.parts) if(p.e) c[p.e]=(c[p.e]||0)+1; $("#viewInfo").textContent="Haller E: "+(Object.entries(c).map(([k,n])=>k+" "+n).join(" · ")||"none in this scene"); }
+  else $("#viewInfo").textContent=`${PLACE.parts.length} parts · ${PLACE.connections.length} connections`;
+};
 
 // ---- type -> rules graph (client-side, from MODEL) ----
 let superMap=null;
