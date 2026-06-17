@@ -175,3 +175,38 @@ console.log(`  by family -> structural frame: ${structOk}/${structN} (${(100 * s
 const fails = [...failByType].sort((a, b) => b[1] - a[1]);
 if (fails.length) console.log(`  position-fail part types (${fails.length}): ${fails.slice(0, 12).map(([t, n]) => `${t}×${n}`).join(", ")}`);
 if (worst.length) { console.log("  worst position cases:"); for (const w of worst) console.log("     " + w); }
+
+// focused report: the GLASS FITTINGS (the Phase-2 orientation bug) — clamps & hinges, L/R.
+console.log("\n  --- glass fittings (glashalter / glasscharnier / glas door) ---");
+let gN = 0, gPos = 0, gOri = 0;
+for (const p of parts) {
+  if (!/glas|halter|scharnier/.test(p.type)) continue;
+  const W = world.get(p.id); if (!W || p === anchor) continue;
+  gN++;
+  const pe = dist(getTranslation(W), p.pos);
+  const ae = quatAngleDeg(matToQuat(W), matToQuat(euler(p.rot[0], p.rot[1], p.rot[2], "XYZ")));
+  if (pe <= POS_TOL) gPos++; if (ae <= ANG_TOL) gOri++;
+  console.log(`     ${p.type}#${p.id}: posErr=${pe.toFixed(2)}cm angErr=${ae.toFixed(1)}°  ${pe <= POS_TOL && ae <= ANG_TOL ? "OK" : "off"}`);
+}
+console.log(`     glass fittings: ${gN}  position OK ${gPos}/${gN}  orientation-exact ${gOri}/${gN}`);
+
+// L/R hinge orientation — the Phase-2 question: print the engine-computed world quaternion for a
+// representative left and right hinge of the same family, plus their relative rotation.
+const hinge = (t: string) => { const p = parts.find((x) => x.type === t); if (!p) return null; const W = world.get(p.id); return W ? { p, q: matToQuat(W) } : null; };
+const L = hinge("glasscharnier_vorne_oben_l"), R = hinge("glasscharnier_vorne_oben_r");
+if (L && R) {
+  console.log("\n  --- glass hinge L vs R (engine-computed world orientation, = P'X5) ---");
+  console.log(`     vorne_oben_L #${L.p.id}: quat=[${L.q.map((x) => x.toFixed(4))}]`);
+  console.log(`     vorne_oben_R #${R.p.id}: quat=[${R.q.map((x) => x.toFixed(4))}]`);
+  console.log(`     L vs R relative rotation: ${quatAngleDeg(L.q, R.q).toFixed(1)}°  (this is the L/R asymmetry the native app must reproduce)`);
+}
+
+// Emit consumable placement: every solved part's computed world transform (pos cm + quaternion).
+import("node:fs").then(({ writeFileSync }) => {
+  const out = parts.filter((p) => world.has(p.id)).map((p) => {
+    const W = world.get(p.id)!;
+    return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)) };
+  });
+  writeFileSync("out/placement.json", JSON.stringify({ source: "usm-engine dock solver", parts: out }, null, 1));
+  console.log(`\n  wrote out/placement.json (${out.length} parts: type, pos[cm], quat) — consumable world transforms`);
+});
