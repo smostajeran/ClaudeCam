@@ -66,18 +66,17 @@ no-policy on `private_article` — is intentional: that table is locked to servi
   safe default. On Windows, if `npx` isn't found, change `command` to `cmd` and prepend `"/c","npx"`
   to `args`.
 
-## Login page (built)
-`GET /login` serves a sign-in/sign-up page (`ui/login.html`) that authenticates against Supabase
-Auth directly (REST `/auth/v1/token` + `/signup`, no SDK), stores the JWT, and has a "solve a .pxpz"
-test that calls `/api/solve-pxpz` with the token (proves the locked door: 200 with a valid token,
-401 without). Public config comes from `GET /api/config` (URL + anon key, client-safe).
+## Login page (built — sign-in only, no self-registration)
+`GET /login` serves a **sign-in-only** page (`ui/login.html`) that authenticates against Supabase
+Auth directly (REST `/auth/v1/token`, no SDK), stores the JWT, and has a "solve a .pxpz" test that
+calls `/api/solve-pxpz` with the token (proves the lock: 200 with a valid token, 401 without).
+Public config comes from `GET /api/config` (URL + anon key, client-safe).
 
-To actually sign in you need a **user** in the project:
-- Quick test: Supabase dashboard → Authentication → Providers → Email → turn **off "Confirm email"**,
-  then use **Sign up** on `/login` — it returns a session immediately. (With confirmation on, sign-up
-  sends a verification email and you can't sign in until confirmed, which needs SMTP set up.)
-- Or create/confirm a user in the dashboard → Authentication → Users.
-- For the iOS app, use the Supabase Swift SDK's `signInWithPassword` / OAuth to get the same JWT.
+Accounts are **provisioned**, not self-served:
+- Create users in the dashboard → Authentication → Users (Add user → set a password, mark confirmed).
+- Enforce it server-side: Authentication → **turn off "Allow new users to sign up"** so the
+  `/auth/v1/signup` endpoint is blocked even via direct API (the UI button is already gone).
+- iOS app uses the Supabase Swift SDK `signInWithPassword` to get the same JWT.
 
 ## JWT enforcement (built)
 `server.ts` verifies the caller's Supabase JWT via `/auth/v1/user`. Enforcement is config-gated:

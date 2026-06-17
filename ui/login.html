@@ -33,8 +33,8 @@
     <label>Password</label><input id="pw" type="password" autocomplete="current-password" />
     <div class="row">
       <button class="primary" id="signin">Sign in</button>
-      <button id="signup">Sign up</button>
     </div>
+    <div class="sub" style="margin:12px 0 0">Accounts are provisioned by your administrator.</div>
   </div>
 
   <div class="signed" id="signed">
@@ -72,17 +72,6 @@ async function signin(){
     token = j.access_token; localStorage.setItem("usm_jwt", token); showSigned(j);
   }catch(e){ msg(String(e),"bad"); }
 }
-async function signup(){
-  msg(""); const email=$("#email").value.trim(), password=$("#pw").value;
-  if(!email||!password) return msg("enter email + password","bad");
-  try{
-    const r = await fetch(`${CFG.supabaseUrl}/auth/v1/signup`, { method:"POST", headers:authHeaders(), body:JSON.stringify({email,password}) });
-    const j = await r.json();
-    if(!r.ok) return msg(j.error_description||j.msg||j.error||"sign-up failed","bad");
-    if(j.access_token){ token=j.access_token; localStorage.setItem("usm_jwt",token); showSigned(j); }
-    else msg("Account created — confirm your email, then sign in. (Disable 'Confirm email' in Supabase Auth settings to skip.)","ok");
-  }catch(e){ msg(String(e),"bad"); }
-}
 function showSigned(j){
   $("#form").style.display="none"; $("#signed").style.display="block"; msg("");
   let email=""; try{ email = JSON.parse(atob(token.split(".")[1])).email || ""; }catch{}
@@ -92,7 +81,8 @@ function showSigned(j){
 function signout(){ token=null; localStorage.removeItem("usm_jwt"); $("#signed").style.display="none"; $("#form").style.display="block"; msg("signed out","ok"); }
 function msg(t,c){ const m=$("#msg"); m.textContent=t; m.className="msg "+(c||""); }
 
-$("#signin").onclick=signin; $("#signup").onclick=signup; $("#signout").onclick=signout;
+$("#signin").onclick=signin; $("#signout").onclick=signout;
+$("#pw").addEventListener("keydown",(e)=>{ if(e.key==="Enter") signin(); });
 $("#copy").onclick=()=>{ navigator.clipboard?.writeText(token); msg("token copied","ok"); };
 $("#file").onchange=async(e)=>{
   const f=e.target.files[0]; if(!f) return;
