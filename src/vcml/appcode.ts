@@ -10,24 +10,23 @@ function decodeEntities(s: string): string {
 
 function extractDefs(text: string, into: Map<string, NamedOp>): void {
   const t = decodeEntities(text);
+  // 1) discover ALL def headers first (so a bad body can't skip later defs)
   const re = /\bdef\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*\{/g;
+  const heads: { name: string; params: string[]; start: number }[] = [];
   let m: RegExpExecArray | null;
-  while ((m = re.exec(t))) {
-    const name = m[1];
-    const params = m[2].split(",").map((s) => s.trim()).filter(Boolean);
-    // brace-match the body, skipping braces inside ' or ` strings
-    let i = re.lastIndex, depth = 1, body = "", q = "";
+  while ((m = re.exec(t))) heads.push({ name: m[1], params: m[2].split(",").map((s) => s.trim()).filter(Boolean), start: re.lastIndex });
+  // 2) brace-match each body independently, skipping braces inside ' ` " strings
+  for (const h of heads) {
+    let i = h.start, depth = 1, body = "", q = "";
     while (i < t.length && depth > 0) {
       const c = t[i];
       if (q) { if (c === q) q = ""; body += c; i++; continue; }
-      if (c === "'" || c === "`") { q = c; body += c; i++; continue; }
+      if (c === "'" || c === "`" || c === '"') { q = c; body += c; i++; continue; }
       if (c === "{") depth++;
-      else if (c === "}") { depth--; if (depth === 0) { i++; break; } }
-      body += c;
-      i++;
+      else if (c === "}") { depth--; if (depth === 0) break; }
+      body += c; i++;
     }
-    into.set(name, { name, params, body });
-    re.lastIndex = i;
+    into.set(h.name, { name: h.name, params: h.params, body });
   }
 }
 
