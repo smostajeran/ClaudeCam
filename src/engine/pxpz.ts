@@ -46,9 +46,10 @@ export function extractAllToDir(buf: Buffer, destRoot: string): number {
     if (buf.readUInt32LE(off) !== 0x02014b50) break;
     const method = buf.readUInt16LE(off + 10), compSize = buf.readUInt32LE(off + 20);
     const nameLen = buf.readUInt16LE(off + 28), extraLen = buf.readUInt16LE(off + 30), commentLen = buf.readUInt16LE(off + 32);
-    const localOff = buf.readUInt32LE(off + 42), name = buf.toString("utf8", off + 46, off + 46 + nameLen);
+    const localOff = buf.readUInt32LE(off + 42);
+    const name = buf.toString("utf8", off + 46, off + 46 + nameLen).replace(/\\/g, "/"); // normalize Windows-zip backslashes
     off += 46 + nameLen + extraLen + commentLen;
-    if (name.endsWith("/")) continue;
+    if (name.endsWith("/") || compSize === 0) continue; // directory / empty entry
     const lhNameLen = buf.readUInt16LE(localOff + 26), lhExtraLen = buf.readUInt16LE(localOff + 28);
     const dataStart = localOff + 30 + lhNameLen + lhExtraLen, comp = buf.subarray(dataStart, dataStart + compSize);
     const data = method === 8 ? inflateRawSync(comp) : Buffer.from(comp);
