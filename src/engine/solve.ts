@@ -101,13 +101,18 @@ const mate = (myType: string, theirType: string) => mateByPair.get(`${myType}->$
 // candidate world transform for `p` implied by an edge to an already-placed partner: W_p = W_them * Fb * mate(them->me) * inv(Fa).
 const candidate = (p: GPart, e: Edge, world: Map<string, Mat4>) =>
   mul(mul(mul(world.get(e.them.id)!, frameMat(e.them, e.theirF)), mate(e.theirF.dockType, e.myF.dockType)), invRigid(frameMat(p, e.myF)));
-// score: how well a candidate world for `p` satisfies ALL its placed-neighbor dock connections (W_p*Fa*mate == W_them*Fb).
+// structural frame (correctly placed first); anchors to these are trusted far more than add-on siblings.
+const STRUCT = /^(kugel|rohr|blech|lochblech|kurzblech|hallerfuss|fuss|tablar\d|boden|abdeck|rueckwand|quertraverse|querstrebe)/;
+// score: how well a candidate world for `p` satisfies ALL its placed-neighbor dock connections
+// (W_p*Fa*mate == W_them*Fb), weighting structural anchors >> add-on siblings so a single correct
+// structural attachment outvotes a mutually-consistent-but-wrong sub-assembly (the drawer cluster).
 function score(p: GPart, W: Mat4, placed: Edge[], world: Map<string, Mat4>): number {
   let s = 0;
   for (const e of placed) {
+    const w = STRUCT.test(e.them.type) ? 100 : 1;
     const mine = mul(mul(W, frameMat(p, e.myF)), mate(e.myF.dockType, e.theirF.dockType));
     const theirs = mul(world.get(e.them.id)!, frameMat(e.them, e.theirF));
-    s += dist(getTranslation(mine), getTranslation(theirs)) + quatAngleDeg(matToQuat(mine), matToQuat(theirs)) / 90; // 90° ~ 1cm
+    s += w * (dist(getTranslation(mine), getTranslation(theirs)) + quatAngleDeg(matToQuat(mine), matToQuat(theirs)) / 90); // 90° ~ 1cm
   }
   return s;
 }
@@ -129,14 +134,24 @@ while (q.length) {
 // Iterative multi-constraint refinement: re-place each part with the candidate (from any placed
 // neighbor edge) that best satisfies ALL its placed-neighbor connections. Loops in the grid
 // (a ball ties 4 tubes) over-determine and thus pin symmetric tube roll. Gauss-Seidel to fixpoint.
-for (let pass = 0; pass < 12; pass++) {
+// Trust hierarchy: hop-distance from the (correct) structural frame. Each add-on is anchored ONLY to
+// neighbors closer to the structure than itself, so correct placement propagates strictly outward
+// (panel -> clamp -> slide -> drawer -> leaf) and a wrong sub-assembly can't outvote the real anchor.
+const hop = new Map<string, number>(); const hq: string[] = [];
+for (const p of parts) if (world.has(p.id) && STRUCT.test(p.type)) { hop.set(p.id, 0); hq.push(p.id); }
+while (hq.length) { const id = hq.shift()!; const h = hop.get(id)!; for (const e of adj.get(id) ?? []) if (world.has(e.them.id) && !hop.has(e.them.id)) { hop.set(e.them.id, h + 1); hq.push(e.them.id); } }
+
+for (let pass = 0; pass < 20; pass++) {
   let changed = 0;
   for (const p of parts) {
     if (p === anchor || !world.has(p.id)) continue;
+    const ph = hop.get(p.id) ?? 99; // structure is hop 0 -> no lower-hop parents -> refines via all neighbors (tube-roll loops)
     const placed = adj.get(p.id)!.filter((e) => world.has(e.them.id));
-    if (placed.length < 2) continue; // single constraint can't resolve a free DOF
-    let best = world.get(p.id)!, bestS = score(p, best, placed, world);
-    for (const e of placed) { const c = candidate(p, e, world); const s = score(p, c, placed, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
+    const parents = placed.filter((e) => (hop.get(e.them.id) ?? 99) < ph);
+    const use = parents.length ? parents : placed; // anchor toward structure; fall back if none
+    if (!use.length) continue;
+    let best = world.get(p.id)!, bestS = score(p, best, use, world);
+    for (const e of use) { const c = candidate(p, e, world); const s = score(p, c, use, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
     if (best !== world.get(p.id)) { world.set(p.id, best); changed++; }
   }
   if (!changed) break;
