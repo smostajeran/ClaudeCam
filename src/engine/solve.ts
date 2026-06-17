@@ -207,6 +207,11 @@ import("node:fs").then(({ writeFileSync }) => {
     const W = world.get(p.id)!;
     return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)) };
   });
-  writeFileSync("out/placement.json", JSON.stringify({ source: "usm-engine dock solver", parts: out }, null, 1));
-  console.log(`\n  wrote out/placement.json (${out.length} parts: type, pos[cm], quat) — consumable world transforms`);
+  // unique connection edges (the grid skeleton) between solved parts, for the 3D viewport.
+  const seen = new Set<string>(), conns: [string, string][] = [];
+  for (const p of parts) if (world.has(p.id)) for (const e of adj.get(p.id)!) if (world.has(e.them.id)) {
+    const k = [p.id, e.them.id].sort().join("-"); if (seen.has(k)) continue; seen.add(k); conns.push([p.id, e.them.id]);
+  }
+  writeFileSync("out/placement.json", JSON.stringify({ source: "usm-engine dock solver", parts: out, connections: conns }, null, 1));
+  console.log(`\n  wrote out/placement.json (${out.length} parts + ${conns.length} connections) — consumable world transforms`);
 });

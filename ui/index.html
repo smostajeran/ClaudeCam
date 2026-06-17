@@ -72,6 +72,7 @@
   <span class="spacer"></span>
   <span class="badge" id="ovBadge">no edits</span>
   <button class="ghost" id="resetBtn">Reset edits</button>
+  <button id="view3dBtn">3D View</button>
   <button id="solveBtn">Solve placement</button>
   <button id="conflictsBtn">Check conflicts</button>
   <button class="primary" id="validateBtn">Validate vs P'X5</button>
@@ -89,6 +90,21 @@
   <div class="card">
     <div class="top"><b id="runTitle">Run</b><span class="spacer" style="flex:1"></span><span id="runStatus" class="sub"></span><button class="ghost" onclick="document.getElementById('drawer').classList.remove('show')">Close</button></div>
     <pre id="runOut">…</pre>
+  </div>
+</div>
+<div class="drawer" id="view3d">
+  <div class="card" style="width:min(1100px,96vw);height:88vh">
+    <div class="top">
+      <b>3D View — engine-solved placement</b>
+      <span class="sub" id="viewInfo"></span>
+      <span class="spacer" style="flex:1"></span>
+      <label class="sub"><input type="checkbox" id="optGlass" checked/> glass</label>
+      <label class="sub"><input type="checkbox" id="optTriad" checked/> fitting orientation</label>
+      <label class="sub"><input type="checkbox" id="optLabels"/> labels</label>
+      <button class="ghost" onclick="document.getElementById('view3d').classList.remove('show')">Close</button>
+    </div>
+    <canvas id="cv" style="flex:1;width:100%;display:block;cursor:grab;background:#0b0d12"></canvas>
+    <div class="sub" style="padding:6px 14px;border-top:1px solid var(--line)">drag = orbit · wheel = zoom · <span style="color:#8a93a6">■</span> structure <span style="color:#7a5a3a">■</span> feet <span style="color:#4fd0e0">■</span> glass <span style="color:#ffb454">■</span> fittings (L/R orientation shown) <span style="color:#ffd166">■</span> drawers/doors</div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -200,6 +216,66 @@ async function run(script, title) {
 $("#validateBtn").onclick = () => run("validate","Validate features vs P'X5");
 $("#conflictsBtn").onclick = () => run("conflicts","Check conflicts vs P'X5");
 $("#solveBtn").onclick = () => run("solve","Solve placement vs P'X5");
+
+// ---------- 3D viewport (pure canvas, no deps) ----------
+const cv = $("#cv"), ctx = cv.getContext("2d");
+let PLACE = null, cam = { yaw:-0.7, pitch:0.35, dist:400, cx:0, cy:0, cz:0, f:1 };
+const famColor = (t) => /^kugel/.test(t)?"#8a93a6": /^rohr/.test(t)?"#6b7280": /^(blech|tablar|boden|abdeck|rueckwand|quertraverse)/.test(t)?"#aab0bd": /^(hallerfuss|fuss)/.test(t)?"#7a5a3a": /glas/.test(t)?"#4fd0e0": /(scharnier|halter)/.test(t)?"#ffb454": /(teleskop|auszug|tuer|schublade|winkel|klemm|griff|schloss|scheren)/.test(t)?"#ffd166":"#9aa3b2";
+const isGlassPanel = (t)=>/^glas/.test(t) && !/scharnier|halter/.test(t);
+const isFitting = (t)=>/scharnier|halter/.test(t);
+const dims = (t)=>{ const m=t.match(/(\d{3})_(\d{3})/); return m?[+m[1]/10,+m[2]/10]:[35,50]; };
+function qrot(q,v){ const [x,y,z,w]=q,[a,b,c]=v; const tx=2*(y*c-z*b),ty=2*(z*a-x*c),tz=2*(x*b-y*a); return [a+w*tx+(y*tz-z*ty), b+w*ty+(z*tx-x*tz), c+w*tz+(x*ty-y*tx)]; }
+function project(p){
+  let x=p[0]-cam.cx, y=p[1]-cam.cy, z=p[2]-cam.cz;
+  const cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw); const x1=x*cy-y*sy, y1=x*sy+y*cy;
+  const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch); const y2=y1*cp-z*sp, z2=y1*sp+z*cp;
+  const depth=y2+cam.dist; if(depth<=1) return null;
+  return { x: cv.width/2 + x1*cam.f/depth, y: cv.height/2 - z2*cam.f/depth, depth };
+}
+function fit(){
+  const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];
+  for(const p of PLACE.parts) for(let i=0;i<3;i++){ mn[i]=Math.min(mn[i],p.pos[i]); mx[i]=Math.max(mx[i],p.pos[i]); }
+  cam.cx=(mn[0]+mx[0])/2; cam.cy=(mn[1]+mx[1])/2; cam.cz=(mn[2]+mx[2])/2;
+  const ext=Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2],20);
+  cam.f=Math.min(cv.width,cv.height)*0.9; cam.dist=ext*1.6;
+}
+function draw(){
+  if(!PLACE) return;
+  cv.width=cv.clientWidth; cv.height=cv.clientHeight; ctx.clearRect(0,0,cv.width,cv.height);
+  const byId=new Map(PLACE.parts.map(p=>[p.id,p])); const prims=[];
+  for(const [a,b] of (PLACE.connections||[])){ const pa=byId.get(a),pb=byId.get(b); if(!pa||!pb)continue; const A=project(pa.pos),B=project(pb.pos); if(A&&B) prims.push({depth:(A.depth+B.depth)/2,kind:"line",A,B}); }
+  for(const p of PLACE.parts){
+    const P=project(p.pos); if(!P)continue;
+    if($("#optGlass").checked && isGlassPanel(p.type)){
+      const [w,h]=dims(p.type), hw=w/2, hh=h/2;
+      const C=[[-hw,0,-hh],[hw,0,-hh],[hw,0,hh],[-hw,0,hh]].map(c=>{const r=qrot(p.quat,c);return project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]);});
+      if(C.every(Boolean)) prims.push({depth:P.depth,kind:"quad",C});
+    }
+    prims.push({depth:P.depth,kind:"dot",P,color:famColor(p.type),r:/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2,type:p.type});
+    if($("#optTriad").checked && isFitting(p.type))
+      for(const [ax,col] of [[[0,0,5],"#ff5d6c"],[[5,0,0],"#7ee0a0"]]){ const r=qrot(p.quat,ax); const E=project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]); if(E) prims.push({depth:P.depth-0.01,kind:"line",A:P,B:E,color:col,w:1.8}); }
+  }
+  prims.sort((a,b)=>b.depth-a.depth);
+  for(const o of prims){
+    if(o.kind==="line"){ ctx.strokeStyle=o.color||"rgba(120,130,150,0.28)"; ctx.lineWidth=o.w||1; ctx.beginPath(); ctx.moveTo(o.A.x,o.A.y); ctx.lineTo(o.B.x,o.B.y); ctx.stroke(); }
+    else if(o.kind==="quad"){ ctx.fillStyle="rgba(79,208,224,0.16)"; ctx.strokeStyle="rgba(79,208,224,0.7)"; ctx.beginPath(); ctx.moveTo(o.C[0].x,o.C[0].y); for(let i=1;i<4;i++)ctx.lineTo(o.C[i].x,o.C[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    else { ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r,0,7); ctx.fill(); if($("#optLabels").checked && o.r>=2.6){ ctx.fillStyle="#cfd6e2"; ctx.font="9px monospace"; ctx.fillText(o.type,o.P.x+4,o.P.y); } }
+  }
+}
+let drag=null;
+cv.addEventListener("mousedown",e=>{drag={x:e.clientX,y:e.clientY}; cv.style.cursor="grabbing";});
+addEventListener("mouseup",()=>{drag=null; cv.style.cursor="grab";});
+addEventListener("mousemove",e=>{ if(!drag)return; cam.yaw+=(e.clientX-drag.x)*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+(e.clientY-drag.y)*0.008)); drag={x:e.clientX,y:e.clientY}; draw(); });
+cv.addEventListener("wheel",e=>{e.preventDefault(); cam.dist*=e.deltaY>0?1.1:0.9; draw();},{passive:false});
+for(const id of ["optGlass","optTriad","optLabels"]) $("#"+id).onchange=draw;
+async function openView(){
+  $("#view3d").classList.add("show"); $("#viewInfo").textContent="solving…";
+  try{ PLACE=await (await fetch("/api/placement")).json();
+    $("#viewInfo").textContent = PLACE.parts.length ? `${PLACE.parts.length} parts · ${PLACE.connections.length} connections` : (PLACE.error||"no placement");
+    requestAnimationFrame(()=>{ cv.width=cv.clientWidth; cv.height=cv.clientHeight; fit(); draw(); });
+  }catch(e){ $("#viewInfo").textContent="failed: "+e; }
+}
+$("#view3dBtn").onclick=openView;
 
 function esc(s){ return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
 let toastT; function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }

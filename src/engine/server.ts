@@ -55,6 +55,15 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url === "/api/model") return send(res, 200, JSON.stringify(mergedModel()));
     if (req.method === "GET" && url === "/api/overrides") return send(res, 200, JSON.stringify(loadOverlay()));
 
+    if (req.method === "GET" && url === "/api/placement") {
+      const pf = join(ROOT, "out", "placement.json");
+      if (!existsSync(pf)) {
+        const r = spawnSync(process.execPath, ["src/engine/solve.ts"], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
+        if (!existsSync(pf)) return send(res, 200, JSON.stringify({ parts: [], connections: [], error: "solver produced no placement", log: r.stdout }));
+      }
+      return send(res, 200, readFileSync(pf, "utf8"));
+    }
+
     if (req.method === "POST" && url === "/api/override") {
       const { kind, key, patch } = await readBody(req);
       if (!["property", "clause"].includes(kind) || !key) return send(res, 400, JSON.stringify({ error: "kind+key required" }));
