@@ -14,8 +14,11 @@ const parser = new XMLParser({
   commentPropName: "#comment",
 });
 
+export function parseXmlString(xml: string): XNode[] {
+  return parser.parse(xml) as XNode[];
+}
 export function parseXmlFile(path: string): XNode[] {
-  return parser.parse(readFileSync(path, "utf8")) as XNode[];
+  return parseXmlString(readFileSync(path, "utf8"));
 }
 
 export function tagOf(n: XNode): string {

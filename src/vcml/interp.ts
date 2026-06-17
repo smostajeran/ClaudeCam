@@ -96,11 +96,16 @@ export const BUILTINS: Record<string, Builtin> = {
   Scenario: (_a, h) => h.env.get("scenario") ?? "co",
   IsSubTypeOf: (a, h) => h.isSubTypeOf(String(a[0]), String(a[1])),
 };
-// part-dependent builtins: registered, fail loud until PartGraph/solver wired.
-for (const name of ["Feature", "PartAttr", "GetTypeName", "Dock", "DockGetConnectedPart", "DockGetConnectedDock",
-  "ConnectedDocksOfType", "GetDOFValue", "GetComponentListOfType", "FindPart", "Parent", "ParentOfType",
-  "PartPos", "PartRot", "RelativePartPos"]) {
-  BUILTINS[name] = () => { throw new Error(`VCML builtin '${name}' requires a live PartGraph (not wired yet)`); };
+// part-dependent builtins: resolved against the live PartGraph (Host.partFns) or fail loud.
+export const PART_BUILTINS = ["Feature", "PartAttr", "GetTypeName", "Dock", "DockGetConnectedPart",
+  "DockGetConnectedDock", "ConnectedDocksOfType", "GetDOFValue", "GetComponentListOfType", "FindPart",
+  "Parent", "ParentOfType", "PartPos", "PartRot", "RelativePartPos"];
+for (const name of PART_BUILTINS) {
+  BUILTINS[name] = (args, host) => {
+    const fn = (host as any).partFns?.[name];
+    if (fn) return fn(args, host);
+    throw new Error(`VCML builtin '${name}' requires a live PartGraph (not wired yet)`);
+  };
 }
 
 // ---------- evaluator ----------
