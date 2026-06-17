@@ -63,6 +63,16 @@
   .ok { color:var(--acc2); } .err { color:var(--bad); }
   .toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--acc2); color:#06140a; padding:8px 16px; border-radius:8px; font-weight:600; opacity:0; transition:opacity .2s; pointer-events:none; }
   .toast.show { opacity:1; }
+  /* 3D pick panel */
+  #pick3d { position:absolute; top:54px; right:14px; width:290px; max-height:calc(88vh - 90px); overflow:auto; background:rgba(23,26,33,.96); border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:none; }
+  #pick3d.show { display:block; }
+  #pick3d h3 { margin:0 0 2px; font:600 14px var(--mono); color:var(--acc2); word-break:break-all; }
+  #pick3d .pmeta { color:var(--dim); font-size:11px; margin-bottom:10px; }
+  #pick3d .sec { font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--dim); margin:10px 0 4px; }
+  #pick3d .rule { padding:4px 8px; border:1px solid var(--line); border-radius:6px; margin:3px 0; cursor:pointer; font:12px var(--mono); display:flex; gap:6px; align-items:center; }
+  #pick3d .rule:hover { border-color:var(--acc); background:var(--panel2); }
+  #pick3d .rule .k { font-size:9px; color:var(--dim); }
+  #pick3d .none { color:var(--dim); font-size:12px; }
 </style>
 </head>
 <body>
@@ -93,7 +103,7 @@
   </div>
 </div>
 <div class="drawer" id="view3d">
-  <div class="card" style="width:min(1100px,96vw);height:88vh">
+  <div class="card" style="width:min(1100px,96vw);height:88vh;position:relative">
     <div class="top">
       <b>3D View — engine-solved placement</b>
       <span class="sub" id="viewInfo"></span>
@@ -104,7 +114,8 @@
       <button class="ghost" onclick="document.getElementById('view3d').classList.remove('show')">Close</button>
     </div>
     <canvas id="cv" style="flex:1;width:100%;display:block;cursor:grab;background:#0b0d12"></canvas>
-    <div class="sub" style="padding:6px 14px;border-top:1px solid var(--line)">drag = orbit · wheel = zoom · <span style="color:#8a93a6">■</span> structure <span style="color:#7a5a3a">■</span> feet <span style="color:#4fd0e0">■</span> glass <span style="color:#ffb454">■</span> fittings (L/R orientation shown) <span style="color:#ffd166">■</span> drawers/doors</div>
+    <div id="pick3d"></div>
+    <div class="sub" style="padding:6px 14px;border-top:1px solid var(--line)">drag = orbit · wheel = zoom · click a part for its rules · <span style="color:#8a93a6">■</span> structure <span style="color:#7a5a3a">■</span> feet <span style="color:#4fd0e0">■</span> glass <span style="color:#ffb454">■</span> fittings (L/R orientation shown) <span style="color:#ffd166">■</span> drawers/doors</div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -158,7 +169,7 @@ function detailProperty(p) {
     <div class="field"><label>Applies to (${p.assignedTo.length})</label><div class="chips">${p.assignedTo.map(t=>`<span class="chip">${esc(t)}</span>`).join("")||'<span class="chip">—</span>'}</div></div>
     <div class="field"><label>Default expression (VCML)</label><textarea id="expr">${esc(p.defaultExpr??"")}</textarea></div>
     ${dom?`<div class="field"><label>Domain values (discrete)</label><div class="dom" id="dom">${dom.map(v=>`<input value="${esc(v)}"/>`).join("")}<button class="ghost" id="addDom">+</button></div></div>`:""}
-    <div class="actions"><button class="primary" id="save">Save edit</button><button class="ghost" id="revert">Revert to source</button></div>`;
+    <div class="actions"><button class="primary" id="save">Save edit</button><button class="ghost" id="revert">Revert to source</button><button class="ghost" id="show3d">Show in 3D</button></div>`;
   if (dom) $("#addDom").onclick = () => { const i=document.createElement("input"); i.value=""; $("#dom").insertBefore(i,$("#addDom")); i.focus(); };
   $("#save").onclick = () => {
     const patch = { defaultExpr: $("#expr").value };
@@ -166,6 +177,7 @@ function detailProperty(p) {
     override("property", p.type, patch);
   };
   $("#revert").onclick = () => override("property", p.type, null);
+  $("#show3d").onclick = () => { hiTypes = (p.assignedTo || []).slice(); picked = null; $("#pick3d").classList.remove("show"); openView(); };
 }
 
 function detailClause(c) {
@@ -174,9 +186,10 @@ function detailClause(c) {
     <div class="meta">constraint clause · condition tree below</div>
     <div class="field"><label><input type="checkbox" id="dis" ${c.disabled?"checked":""}/> Disable this clause (overlay)</label></div>
     <div class="field"><label>Condition</label><div class="tree">${renderTree(c.condition)}</div></div>
-    <div class="actions"><button class="primary" id="save">Save edit</button><button class="ghost" id="revert">Revert to source</button></div>`;
+    <div class="actions"><button class="primary" id="save">Save edit</button><button class="ghost" id="revert">Revert to source</button><button class="ghost" id="show3d">Show in 3D</button></div>`;
   $("#save").onclick = () => override("clause", c.type, $("#dis").checked ? { disabled:true } : null);
   $("#revert").onclick = () => override("clause", c.type, null);
+  $("#show3d").onclick = () => { const s=new Set(); typesInTree(c.condition,s); hiTypes=[...s]; picked=null; $("#pick3d").classList.remove("show"); openView(); };
 }
 function renderTree(n) {
   if (!n) return '<span class="at">(none)</span>';
@@ -220,6 +233,7 @@ $("#solveBtn").onclick = () => run("solve","Solve placement vs P'X5");
 // ---------- 3D viewport (pure canvas, no deps) ----------
 const cv = $("#cv"), ctx = cv.getContext("2d");
 let PLACE = null, cam = { yaw:-0.7, pitch:0.35, dist:400, cx:0, cy:0, cz:0, f:1 };
+let picked = null, hiTypes = null, screenParts = [];
 const famColor = (t) => /^kugel/.test(t)?"#8a93a6": /^rohr/.test(t)?"#6b7280": /^(blech|tablar|boden|abdeck|rueckwand|quertraverse)/.test(t)?"#aab0bd": /^(hallerfuss|fuss)/.test(t)?"#7a5a3a": /glas/.test(t)?"#4fd0e0": /(scharnier|halter)/.test(t)?"#ffb454": /(teleskop|auszug|tuer|schublade|winkel|klemm|griff|schloss|scheren)/.test(t)?"#ffd166":"#9aa3b2";
 const isGlassPanel = (t)=>/^glas/.test(t) && !/scharnier|halter/.test(t);
 const isFitting = (t)=>/scharnier|halter/.test(t);
@@ -242,7 +256,7 @@ function fit(){
 function draw(){
   if(!PLACE) return;
   cv.width=cv.clientWidth; cv.height=cv.clientHeight; ctx.clearRect(0,0,cv.width,cv.height);
-  const byId=new Map(PLACE.parts.map(p=>[p.id,p])); const prims=[];
+  const byId=new Map(PLACE.parts.map(p=>[p.id,p])); const prims=[]; screenParts=[];
   for(const [a,b] of (PLACE.connections||[])){ const pa=byId.get(a),pb=byId.get(b); if(!pa||!pb)continue; const A=project(pa.pos),B=project(pb.pos); if(A&&B) prims.push({depth:(A.depth+B.depth)/2,kind:"line",A,B}); }
   for(const p of PLACE.parts){
     const P=project(p.pos); if(!P)continue;
@@ -251,7 +265,8 @@ function draw(){
       const C=[[-hw,0,-hh],[hw,0,-hh],[hw,0,hh],[-hw,0,hh]].map(c=>{const r=qrot(p.quat,c);return project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]);});
       if(C.every(Boolean)) prims.push({depth:P.depth,kind:"quad",C});
     }
-    prims.push({depth:P.depth,kind:"dot",P,color:famColor(p.type),r:/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2,type:p.type});
+    screenParts.push({id:p.id,sx:P.x,sy:P.y});
+    prims.push({depth:P.depth,kind:"dot",P,color:famColor(p.type),r:/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2,type:p.type,id:p.id});
     if($("#optTriad").checked && isFitting(p.type))
       for(const [ax,col] of [[[0,0,5],"#ff5d6c"],[[5,0,0],"#7ee0a0"]]){ const r=qrot(p.quat,ax); const E=project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]); if(E) prims.push({depth:P.depth-0.01,kind:"line",A:P,B:E,color:col,w:1.8}); }
   }
@@ -259,15 +274,50 @@ function draw(){
   for(const o of prims){
     if(o.kind==="line"){ ctx.strokeStyle=o.color||"rgba(120,130,150,0.28)"; ctx.lineWidth=o.w||1; ctx.beginPath(); ctx.moveTo(o.A.x,o.A.y); ctx.lineTo(o.B.x,o.B.y); ctx.stroke(); }
     else if(o.kind==="quad"){ ctx.fillStyle="rgba(79,208,224,0.16)"; ctx.strokeStyle="rgba(79,208,224,0.7)"; ctx.beginPath(); ctx.moveTo(o.C[0].x,o.C[0].y); for(let i=1;i<4;i++)ctx.lineTo(o.C[i].x,o.C[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    else { ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r,0,7); ctx.fill(); if($("#optLabels").checked && o.r>=2.6){ ctx.fillStyle="#cfd6e2"; ctx.font="9px monospace"; ctx.fillText(o.type,o.P.x+4,o.P.y); } }
+    else { const hi=isHi(o.type), sel=o.id===picked; ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,sel?o.r+2:o.r,0,7); ctx.fill();
+      if(sel){ ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+5,0,7); ctx.stroke(); }
+      else if(hi){ ctx.strokeStyle="#ffd166"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); }
+      if(($("#optLabels").checked && o.r>=2.6)||sel){ ctx.fillStyle="#cfd6e2"; ctx.font="9px monospace"; ctx.fillText(o.type,o.P.x+5,o.P.y-3); } }
   }
 }
-let drag=null;
-cv.addEventListener("mousedown",e=>{drag={x:e.clientX,y:e.clientY}; cv.style.cursor="grabbing";});
-addEventListener("mouseup",()=>{drag=null; cv.style.cursor="grab";});
-addEventListener("mousemove",e=>{ if(!drag)return; cam.yaw+=(e.clientX-drag.x)*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+(e.clientY-drag.y)*0.008)); drag={x:e.clientX,y:e.clientY}; draw(); });
+let drag=null, downAt=null, moved=false;
+cv.addEventListener("mousedown",e=>{drag={x:e.clientX,y:e.clientY}; downAt={x:e.clientX,y:e.clientY}; moved=false; cv.style.cursor="grabbing";});
+addEventListener("mouseup",e=>{ if(downAt && !moved) pick(e); drag=null; downAt=null; cv.style.cursor="grab"; });
+addEventListener("mousemove",e=>{ if(!drag)return; if(Math.abs(e.clientX-downAt.x)+Math.abs(e.clientY-downAt.y)>4) moved=true; cam.yaw+=(e.clientX-drag.x)*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+(e.clientY-drag.y)*0.008)); drag={x:e.clientX,y:e.clientY}; draw(); });
 cv.addEventListener("wheel",e=>{e.preventDefault(); cam.dist*=e.deltaY>0?1.1:0.9; draw();},{passive:false});
 for(const id of ["optGlass","optTriad","optLabels"]) $("#"+id).onchange=draw;
+
+// ---- type -> rules graph (client-side, from MODEL) ----
+let superMap=null;
+function ensureGraph(){ if(superMap)return; superMap=new Map(); for(const c of MODEL.components) superMap.set(c.type, c.supertype||null); }
+function isSubType(t,of){ ensureGraph(); let cur=t,n=0; while(cur && n++<60){ if(cur===of)return true; cur=superMap.get(cur); } return false; }
+const propsForType=(type)=>MODEL.properties.filter(p=>(p.assignedTo||[]).some(a=>a===type||isSubType(type,a)));
+function typesInTree(n,set){ if(!n)return; if(n.attrs&&n.attrs.type)set.add(n.attrs.type); for(const k of (n.children||[]))typesInTree(k,set); }
+const clausesForType=(type)=>MODEL.clauses.filter(c=>{const s=new Set();typesInTree(c.condition,s);for(const x of s)if(type===x||isSubType(type,x))return true;return false;});
+const isHi=(t)=> !!hiTypes && hiTypes.some(h=>t===h||isSubType(t,h));
+
+function pick(e){
+  const r=cv.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  let best=null,bd=12; for(const s of screenParts){ const d=Math.hypot(s.sx-mx,s.sy-my); if(d<bd){bd=d;best=s;} }
+  if(!best){ picked=null; $("#pick3d").classList.remove("show"); draw(); return; }
+  showPick(PLACE.parts.find(p=>p.id===best.id));
+}
+function showPick(part){
+  picked=part.id; hiTypes=null;
+  const props=propsForType(part.type), clauses=clausesForType(part.type);
+  const rule=(tab,key,k,extra)=>`<div class="rule" data-tab="${tab}" data-key="${esc(key)}"><span class="k">${k}</span> ${esc(key)}${extra||""}</div>`;
+  $("#pick3d").innerHTML = `<h3>${esc(part.type)}</h3><div class="pmeta">#${esc(part.id)} · pos [${part.pos.map(x=>x.toFixed(1))}]<br>quat [${part.quat.map(x=>x.toFixed(3))}]</div>`
+    + `<div class="sec">Properties (${props.length})</div>` + (props.length?props.map(p=>rule("properties",p.type,"prop",` <span class="k">→ ${esc(p.feature)}</span>`)).join(""):`<div class="none">none</div>`)
+    + `<div class="sec">Clauses (${clauses.length})</div>` + (clauses.length?clauses.map(c=>rule("clauses",c.type,"clause")).join(""):`<div class="none">none</div>`);
+  $("#pick3d").classList.add("show");
+  $("#pick3d").querySelectorAll(".rule").forEach(r=>r.onclick=()=>jumpToRule(r.dataset.tab,r.dataset.key));
+  draw();
+}
+function jumpToRule(tab,key){
+  $("#view3d").classList.remove("show");
+  TAB=tab; SEL=key; renderTabs(); renderList(); renderDetail();
+  const row=[...$("#list").querySelectorAll(".row")].find(x=>x.dataset.k===key); if(row) row.scrollIntoView({block:"center"});
+}
 async function openView(){
   $("#view3d").classList.add("show"); $("#viewInfo").textContent="solving…";
   try{ PLACE=await (await fetch("/api/placement")).json();
@@ -275,7 +325,7 @@ async function openView(){
     requestAnimationFrame(()=>{ cv.width=cv.clientWidth; cv.height=cv.clientHeight; fit(); draw(); });
   }catch(e){ $("#viewInfo").textContent="failed: "+e; }
 }
-$("#view3dBtn").onclick=openView;
+$("#view3dBtn").onclick=()=>{ picked=null; hiTypes=null; $("#pick3d").classList.remove("show"); openView(); };
 
 function esc(s){ return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
 let toastT; function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }
