@@ -11,6 +11,7 @@ export function posMaxMm(a: number[], b: number[]): number {
 }
 
 export interface PlacementDiff { id: string; issue?: string; typeExp?: string; typeAct?: string; posMm?: number; angleDeg?: number }
+export interface FeatureDiff { id: string; feature: string; exp: unknown; act: unknown }
 export interface DiffResult {
   pass: boolean;
   articlesMissing: string[];
@@ -18,6 +19,8 @@ export interface DiffResult {
   conflictsMissing: string[];
   conflictsExtra: string[];
   placement: PlacementDiff[];
+  features: FeatureDiff[];
+  featureChecks: number;
 }
 
 export function diffSnapshots(exp: Snapshot, act: Snapshot, tol: Tol = DEFAULT_TOL): DiffResult {
@@ -35,26 +38,28 @@ export function diffSnapshots(exp: Snapshot, act: Snapshot, tol: Tol = DEFAULT_T
 
   const actById = new Map(act.parts.map((p) => [p.id, p]));
   const placement: PlacementDiff[] = [];
+  const features: FeatureDiff[] = [];
+  let featureChecks = 0;
   for (const e of exp.parts) {
     const a = actById.get(e.id);
     if (!a) { placement.push({ id: e.id, issue: "missing-in-engine" }); continue; }
-    const posMm = posMaxMm(e.pos, a.pos);
-    const angleDeg = quatAngleDeg(e.quat, a.quat);
-    if (e.type !== a.type || posMm > tol.posMm || angleDeg > tol.angleDeg) {
-      placement.push({
-        id: e.id,
-        typeExp: e.type !== a.type ? e.type : undefined,
-        typeAct: e.type !== a.type ? a.type : undefined,
-        posMm: +posMm.toFixed(3),
-        angleDeg: +angleDeg.toFixed(3),
-      });
+    if (e.pos && e.quat && a.pos && a.quat) {
+      const posMm = posMaxMm(e.pos, a.pos);
+      const angleDeg = quatAngleDeg(e.quat, a.quat);
+      if (e.type !== a.type || posMm > tol.posMm || angleDeg > tol.angleDeg)
+        placement.push({ id: e.id, typeExp: e.type !== a.type ? e.type : undefined, typeAct: e.type !== a.type ? a.type : undefined, posMm: +posMm.toFixed(3), angleDeg: +angleDeg.toFixed(3) });
+    }
+    for (const [k, ev] of Object.entries(e.features ?? {})) {
+      featureChecks++;
+      const av = (a.features ?? {})[k];
+      if (String(ev) !== String(av)) features.push({ id: e.id, feature: k, exp: ev, act: av });
     }
   }
 
   const pass =
     !articlesMissing.length && !articlesExtra.length &&
-    !conflictsMissing.length && !conflictsExtra.length && !placement.length;
-  return { pass, articlesMissing, articlesExtra, conflictsMissing, conflictsExtra, placement };
+    !conflictsMissing.length && !conflictsExtra.length && !placement.length && !features.length;
+  return { pass, articlesMissing, articlesExtra, conflictsMissing, conflictsExtra, placement, features, featureChecks };
 }
 
 export function report(name: string, d: DiffResult): void {
@@ -64,4 +69,6 @@ export function report(name: string, d: DiffResult): void {
   if (d.conflictsMissing.length) console.log("      conflicts missing:", d.conflictsMissing);
   if (d.conflictsExtra.length) console.log("      conflicts extra  :", d.conflictsExtra);
   for (const p of d.placement) console.log("      placement:", JSON.stringify(p));
+  for (const f of d.features.slice(0, 12)) console.log(`      feature: ${f.id}.${f.feature} exp=${JSON.stringify(f.exp)} act=${JSON.stringify(f.act)}`);
+  if (d.featureChecks) console.log(`      feature checks: ${d.featureChecks - d.features.length}/${d.featureChecks} match`);
 }

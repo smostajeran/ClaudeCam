@@ -1,0 +1,49 @@
+# =============================================================================
+# px5_export.vcml — run inside Perspectix P'X5 with a Haller project loaded.
+# Dumps the "expected" snapshot (parts: type, placement, features) as JSON, which the
+# engine's golden harness diffs against its own computed snapshot.
+#
+# HOW TO RUN: paste into the P'X5 script console (or a named operation) with the
+# reference project open, then save the printed/returned JSON to:
+#     usm-engine/src/test/golden/fixtures/<project>/expected.json
+#
+# Adjust two things to your P'X5 build:
+#   (1) the output sink at the bottom (WriteFile vs returning the string)
+#   (2) the feature list you want to validate (FEATURES below)
+# =============================================================================
+
+# the features to capture per part (extend as needed — these are what the engine computes)
+my FEATURES = List(
+  'f_trafoSpannung', 'f_trafoModell', 'f_kugelLeitend',
+  'f_rohrRichtung', 'f_direction', 'f_anzeige_rohr_dimension',
+  'f_montageEinzelrohr', 'f_validAusrichtung', 'Chrommaterial', 'Metallfarbe'
+);
+
+my parts = GetComponentListOfType('haller_shelf_component');
+my recs = List();
+for (my p : parts) {
+  my pos = PartPos(p);
+  my rot = PartRot(p);
+  my rec = Map();
+  rec['id']   = ConnectionId(p) ++ '_' ++ GetTypeName(p);
+  rec['type'] = GetTypeName(p);
+  rec['pos']  = List(pos['x'] * 10, pos['y'] * 10, pos['z'] * 10);   # cm -> mm (match engine)
+  rec['rot']  = List(rot['x'], rot['y'], rot['z']);                  # euler deg, Z-up (harness -> quat)
+  # OR, for the full composed world transform, prefer:
+  #   rec['transformation'] = Feature(p, 'f_transformation');
+  my feats = Map();
+  for (my fn : FEATURES) { feats[fn] = Feature(p, fn); }
+  rec['features'] = feats;
+  ListAdd(recs, rec);
+}
+
+my out = Map();
+out['project']  = 'haller_REPLACE_ME';     # name the fixture
+out['pxVersion'] = '5.4.18';
+out['parts']    = recs;
+out['articles'] = ArticleList();            # if available in your build; else List()
+out['conflicts'] = ConflictList();          # if available; else List()
+
+# ---- output sink: adapt to your P'X5 build ----
+WriteFile('expected.json', ToJson(out));    # e.g. write to disk
+# print(ToJson(out));                       # or print and copy from the console
