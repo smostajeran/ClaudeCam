@@ -233,7 +233,7 @@ $("#solveBtn").onclick = () => run("solve","Solve placement vs P'X5");
 // ---------- 3D viewport (pure canvas, no deps) ----------
 const cv = $("#cv"), ctx = cv.getContext("2d");
 let PLACE = null, cam = { yaw:-0.7, pitch:0.35, dist:400, cx:0, cy:0, cz:0, f:1 };
-let picked = null, hiTypes = null, screenParts = [];
+let picked = null, hiTypes = null, screenParts = [], hoverId = null;
 const famColor = (t) => /^kugel/.test(t)?"#8a93a6": /^rohr/.test(t)?"#6b7280": /^(blech|tablar|boden|abdeck|rueckwand|quertraverse)/.test(t)?"#aab0bd": /^(hallerfuss|fuss)/.test(t)?"#7a5a3a": /glas/.test(t)?"#4fd0e0": /(scharnier|halter)/.test(t)?"#ffb454": /(teleskop|auszug|tuer|schublade|winkel|klemm|griff|schloss|scheren)/.test(t)?"#ffd166":"#9aa3b2";
 const isFitting = (t)=>/scharnier|halter/.test(t);
 function qrot(q,v){ const [x,y,z,w]=q,[a,b,c]=v; const tx=2*(y*c-z*b),ty=2*(z*a-x*c),tz=2*(x*b-y*a); return [a+w*tx+(y*tz-z*ty), b+w*ty+(z*tx-x*tz), c+w*tz+(x*ty-y*tx)]; }
@@ -265,7 +265,7 @@ function draw(){
       const C=p.quad.map(c=>project(c));
       if(C.every(Boolean)) prims.push({depth:P.depth,kind:"quad",C,glass:p.panelKind==="glass"});
     }
-    screenParts.push({id:p.id,sx:P.x,sy:P.y});
+    screenParts.push({id:p.id,sx:P.x,sy:P.y,type:p.type});
     prims.push({depth:P.depth,kind:"dot",P,color:famColor(p.type),r:/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2,type:p.type,id:p.id});
     if($("#optTriad").checked && isFitting(p.type))
       for(const [ax,col] of [[[0,0,5],"#ff5d6c"],[[5,0,0],"#7ee0a0"]]){ const r=qrot(p.quat,ax); const E=project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]); if(E) prims.push({depth:P.depth-0.01,kind:"line",A:P,B:E,color:col,w:1.8}); }
@@ -276,14 +276,33 @@ function draw(){
     else if(o.kind==="quad"){ ctx.fillStyle=o.glass?"rgba(79,208,224,0.16)":"rgba(150,160,175,0.13)"; ctx.strokeStyle=o.glass?"rgba(79,208,224,0.75)":"rgba(150,160,175,0.5)"; ctx.beginPath(); ctx.moveTo(o.C[0].x,o.C[0].y); for(let i=1;i<4;i++)ctx.lineTo(o.C[i].x,o.C[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
     else { const hi=isHi(o.type), sel=o.id===picked; ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,sel?o.r+2:o.r,0,7); ctx.fill();
       if(sel){ ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+5,0,7); ctx.stroke(); }
-      else if(hi){ ctx.strokeStyle="#ffd166"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); }
-      if(($("#optLabels").checked && o.r>=2.6)||sel){ ctx.fillStyle="#cfd6e2"; ctx.font="9px monospace"; ctx.fillText(o.type,o.P.x+5,o.P.y-3); } }
+      else if(hi){ ctx.strokeStyle="#ffd166"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); } }
   }
+  // ---- label pass (on top), collision-avoided so they never pile up ----
+  const lrects=[];
+  function label(sx,sy,txt,opt){
+    opt=opt||{}; ctx.font=(opt.bold?"bold ":"")+"10px monospace";
+    const w=ctx.measureText(txt).width+8, h=15, rx=sx+7, ry=sy-8;
+    if(!opt.force) for(const r of lrects) if(rx<r[0]+r[2]&&rx+w>r[0]&&ry<r[1]+r[3]&&ry+h>r[1]) return;
+    lrects.push([rx,ry,w,h]);
+    ctx.fillStyle="rgba(13,15,20,0.85)"; ctx.fillRect(rx,ry,w,h);
+    ctx.fillStyle=opt.color||"#cfd6e2"; ctx.fillText(txt,rx+4,ry+11);
+  }
+  const find=(id)=>screenParts.find(s=>s.id===id);
+  if(picked){ const s=find(picked); if(s) label(s.sx,s.sy,s.type+" #"+picked,{force:true,color:"#fff",bold:true}); }
+  if(hoverId&&hoverId!==picked){ const s=find(hoverId); if(s) label(s.sx,s.sy,s.type,{force:true,color:"#7ee0a0"}); }
+  if($("#optLabels").checked){ const skip=/^(kugel_std|rohr|kugel)/; for(const s of screenParts){ if(s.id===picked||s.id===hoverId||skip.test(s.type)) continue; label(s.sx,s.sy,s.type); } }
 }
 let drag=null, downAt=null, moved=false;
 cv.addEventListener("mousedown",e=>{drag={x:e.clientX,y:e.clientY}; downAt={x:e.clientX,y:e.clientY}; moved=false; cv.style.cursor="grabbing";});
 addEventListener("mouseup",e=>{ if(downAt && !moved) pick(e); drag=null; downAt=null; cv.style.cursor="grab"; });
-addEventListener("mousemove",e=>{ if(!drag)return; if(Math.abs(e.clientX-downAt.x)+Math.abs(e.clientY-downAt.y)>4) moved=true; cam.yaw+=(e.clientX-drag.x)*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+(e.clientY-drag.y)*0.008)); drag={x:e.clientX,y:e.clientY}; draw(); });
+addEventListener("mousemove",e=>{
+  if(drag){ if(Math.abs(e.clientX-downAt.x)+Math.abs(e.clientY-downAt.y)>4) moved=true; cam.yaw+=(e.clientX-drag.x)*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+(e.clientY-drag.y)*0.008)); drag={x:e.clientX,y:e.clientY}; draw(); return; }
+  if(!$("#view3d").classList.contains("show")) return; // hover-to-label
+  const r=cv.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  let best=null,bd=10; for(const s of screenParts){ const d=Math.hypot(s.sx-mx,s.sy-my); if(d<bd){bd=d;best=s;} }
+  const id=best?best.id:null; if(id!==hoverId){ hoverId=id; cv.style.cursor=id?"pointer":"grab"; draw(); }
+});
 cv.addEventListener("wheel",e=>{e.preventDefault(); cam.dist*=e.deltaY>0?1.1:0.9; draw();},{passive:false});
 for(const id of ["optGlass","optTriad","optLabels"]) $("#"+id).onchange=draw;
 
