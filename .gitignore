@@ -1,2 +1,6 @@
 node_modules/
 out/
+
+# oracle project data (user's P'X5 export; regenerable by extracting the .pxpz)
+*.pxpz
+oracle/test_project/
