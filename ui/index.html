@@ -136,11 +136,17 @@ function prettyName(type){
   let stem="", eng="";
   for(const k in GLOSS.stems){ if(low.startsWith(k) && k.length>stem.length){ stem=k; eng=GLOSS.stems[k]; } }
   if(!eng) return type; // unknown stem -> keep the raw code
-  const dim = type.match(/(\d{2,4})[_x\/](\d{2,4})/) || type.match(/(\d{2,4})/);
-  const size = dim ? (dim[2] ? ` ${+dim[1]}×${+dim[2]}` : ` ${+dim[1]}`) : "";
-  const rest = low.slice(stem.length).replace(/\d+/g," ").split(/[_\/\s]/).filter(Boolean);
-  const quals = rest.map(t=>GLOSS.qualifiers[t]).filter(Boolean);
-  return eng + size + (quals.length ? ` (${quals.join(", ")})` : "");
+  // dimensions: code "NNN_MMM" displays "MMM × NNN mm" (USM depth_width -> width × depth); "NNNxMMM" kept; single "NNN".
+  let size=""; const m2=type.match(/(\d{2,4})([_x\/])(\d{2,4})/);
+  if(m2){ const a=+m2[1], b=+m2[3]; size=` ${m2[2]==="_" ? b+" × "+a : a+" × "+b} mm`; }
+  else { const m1=type.match(/(\d{2,4})/); if(m1) size=` ${+m1[1]} mm`; }
+  const rest=low.slice(stem.length).replace(/\d+/g," ").split(/[_\/\s]/).filter(Boolean);
+  const quals=rest.map(t=>GLOSS.qualifiers[t]).filter(Boolean);
+  const lr=quals.filter(q=>q==="left"||q==="right"), others=quals.filter(q=>q!=="left"&&q!=="right");
+  let name=eng+size;
+  if(others.length) name+=` (${[...others,...lr].join(", ")})`;
+  else if(lr.length) name=lr.join("/")+" "+name;
+  return name.charAt(0).toUpperCase()+name.slice(1);
 }
 const prettyFeature = (n) => GLOSS.features?.[n] || n;
 
