@@ -10,7 +10,7 @@ import { Host } from "./partgraph.ts";
 import { loadAppcodes } from "../vcml/appcode.ts";
 import { evalVCML } from "../vcml/interp.ts";
 import { APPCODES_DIR } from "../import/paths.ts";
-import { trs, mul, invRigid, euler, ident, getTranslation, matToQuat, quatAngleDeg, dist } from "./geom.ts";
+import { trs, mul, invRigid, euler, ident, applyPoint, getTranslation, matToQuat, quatAngleDeg, dist } from "./geom.ts";
 import type { Mat4, Vec3 } from "./geom.ts";
 
 function findFile(dir: string, name: string): string | null {
@@ -202,10 +202,28 @@ if (L && R) {
 }
 
 // Emit consumable placement: every solved part's computed world transform (pos cm + quaternion).
+// Detect a part's panel quad from its dock-frame extents: the dock translations of a flat part
+// (glass/sheet/shelf) span a plane; the axis with near-zero spread is the thin axis. Emit the 4
+// world-space corners (real plane + real size) so the viewport never has to guess.
+function panelQuad(p: GPart, W: Mat4): { quad: number[][]; kind: string } | null {
+  const fr = frames.get(p.type) ?? [];
+  if (fr.length < 3) return null;
+  const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+  for (const f of fr) for (let i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], f.t[i]); mx[i] = Math.max(mx[i], f.t[i]); }
+  const rng = [mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]];
+  const thin = rng.indexOf(Math.min(...rng));
+  const ip = [0, 1, 2].filter((i) => i !== thin);
+  if (!(rng[ip[0]] > 8 && rng[ip[1]] > 8 && rng[thin] < 4)) return null; // not a flat panel
+  const mid = (mn[thin] + mx[thin]) / 2;
+  const corner = (s0: boolean, s1: boolean) => { const v = [0, 0, 0] as [number, number, number]; v[thin] = mid; v[ip[0]] = s0 ? mx[ip[0]] : mn[ip[0]]; v[ip[1]] = s1 ? mx[ip[1]] : mn[ip[1]]; return applyPoint(W, v).map((x) => +x.toFixed(2)); };
+  return { quad: [corner(false, false), corner(true, false), corner(true, true), corner(false, true)], kind: /glas/.test(p.type) ? "glass" : "panel" };
+}
+
 import("node:fs").then(({ writeFileSync }) => {
   const out = parts.filter((p) => world.has(p.id)).map((p) => {
     const W = world.get(p.id)!;
-    return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)) };
+    const pq = panelQuad(p, W);
+    return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)), ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}) };
   });
   // unique connection edges (the grid skeleton) between solved parts, for the 3D viewport.
   const seen = new Set<string>(), conns: [string, string][] = [];

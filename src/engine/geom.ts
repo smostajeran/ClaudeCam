@@ -31,6 +31,12 @@ export function euler(x: number, y: number, z: number, order = "XYZ"): Mat4 {
 export const trs = (t: Vec3, rot: Vec3, order = "XYZ"): Mat4 => mul(translation(t[0], t[1], t[2]), euler(rot[0], rot[1], rot[2], order));
 
 export const getTranslation = (m: Mat4): Vec3 => [m[3], m[7], m[11]];
+// transform a point by a 4x4 matrix (w=1).
+export const applyPoint = (m: Mat4, v: Vec3): Vec3 => [
+  m[0] * v[0] + m[1] * v[1] + m[2] * v[2] + m[3],
+  m[4] * v[0] + m[5] * v[1] + m[6] * v[2] + m[7],
+  m[8] * v[0] + m[9] * v[1] + m[10] * v[2] + m[11],
+];
 
 // Invert a rigid transform (rotation R + translation t): inv = [R^T | -R^T t].
 export function invRigid(m: Mat4): Mat4 {
