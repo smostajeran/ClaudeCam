@@ -115,11 +115,9 @@ const mate = (myType: string, theirType: string) => mateByPair.get(`${myType}->$
 // candidate world transform for `p` implied by an edge to an already-placed partner: W_p = W_them * Fb * mate(them->me) * inv(Fa).
 const candidate = (p: GPart, e: Edge, world: Map<string, Mat4>) =>
   mul(mul(mul(world.get(e.them.id)!, frameMat(e.them, e.theirF)), mate(e.theirF.dockType, e.myF.dockType)), invRigid(frameMat(p, e.myF)));
-// structural frame (correctly placed first); anchors to these are trusted far more than add-on siblings.
+// structural frame (placed first/most-constrained); anchors to these are trusted far more than
+// add-on siblings, so a single correct structural attachment outvotes a drifted sub-assembly.
 const STRUCT = /^(kugel|rohr|blech|lochblech|kurzblech|hallerfuss|fuss|tablar\d|boden|abdeck|rueckwand|quertraverse|querstrebe)/;
-// score: how well a candidate world for `p` satisfies ALL its placed-neighbor dock connections
-// (W_p*Fa*mate == W_them*Fb), weighting structural anchors >> add-on siblings so a single correct
-// structural attachment outvotes a mutually-consistent-but-wrong sub-assembly (the drawer cluster).
 function score(p: GPart, W: Mat4, placed: Edge[], world: Map<string, Mat4>): number {
   let s = 0;
   for (const e of placed) {
@@ -148,9 +146,9 @@ while (q.length) {
 // Iterative multi-constraint refinement: re-place each part with the candidate (from any placed
 // neighbor edge) that best satisfies ALL its placed-neighbor connections. Loops in the grid
 // (a ball ties 4 tubes) over-determine and thus pin symmetric tube roll. Gauss-Seidel to fixpoint.
-// Trust hierarchy: hop-distance from the (correct) structural frame. Each add-on is anchored ONLY to
-// neighbors closer to the structure than itself, so correct placement propagates strictly outward
-// (panel -> clamp -> slide -> drawer -> leaf) and a wrong sub-assembly can't outvote the real anchor.
+// Trust hierarchy: hop-distance from the structural frame. Each part is anchored to neighbours
+// closer to the structure than itself, so correctness propagates outward (panel -> clamp -> slide
+// -> drawer -> leaf) and a wrong sub-assembly can't outvote its real anchor.
 const hop = new Map<string, number>(); const hq: string[] = [];
 for (const p of parts) if (world.has(p.id) && STRUCT.test(p.type)) { hop.set(p.id, 0); hq.push(p.id); }
 while (hq.length) { const id = hq.shift()!; const h = hop.get(id)!; for (const e of adj.get(id) ?? []) if (world.has(e.them.id) && !hop.has(e.them.id)) { hop.set(e.them.id, h + 1); hq.push(e.them.id); } }
@@ -159,10 +157,10 @@ for (let pass = 0; pass < 20; pass++) {
   let changed = 0;
   for (const p of parts) {
     if (p === anchor || !world.has(p.id)) continue;
-    const ph = hop.get(p.id) ?? 99; // structure is hop 0 -> no lower-hop parents -> refines via all neighbors (tube-roll loops)
+    const ph = hop.get(p.id) ?? 99;
     const placed = adj.get(p.id)!.filter((e) => world.has(e.them.id));
     const parents = placed.filter((e) => (hop.get(e.them.id) ?? 99) < ph);
-    const use = parents.length ? parents : placed; // anchor toward structure; fall back if none
+    const use = parents.length ? parents : placed;
     if (!use.length) continue;
     let best = world.get(p.id)!, bestS = score(p, best, use, world);
     for (const e of use) { const c = candidate(p, e, world); const s = score(p, c, use, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
@@ -187,7 +185,7 @@ for (const p of parts) {
   const ae = quatAngleDeg(matToQuat(W), matToQuat(euler(p.rot[0], p.rot[1], p.rot[2], "XYZ")));
   const ok = pe <= POS_TOL;
   if (isStructural(p.type)) { structN++; if (ok) structOk++; } else { addonN++; if (ok) addonOk++; }
-  if (ok) posMatch++; else { failByType.set(p.type, (failByType.get(p.type) ?? 0) + 1); if (worst.length < 6) worst.push(`${p.type}#${p.id}: posErr=${pe.toFixed(2)}cm angErr=${ae.toFixed(1)}°`); }
+  if (ok) posMatch++; else { failByType.set(p.type, (failByType.get(p.type) ?? 0) + 1); const W2 = getTranslation(W); const d = [W2[0] - p.pos[0], W2[1] - p.pos[1], W2[2] - p.pos[2]].map((x) => +x.toFixed(1)); if (worst.length < 10) worst.push(`${p.type}#${p.id}: err=${pe.toFixed(1)}cm Δ=[${d}] ang=${ae.toFixed(0)}°`); }
   if (ae <= ANG_TOL) oriMatch++;
   if (symOk(ae)) oriSym++;
   maxPos = Math.max(maxPos, pe);
@@ -204,6 +202,18 @@ console.log(`  by family -> structural frame: ${structOk}/${structN} (${(100 * s
 const fails = [...failByType].sort((a, b) => b[1] - a[1]);
 if (fails.length) console.log(`  position-fail part types (${fails.length}): ${fails.slice(0, 12).map(([t, n]) => `${t}×${n}`).join(", ")}`);
 if (worst.length) { console.log("  worst position cases:"); for (const w of worst) console.log("     " + w); }
+// boundary trace: the first misplaced part's neighbours — a correct (~0cm) neighbour reveals the bad edge.
+{
+  const bad = parts.find((p) => { const W = world.get(p.id); return W && p !== anchor && dist(getTranslation(W), p.pos) > 0.5; });
+  if (bad) {
+    console.log(`  boundary trace ${bad.type}#${bad.id}:`);
+    for (const e of adj.get(bad.id) ?? []) {
+      if (!world.has(e.them.id)) continue;
+      const err = dist(getTranslation(world.get(e.them.id)!), e.them.pos);
+      console.log(`     <-> ${e.them.type}#${e.them.id}  via ${e.myF.dockType}#${e.myF.index}/${e.theirF.dockType}#${e.theirF.index}  nbrErr=${err.toFixed(1)}cm`);
+    }
+  }
+}
 
 // === FITTING ORIENTATION CONFIRMATION — every glass clamp/hinge vs P'X5, grouped by type ===
 const fitTypes = new Map<string, { n: number; maxP: number; maxA: number }>();
