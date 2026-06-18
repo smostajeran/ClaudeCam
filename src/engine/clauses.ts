@@ -8,6 +8,7 @@ import { loadConflictCatalog } from "./conflicts_catalog.ts";
 import type { ConflictDef, Severity } from "./conflicts_catalog.ts";
 import { evalConflictsVCML, loadConflictExpressions } from "./conflicts_eval.ts";
 import type { ConflictPart } from "./conflicts_eval.ts";
+import { getCollisions } from "./geom_box.ts";
 
 interface Vol { id: string; type: string; parts: ScenePart[]; features: Map<string, unknown> }
 interface Bind { volume?: Vol; part?: ScenePart; byId: Record<string, Vol> }
@@ -118,6 +119,17 @@ const addFired = (type: string, parts: ConflictPart[] = []) => {
 };
 for (const c of vcml.fired) addFired(c.type, c.parts);            // VCML expressions carry the offending parts
 for (const t of evaluable) { if (vcmlTypes.has(t)) continue; try { if (evalClause(t, { byId: {} })) addFired(t); } catch { /* unsupported clause node -> skip */ } }
+
+// GEOMETRIC pass: P'X5 resolves collisions with its mesh engine — there is no data rule to extract for
+// these. We detect the one reliable case from bounding boxes: a pull-out shelf/drawer backing into a
+// metal panel across its pull-out axis (`nicht_rahmen_f`). Verified to fire 0 on a clean config.
+{
+  const seen = new Set<string>();
+  const loci: ConflictPart[] = [];
+  for (const c of getCollisions(scene)) for (const p of [c.a, c.b])
+    if (!seen.has(p.id)) { seen.add(p.id); loci.push({ id: p.id, type: p.type, pos: [p.pos.x, p.pos.y, p.pos.z] }); }
+  if (loci.length) addFired("nicht_rahmen_f", loci);
+}
 
 const counts: Record<Severity, number> = { severe: 0, warning: 0, info: 0 };
 for (const f of fired) counts[f.level]++;
