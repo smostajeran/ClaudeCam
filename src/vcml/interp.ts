@@ -49,7 +49,7 @@ class Parser {
   eat(k: string) { const x = this.next(); if (x.k !== k && x.v !== k) throw new Error(`VCML parse: expected ${k}, got ${x.k} '${x.v}'`); return x; }
   is(v: string) { return this.peek().k === v; }
 
-  program(): Node { const stmts: Node[] = []; while (!this.is("eof")) { stmts.push(this.statement()); if (this.is(";")) this.next(); } return { t: "block", stmts }; }
+  program(): Node { const stmts: Node[] = []; while (!this.is("eof")) { while (this.is(";")) this.next(); if (this.is("eof")) break; stmts.push(this.statement()); while (this.is(";")) this.next(); } return { t: "block", stmts }; }
   statement(): Node {
     if (this.is("my")) { this.next(); const name = this.eat("ident").v; this.eat("="); return { t: "let", name, e: this.expr() }; }
     if (this.is("return")) { this.next(); return { t: "ret", e: this.expr() }; }
@@ -60,7 +60,7 @@ class Parser {
     if (this.is("=")) { this.next(); return { t: "setlval", target: e, value: this.expr() }; } // var or member assignment
     return { t: "expr", e };
   }
-  block(): Node { this.eat("{"); const stmts: Node[] = []; while (!this.is("}") && !this.is("eof")) { stmts.push(this.statement()); if (this.is(";")) this.next(); } this.eat("}"); return { t: "block", stmts }; }
+  block(): Node { this.eat("{"); const stmts: Node[] = []; while (!this.is("}") && !this.is("eof")) { while (this.is(";")) this.next(); if (this.is("}") || this.is("eof")) break; stmts.push(this.statement()); while (this.is(";")) this.next(); } this.eat("}"); return { t: "block", stmts }; }
   forStmt(): Node {
     this.eat("for"); this.eat("("); this.eat("my"); const name = this.eat("ident").v;
     if (this.is(":")) { this.next(); const list = this.expr(); this.eat(")"); return { t: "foreach", name, list, body: this.block() }; }

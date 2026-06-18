@@ -7,6 +7,7 @@ import type { ScenePart } from "./scene.ts";
 import { loadConflictCatalog } from "./conflicts_catalog.ts";
 import type { ConflictDef, Severity } from "./conflicts_catalog.ts";
 import { evalConflictsVCML, loadConflictExpressions } from "./conflicts_eval.ts";
+import type { ConflictPart } from "./conflicts_eval.ts";
 
 interface Vol { id: string; type: string; parts: ScenePart[]; features: Map<string, unknown> }
 interface Bind { volume?: Vol; part?: ScenePart; byId: Record<string, Vol> }
@@ -109,12 +110,13 @@ const skipped = conflictTypes.filter((t) => clauseByType.has(t) && needsPrintZon
 const vcml = evalConflictsVCML(cfg);
 const vcmlTypes = new Set(loadConflictExpressions().map((c) => c.type));
 const firedKeys = new Set<string>();
-const fired: ConflictDef[] = [];
-const addFired = (type: string) => {
+const fired: (ConflictDef & { parts: ConflictPart[] })[] = [];
+const addFired = (type: string, parts: ConflictPart[] = []) => {
   if (firedKeys.has(type)) return; firedKeys.add(type);
-  fired.push((defByType.get(type) ?? [])[0] ?? { type, severity: 0, level: "info" as Severity, category: "Installation", name: type, problem: "", solution: "", multi: false, hasExpression: false });
+  const base = (defByType.get(type) ?? [])[0] ?? { type, severity: 0, level: "info" as Severity, category: "Installation", name: type, problem: "", solution: "", multi: false, hasExpression: false };
+  fired.push({ ...base, parts });
 };
-for (const c of vcml.fired) addFired(c.type);
+for (const c of vcml.fired) addFired(c.type, c.parts);            // VCML expressions carry the offending parts
 for (const t of evaluable) { if (vcmlTypes.has(t)) continue; try { if (evalClause(t, { byId: {} })) addFired(t); } catch { /* unsupported clause node -> skip */ } }
 
 const counts: Record<Severity, number> = { severe: 0, warning: 0, info: 0 };

@@ -77,6 +77,9 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
   const volumes = new Map<number, any>();
   for (const p of scene) { const c = idOf.get(p) as number; if (!volumes.has(c)) volumes.set(c, { id: "vol" + c, type: "normal_volume", parts: [] }); volumes.get(c).parts.push(p); }
   const volOf = (p: ScenePart) => (p ? volumes.get(idOf.get(p) as number) : null);
+  // The "main structure" is the largest connected cluster; a part not in it is detached (lonely).
+  let mainCid = -1, mainSz = -1;
+  for (const [c, v] of volumes) if (v.parts.length > mainSz) { mainSz = v.parts.length; mainCid = c; }
 
   (host as any).partFns = {
     GetTypeName: (a: any[]) => a[0]?.type ?? null,
@@ -120,6 +123,9 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
     ConnectedDockCount: (a: any[]) => (a[0]?.docks ?? []).filter((d: any) => d.connectedPart && (a[1] == null || d.type === String(a[1]))).length,
     ChildOfTypeDeep: (a: any[]) => { const v = volOf(a[0]); return v ? v.parts.find((p: ScenePart) => isSub(p.type, String(a[1]))) ?? null : null; },
     ChildCountDeep: (a: any[]) => { const v = volOf(a[0]); return v ? v.parts.filter((p: ScenePart) => isSub(p.type, String(a[1]))).length : 0; },
+    // A part is "connected to a volume" iff it sits in the main structure cluster (reachable through
+    // dock links). A 0-connection part (or any separate island) returns false -> the `lonely` rule fires.
+    IsConnectedToVolume: (a: any[]) => { const p = a[0]; return p ? idOf.get(p) === mainCid : false; },
     RegisteredPart: () => null,                                   // TODO: part registry
     PartBoundingBox: () => ({ extent: { x: 0, y: 0, z: 0 }, min: { x: 0, y: 0, z: 0 } }), // TODO: from mesh geometry
     USMPartPrintZone: () => null,

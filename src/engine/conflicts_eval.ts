@@ -30,9 +30,27 @@ export function setupHost(cfg: string): Host {
 
 const fired = (r: unknown): boolean => Array.isArray(r) ? r.length > 0 : !(r === false || r == null || r === 0 || r === "" || r === "false");
 
+/** A part the conflictexpression named as offending — used to highlight the error in the 3D mesh. */
+export interface ConflictPart { id: string; type: string; pos: [number, number, number] }
+
+/** Walk a conflictexpression result and collect every offending part (id + world pos). The result is
+ * usually a flat list of parts, but can be volumes (objects with a `.parts` list) — recurse into those. */
+function extractLoci(r: unknown, out: Map<string, ConflictPart>, depth = 0): void {
+  if (r == null || depth > 5) return;
+  if (Array.isArray(r)) { for (const el of r) extractLoci(el, out, depth + 1); return; }
+  if (typeof r === "object") {
+    const o = r as any;
+    if (o.id != null && o.pos && typeof o.pos.x === "number") {
+      const id = String(o.id);
+      if (!out.has(id)) out.set(id, { id, type: String(o.type ?? ""), pos: [o.pos.x, o.pos.y, o.pos.z] });
+    }
+    if (Array.isArray(o.parts)) for (const p of o.parts) extractLoci(p, out, depth + 1); // volume -> its parts
+  }
+}
+
 export interface EvalResult {
   total: number;
-  fired: VcmlConflict[];
+  fired: (VcmlConflict & { parts: ConflictPart[] })[];
   cleanCount: number;
   errors: { type: string; err: string }[];
   missingFns: Record<string, number>; // function name -> how many conflicts blocked by it
@@ -43,7 +61,9 @@ export function evalConflictsVCML(cfg: string, defs = loadConflictExpressions())
   const out: EvalResult = { total: defs.length, fired: [], cleanCount: 0, errors: [], missingFns: {} };
   for (const c of defs) {
     try {
-      if (fired(evalVCML(c.expr, host))) out.fired.push(c); else out.cleanCount++;
+      const r = evalVCML(c.expr, host);
+      if (fired(r)) { const m = new Map<string, ConflictPart>(); extractLoci(r, m); out.fired.push({ ...c, parts: [...m.values()] }); }
+      else out.cleanCount++;
     } catch (e: any) {
       const msg = String(e?.message ?? e);
       out.errors.push({ type: c.type, err: msg });

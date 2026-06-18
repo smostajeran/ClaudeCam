@@ -302,12 +302,13 @@ $("#validateBtn").onclick = () => run("validate","Validate features vs P'X5");
 
 // ---------- Error handler: classified conflicts (mirrors P'X5's conflict panel) ----------
 const SEV = { severe:{lbl:"Severe",ic:"⛔",col:"#ff4d5e",bg:"rgba(255,77,94,0.10)"}, warning:{lbl:"Warning",ic:"⚠️",col:"#ffa733",bg:"rgba(255,167,51,0.10)"}, info:{lbl:"Hint / advice",ic:"ℹ️",col:"#5aa7ff",bg:"rgba(90,167,255,0.10)"} };
-function conflictRow(c, fired){
+function conflictRow(c, fired, idx){
   const s = SEV[c.level]||SEV.info;
-  return `<div style="display:flex;gap:8px;padding:7px 9px;border-left:3px solid ${s.col};background:${fired?s.bg:"transparent"};border-radius:4px;margin:3px 0;${fired?"":"opacity:.72"}">
+  const locatable = fired && idx!=null && c.parts && c.parts.length;
+  return `<div ${locatable?`data-cfidx="${idx}" title="Show these parts in the 3D model"`:""} style="display:flex;gap:8px;padding:7px 9px;border-left:3px solid ${s.col};background:${fired?s.bg:"transparent"};border-radius:4px;margin:3px 0;${fired?"":"opacity:.72"}${locatable?";cursor:pointer":""}">
     <span style="font-size:13px;line-height:1.3">${s.ic}</span>
     <div style="flex:1;min-width:0">
-      <div style="font-weight:600;color:#e7ebf3">${esc(c.name)} <span style="font-weight:400;color:#8893a6;font-size:11px">· ${esc(c.category)}</span></div>
+      <div style="font-weight:600;color:#e7ebf3">${esc(c.name)} <span style="font-weight:400;color:#8893a6;font-size:11px">· ${esc(c.category)}</span>${locatable?` <span style="color:${s.col};font-size:10px;font-weight:600;border:1px solid ${s.col};border-radius:9px;padding:0 6px;margin-left:4px">📍 ${c.parts.length} in 3D</span>`:""}</div>
       ${c.problem?`<div style="color:#aab2c2;font-size:12px;margin-top:1px">${esc(c.problem)}</div>`:""}
       ${fired&&c.solution?`<div style="color:#7fd8a0;font-size:11px;margin-top:2px">→ ${esc(c.solution)}</div>`:""}
     </div></div>`;
@@ -327,7 +328,7 @@ $("#conflictsBtn").onclick = async () => {
     html += `</div>`;
     // live result
     html += `<div style="font-size:12px;color:#aab2c2;margin-bottom:8px">On this configuration: <b style="color:${firedCount?'#ffa733':'#7fd8a0'}">${firedCount} conflict${firedCount===1?'':'s'} detected</b> (severe ${c.severe} / warning ${c.warning} / info ${c.info}).</div>`;
-    if(firedCount) html += fired.map(f=>conflictRow(f,true)).join("");
+    if(firedCount) html += fired.map((f,i)=>conflictRow(f,true,i)).join("");
     // honest detection note
     html += `<div style="font-size:11px;color:#8893a6;background:rgba(255,255,255,0.04);border-radius:5px;padding:7px 9px;margin:8px 0">Live detection executed <b style="color:#aab2c2">${r.vcmlRan||0}/${r.vcmlExpressions||0}</b> VCML conflict rules${r.vcmlErrored?` · ${r.vcmlErrored} still blocked by unwired interpreter functions${r.topBlockers&&r.topBlockers.length?" ("+r.topBlockers.slice(0,5).map(b=>b.fn).join(", ")+")":""}`:""}. Full catalogue of recognised kinds below.</div>`;
     // full catalog by severity
@@ -338,6 +339,7 @@ $("#conflictsBtn").onclick = async () => {
       html += g.map(x=>conflictRow(x, firedKeys.has(x.type+"|"+x.name))).join("");
     }
     panel.innerHTML = html;
+    panel.querySelectorAll("[data-cfidx]").forEach(el=>el.onclick=()=>{ const f=fired[+el.dataset.cfidx]; focusConflict({name:f.name,level:f.level,parts:f.parts||[]}); });
     $("#runStatus").innerHTML = firedCount ? `<span class="err">${firedCount} fired</span>` : `<span class="ok">none on this config</span>`;
   }catch(e){ panel.innerHTML=`<div style='color:#ff6b6b;padding:8px'>failed: ${esc(e)}</div>`; $("#runStatus").innerHTML='<span class="err">failed</span>'; }
 };
@@ -347,6 +349,7 @@ $("#solveBtn").onclick = () => run("solve","Solve placement vs P'X5");
 const cv = $("#cv"), ctx = cv.getContext("2d");
 let PLACE = null, cam = { yaw:-0.7, pitch:0.35, dist:400, cx:0, cy:0, cz:0, f:1 };
 let picked = null, hiTypes = null, screenParts = [], hoverId = null;
+let conflictFocus = null; // {name, level, parts:[{id,type,pos:[x,y,z]}]} — an error mapped onto the mesh
 const famColor = (t) => /^kugel/.test(t)?"#8a93a6": /^rohr/.test(t)?"#6b7280": /^(blech|tablar|boden|abdeck|rueckwand|quertraverse)/.test(t)?"#aab0bd": /^(hallerfuss|fuss)/.test(t)?"#7a5a3a": /glas/.test(t)?"#4fd0e0": /(scharnier|halter)/.test(t)?"#ffb454": /(teleskop|auszug|tuer|schublade|winkel|klemm|griff|schloss|scheren)/.test(t)?"#ffd166":"#9aa3b2";
 const isFitting = (t)=>/scharnier|halter/.test(t);
 const eColor = {trafo:"#ff5dff", feed:"#ffe14a", live:"#ff7a3c", consumer:"#7ee0a0", safety:"#ff5d6c"};
@@ -420,6 +423,27 @@ function draw(){
   if(hoverId&&hoverId!==picked){ const s=find(hoverId); if(s) label(s.sx,s.sy,prettyName(s.type),{force:true,color:"#7ee0a0"}); }
   if($("#optE").checked){ for(const s of screenParts){ if(s.e && s.id!==picked && s.id!==hoverId) label(s.sx,s.sy,s.e,{color:eColor[s.e]}); } }
   if($("#optLabels").checked){ const skip=/^(kugel_std|rohr|kugel)/; for(const s of screenParts){ if(s.id===picked||s.id===hoverId||skip.test(s.type)) continue; label(s.sx,s.sy,prettyName(s.type)); } }
+  // ---- error -> mesh overlay: ring + crosshair on each offending part, with the conflict name ----
+  if(conflictFocus && conflictFocus.parts && conflictFocus.parts.length){
+    const sev = SEV[conflictFocus.level]||SEV.severe, col=sev.col;
+    const screenPts=[];
+    for(const cp of conflictFocus.parts){ const P=project(cp.pos); if(!P)continue; screenPts.push({P,cp}); }
+    for(const {P} of screenPts){
+      ctx.strokeStyle=col; ctx.lineWidth=2.4;
+      ctx.beginPath(); ctx.arc(P.x,P.y,11,0,7); ctx.stroke();              // marker ring
+      ctx.globalAlpha=0.4; ctx.beginPath(); ctx.arc(P.x,P.y,17,0,7); ctx.stroke(); ctx.globalAlpha=1; // halo
+      ctx.beginPath(); ctx.moveTo(P.x-15,P.y); ctx.lineTo(P.x+15,P.y); ctx.moveTo(P.x,P.y-15); ctx.lineTo(P.x,P.y+15); ctx.stroke(); // crosshair
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(P.x,P.y,2.5,0,7); ctx.fill();
+    }
+    // a single callout label for the conflict, anchored on the first visible offender
+    if(screenPts.length){
+      const a=screenPts[0].P; const txt=(sev.ic)+" "+conflictFocus.name; ctx.font="bold 11px monospace";
+      const w=ctx.measureText(txt).width+12, bx=Math.min(Math.max(a.x+18,6),cv.width-w-6), by=Math.max(a.y-26,6);
+      ctx.strokeStyle=col; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(bx+6,by+18); ctx.stroke();
+      ctx.fillStyle="rgba(13,15,20,0.92)"; ctx.fillRect(bx,by,w,20); ctx.strokeStyle=col; ctx.strokeRect(bx,by,w,20);
+      ctx.fillStyle=col; ctx.fillText(txt,bx+6,by+14);
+    }
+  }
 }
 let drag=null, downAt=null, moved=false;
 cv.addEventListener("mousedown",e=>{drag={x:e.clientX,y:e.clientY}; downAt={x:e.clientX,y:e.clientY}; moved=false; cv.style.cursor="grabbing";});
@@ -472,7 +496,25 @@ function jumpToRule(tab,key){
   TAB=tab; SEL=key; renderTabs(); renderList(); renderDetail();
   const row=[...$("#list").querySelectorAll(".row")].find(x=>x.dataset.k===key); if(row) row.scrollIntoView({block:"center"});
 }
+// frame the camera on an error's offending parts (centroid + zoom), keeping the good 3/4 angle
+function fitConflict(cf){
+  fit();
+  const ps=(cf.parts||[]).map(p=>p.pos); if(!ps.length) return;
+  const c=[0,0,0]; for(const p of ps) for(let i=0;i<3;i++) c[i]+=p[i]; for(let i=0;i<3;i++) c[i]/=ps.length;
+  cam.cx=c[0]; cam.cy=c[1]; cam.cz=c[2]; cam.f*=2.0;
+}
+// open the 3D view and highlight the parts an error names — the error->mesh mapping
+async function focusConflict(cf){
+  conflictFocus=cf; picked=null; hiTypes=null; $("#pick3d").classList.remove("show");
+  const wasOpen=$("#view3d").classList.contains("show");
+  $("#view3d").classList.add("show");
+  if(!PLACE||!wasOpen){ $("#viewInfo").textContent="solving…"; try{ PLACE=await (await fetch("/api/placement")).json(); }catch(e){ $("#viewInfo").textContent="failed: "+e; return; } }
+  const sev=SEV[cf.level]||SEV.severe;
+  $("#viewInfo").innerHTML=`<span style="color:${sev.col}">${sev.ic} ${esc(cf.name)}</span> — ${cf.parts.length} part(s) flagged · <span style="cursor:pointer;text-decoration:underline" id="clearCf">show whole model</span>`;
+  requestAnimationFrame(()=>{ cv.width=cv.clientWidth; cv.height=cv.clientHeight; fitConflict(cf); draw(); const b=$("#clearCf"); if(b) b.onclick=()=>{ conflictFocus=null; openView(); }; });
+}
 async function openView(){
+  conflictFocus=null;
   $("#view3d").classList.add("show"); $("#viewInfo").textContent="solving…";
   try{ PLACE=await (await fetch("/api/placement")).json();
     { const np=(PLACE.parts||[]).filter(p=>p.placed===false).length; $("#viewInfo").textContent = PLACE.parts.length ? `${PLACE.parts.length} parts · ${PLACE.connections.length} connections`+(np?` · ${np} unplaced (red)`:"") : (PLACE.error||"no placement"); }
