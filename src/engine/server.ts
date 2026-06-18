@@ -24,6 +24,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".."); // usm-e
 const MODEL = join(ROOT, "out", "model.json");
 const OVERLAY = join(ROOT, "out", "overrides.json");
 const UI = join(ROOT, "ui", "index.html");
+const DEMO = join(ROOT, "data", "demo_configure.json"); // pre-solved demo scene (public, IP-safe)
 const PORT = Number(process.env.PORT ?? 5152);
 
 type Overlay = { properties: Record<string, any>; clauses: Record<string, any> };
@@ -86,6 +87,10 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url === "/health") return send(res, 200, JSON.stringify({ ok: true, model: existsSync(MODEL), auth: !!SUPA_URL }));
     if (req.method === "GET" && url === "/login") return send(res, 200, readFileSync(join(ROOT, "ui", "login.html"), "utf8"), "text/html; charset=utf-8");
     if (req.method === "GET" && url === "/api/config") return send(res, 200, JSON.stringify({ supabaseUrl: PUB_URL, supabaseAnonKey: PUB_KEY, authEnforced: !!SUPA_URL }));
+    // Public demo scene — a pre-solved, IP-safe /api/configure payload. No auth, so a live demo can
+    // never be blocked by sign-in. Same shape as POST /api/configure.
+    if (req.method === "GET" && url === "/api/demo")
+      return send(res, 200, existsSync(DEMO) ? readFileSync(DEMO, "utf8") : JSON.stringify({ error: "no demo payload bundled" }));
     if (req.method === "GET" && (url === "/" || url === "/index.html")) return send(res, 200, readFileSync(UI, "utf8"), "text/html; charset=utf-8");
     if (req.method === "GET" && url === "/api/model") return send(res, 200, JSON.stringify(mergedModel()));
     if (req.method === "GET" && url === "/api/overrides") return send(res, 200, JSON.stringify(loadOverlay()));
@@ -160,6 +165,8 @@ const server = createServer(async (req, res) => {
         if (r.status !== 0 || !existsSync(pf)) return send(res, 500, JSON.stringify({ error: "solver failed", log: (r.stdout ?? "") + (r.stderr ?? "") }));
         spawnSync(process.execPath, ["src/engine/clauses.ts", tmp], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
       } else if (!existsSync(pf)) {
+        // nothing solved yet on this host -> fall back to the bundled demo scene rather than erroring
+        if (existsSync(DEMO)) return send(res, 200, readFileSync(DEMO, "utf8"));
         return send(res, 400, JSON.stringify({ error: "no solved scene — POST a .pxpz to configure" }));
       }
       const placement = JSON.parse(readFileSync(pf, "utf8"));
