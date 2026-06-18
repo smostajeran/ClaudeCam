@@ -169,6 +169,43 @@ for (let pass = 0; pass < 20; pass++) {
   if (!changed) break;
 }
 
+// Rigid-cluster repair: a connected sub-region can settle in a self-consistent but globally-offset
+// local minimum (internal edges satisfied, a boundary edge violated). Per-part refinement can't move
+// it as a unit. Find the worst-violated edge, grow the rigid cluster on one side via its SATISFIED
+// edges, and shift that whole cluster to satisfy the edge — keeping the move only if it reduces TOTAL
+// edge violation. So it can never regress a good solve (on a fully-solved scene there are no violated
+// edges -> no-op); on a drifted scene it slides the offset block back into place.
+{
+  const RTOL = 0.5;
+  const eviol = (p: GPart, e: Edge) => dist(getTranslation(world.get(p.id)!), getTranslation(candidate(p, e, world)));
+  const totalViol = () => { let s = 0; for (const p of parts) { if (!world.has(p.id)) continue; for (const e of adj.get(p.id)!) if (world.has(e.them.id)) s += eviol(p, e); } return s; };
+  const clusterFrom = (seed: GPart, blk: GPart) => {
+    const seen = new Set<string>([seed.id]); const st = [seed];
+    while (st.length) { const x = st.pop()!; for (const e of adj.get(x.id)!) { if (e.them === blk || !world.has(e.them.id) || seen.has(e.them.id)) continue; if (eviol(x, e) < RTOL) { seen.add(e.them.id); st.push(e.them); } } }
+    return seen;
+  };
+  const tryMove = (X: GPart, e: Edge): boolean => {
+    const cluster = clusterFrom(X, e.them);
+    if (cluster.has(anchor.id)) return false;
+    const T = mul(candidate(X, e, world), invRigid(world.get(X.id)!));
+    const snap = new Map<string, Mat4>(); for (const id of cluster) snap.set(id, world.get(id)!);
+    const base = totalViol();
+    for (const id of cluster) world.set(id, mul(T, world.get(id)!));
+    if (totalViol() < base - 0.5) return true;
+    for (const [id, m] of snap) world.set(id, m);
+    return false;
+  };
+  const black = new Set<string>();
+  for (let iter = 0; iter < 400; iter++) {
+    let worst: { p: GPart; e: Edge; k: string } | null = null, wv = RTOL;
+    for (const p of parts) { if (!world.has(p.id)) continue; for (const e of adj.get(p.id)!) { if (!world.has(e.them.id)) continue; const k = [p.id, e.them.id].sort().join("-"); if (black.has(k)) continue; const v = eviol(p, e); if (v > wv) { wv = v; worst = { p, e, k }; } } }
+    if (!worst) break;
+    const rev = adj.get(worst.e.them.id)!.find((x) => x.them === worst!.p);
+    if (tryMove(worst.p, worst.e) || (rev && tryMove(worst.e.them, rev))) continue;
+    black.add(worst.k);
+  }
+}
+
 // validate computed world transforms vs saved
 const POS_TOL = 0.5, ANG_TOL = 1.0;        // cm, degrees
 const symOk = (a: number) => a <= ANG_TOL || Math.abs(a - 90) <= ANG_TOL || Math.abs(a - 180) <= ANG_TOL || Math.abs(a - 270) <= ANG_TOL;
