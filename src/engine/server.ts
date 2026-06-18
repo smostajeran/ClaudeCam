@@ -142,6 +142,14 @@ const server = createServer(async (req, res) => {
       return send(res, 200, JSON.stringify(placementToRK(JSON.parse(readFileSync(pf, "utf8")))));
     }
 
+    // Error handler: classified conflict catalog + any fired on the last-solved scene.
+    if (req.method === "GET" && url === "/api/conflicts") {
+      const cf = join(ROOT, "out", "conflicts.json");
+      if (!existsSync(cf)) spawnSync(process.execPath, ["src/engine/clauses.ts"], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
+      if (!existsSync(cf)) return send(res, 200, JSON.stringify({ catalog: [], fired: [], counts: { severe: 0, warning: 0, info: 0 }, error: "no conflicts.json" }));
+      return send(res, 200, readFileSync(cf, "utf8"));
+    }
+
     if (req.method === "POST" && url === "/api/run") {
       const { script } = await readBody(req);
       const file = script === "conflicts" ? "src/engine/clauses.ts" : script === "validate" ? "src/engine/validate.ts" : script === "solve" ? "src/engine/solve.ts" : null;

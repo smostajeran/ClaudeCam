@@ -101,6 +101,7 @@
   <div class="card">
     <div class="top"><b id="runTitle">Run</b><span class="spacer" style="flex:1"></span><span id="runStatus" class="sub"></span><button class="ghost" onclick="document.getElementById('drawer').classList.remove('show')">Close</button></div>
     <pre id="runOut">…</pre>
+    <div id="conflictPanel" style="display:none"></div>
   </div>
 </div>
 <div class="drawer" id="view3d">
@@ -273,7 +274,9 @@ async function override(kind, key, patch) {
 }
 $("#resetBtn").onclick = async () => { await fetch("/api/reset",{method:"POST"}); toast("All edits cleared"); await load(); $("#detail").innerHTML='<div class="empty">Select an item.</div>'; };
 
+function showTextDrawer(){ $("#conflictPanel").style.display="none"; $("#runOut").style.display="block"; }
 async function run(script, title) {
+  showTextDrawer();
   $("#runTitle").textContent = title; $("#runStatus").textContent = "running…"; $("#runOut").textContent = "…";
   $("#drawer").classList.add("show");
   try {
@@ -283,6 +286,7 @@ async function run(script, title) {
   } catch(e){ $("#runStatus").innerHTML='<span class="err">failed</span>'; $("#runOut").textContent=String(e); }
 }
 $("#bomBtn").onclick = async () => {
+  showTextDrawer();
   $("#runTitle").textContent = "Bill of materials (priced from USM catalog)"; $("#runStatus").textContent = "loading…"; $("#runOut").textContent = "…"; $("#drawer").classList.add("show");
   try {
     const P = await (await fetch("/api/placement")).json();
@@ -295,7 +299,48 @@ $("#bomBtn").onclick = async () => {
   } catch(e){ $("#runStatus").innerHTML='<span class="err">failed</span>'; $("#runOut").textContent=String(e); }
 };
 $("#validateBtn").onclick = () => run("validate","Validate features vs P'X5");
-$("#conflictsBtn").onclick = () => run("conflicts","Check conflicts vs P'X5");
+
+// ---------- Error handler: classified conflicts (mirrors P'X5's conflict panel) ----------
+const SEV = { severe:{lbl:"Severe",ic:"⛔",col:"#ff4d5e",bg:"rgba(255,77,94,0.10)"}, warning:{lbl:"Warning",ic:"⚠️",col:"#ffa733",bg:"rgba(255,167,51,0.10)"}, info:{lbl:"Hint / advice",ic:"ℹ️",col:"#5aa7ff",bg:"rgba(90,167,255,0.10)"} };
+function conflictRow(c, fired){
+  const s = SEV[c.level]||SEV.info;
+  return `<div style="display:flex;gap:8px;padding:7px 9px;border-left:3px solid ${s.col};background:${fired?s.bg:"transparent"};border-radius:4px;margin:3px 0;${fired?"":"opacity:.72"}">
+    <span style="font-size:13px;line-height:1.3">${s.ic}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:600;color:#e7ebf3">${esc(c.name)} <span style="font-weight:400;color:#8893a6;font-size:11px">· ${esc(c.category)}</span></div>
+      ${c.problem?`<div style="color:#aab2c2;font-size:12px;margin-top:1px">${esc(c.problem)}</div>`:""}
+      ${fired&&c.solution?`<div style="color:#7fd8a0;font-size:11px;margin-top:2px">→ ${esc(c.solution)}</div>`:""}
+    </div></div>`;
+}
+$("#conflictsBtn").onclick = async () => {
+  $("#runTitle").textContent = "Error handler — conflicts"; $("#runStatus").textContent = "checking…";
+  $("#runOut").style.display="none"; const panel=$("#conflictPanel"); panel.style.display="block"; panel.innerHTML="<div style='color:#8893a6;padding:8px'>checking…</div>";
+  $("#drawer").classList.add("show");
+  try{
+    const r = await (await fetch("/api/conflicts")).json();
+    const cat = r.catalog||[], fired = r.fired||[], firedKeys = new Set(fired.map(f=>f.type+"|"+f.name));
+    const c = r.counts||{severe:0,warning:0,info:0};
+    const firedCount = fired.length;
+    // summary chips
+    let html = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px">`;
+    for(const lvl of ["severe","warning","info"]){ const s=SEV[lvl]; html+=`<span style="background:${s.bg};color:${s.col};border:1px solid ${s.col};border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600">${s.ic} ${s.lbl}: ${cat.filter(x=>x.level===lvl).length}</span>`; }
+    html += `</div>`;
+    // live result
+    html += `<div style="font-size:12px;color:#aab2c2;margin-bottom:8px">On this configuration: <b style="color:${firedCount?'#ffa733':'#7fd8a0'}">${firedCount} conflict${firedCount===1?'':'s'} detected</b> (severe ${c.severe} / warning ${c.warning} / info ${c.info}).</div>`;
+    if(firedCount) html += fired.map(f=>conflictRow(f,true)).join("");
+    // honest detection note
+    html += `<div style="font-size:11px;color:#8893a6;background:rgba(255,255,255,0.04);border-radius:5px;padding:7px 9px;margin:8px 0">Live detection currently covers ${r.structuralClauses||0} structural rules. ${r.vcmlPending||0} conflict kinds carry VCML logic not yet executed, so detection is partial — the full catalogue of kinds the system recognises is listed below.</div>`;
+    // full catalog by severity
+    html += `<div style="font-weight:700;color:#e7ebf3;margin:12px 0 4px;font-size:13px">All conflict kinds (${cat.length})</div>`;
+    for(const lvl of ["severe","warning","info"]){
+      const g = cat.filter(x=>x.level===lvl); if(!g.length) continue;
+      html += `<div style="color:${SEV[lvl].col};font-weight:600;font-size:12px;margin:8px 0 2px">${SEV[lvl].ic} ${SEV[lvl].lbl} (${g.length})</div>`;
+      html += g.map(x=>conflictRow(x, firedKeys.has(x.type+"|"+x.name))).join("");
+    }
+    panel.innerHTML = html;
+    $("#runStatus").innerHTML = firedCount ? `<span class="err">${firedCount} fired</span>` : `<span class="ok">none on this config</span>`;
+  }catch(e){ panel.innerHTML=`<div style='color:#ff6b6b;padding:8px'>failed: ${esc(e)}</div>`; $("#runStatus").innerHTML='<span class="err">failed</span>'; }
+};
 $("#solveBtn").onclick = () => run("solve","Solve placement vs P'X5");
 
 // ---------- 3D viewport (pure canvas, no deps) ----------

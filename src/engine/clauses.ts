@@ -4,6 +4,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { Host } from "./partgraph.ts";
 import { loadScene } from "./scene.ts";
 import type { ScenePart } from "./scene.ts";
+import { loadConflictCatalog } from "./conflicts_catalog.ts";
+import type { ConflictDef, Severity } from "./conflicts_catalog.ts";
 
 interface Vol { id: string; type: string; parts: ScenePart[]; features: Map<string, unknown> }
 interface Bind { volume?: Vol; part?: ScenePart; byId: Record<string, Vol> }
@@ -91,18 +93,40 @@ function evalCond(n: any, b: Bind): boolean {
   }
 }
 
-// conflict clause types from conflictrepresentation.xml
-const confRep = "C:/Virtual-LastU/snx2xml/co/packages/hallerpackage/representation/conflictrepresentation.xml";
-const conflictTypes = [...new Set([...readFileSync(confRep, "utf8").matchAll(/<conflict[^>]*type="([^"]+)"/g)].map((m) => m[1]))];
+// Full conflict catalog (type, severity, English name/problem/solution) — the error-handler taxonomy.
+const catalog = loadConflictCatalog();
+const defByType = new Map<string, ConflictDef[]>();
+for (const d of catalog) (defByType.get(d.type) ?? defByType.set(d.type, []).get(d.type)!).push(d);
+const conflictTypes = [...new Set(catalog.map((d) => d.type))];
 const needsPrintZone = (t: string) => /PrintZone/i.test(t); // print-zone/scene state not modeled yet
 const evaluable = conflictTypes.filter((t) => clauseByType.has(t) && !needsPrintZone(t));
 const skipped = conflictTypes.filter((t) => clauseByType.has(t) && needsPrintZone(t));
 
-const fired: string[] = [];
-for (const t of evaluable) { try { if (evalClause(t, { byId: {} })) fired.push(t); } catch { /* skip */ } }
+const firedTypes: string[] = [];
+for (const t of evaluable) { try { if (evalClause(t, { byId: {} })) firedTypes.push(t); } catch { /* unsupported clause node -> skip */ } }
 
-console.log("=== clause/conflict matcher vs P'X5 (config.px5, conflicts detected=false) ===");
-console.log(`  scene parts: ${scene.length}   volumes(clusters): ${volumes.length}   conflict types: ${conflictTypes.length}`);
-console.log(`  evaluable conflict clauses: ${evaluable.length}   (skipped, need print-zone modeling: ${skipped.length} -> ${skipped.join(", ")})`);
-console.log(`  conflicts FIRED on this scene: ${fired.length}${fired.length ? " -> " + fired.join(", ") : ""}`);
-console.log(`  P'X5 baseline = 0 conflicts -> engine ${fired.length === 0 ? "AGREES ✓ (" + evaluable.length + "/" + evaluable.length + " modelable conflict clauses)" : "DIVERGES on: " + fired.slice(0, 8).join(", ")}`);
+// Resolve fired types to their classified, English conflict objects (a type may have >1 representation).
+const fired = firedTypes.flatMap((t) => defByType.get(t) ?? [{ type: t, severity: 0, level: "info" as Severity, category: "Installation", name: t, problem: "", solution: "", multi: false, hasExpression: false }]);
+const counts: Record<Severity, number> = { severe: 0, warning: 0, info: 0 };
+for (const f of fired) counts[f.level]++;
+
+// Structured output for the UI error panel (grouped by severity, mirroring P'X5's conflict list).
+// Detection status — HONEST: the structural clause-evaluator walks condition-trees only. Most real
+// conflicts encode their logic as VCML partexpression/conflictexpression, which is NOT executed here,
+// so live detection is partial. (Proof: a fully-disconnected scene still fires nothing.) The catalog/
+// classification below is complete and correct; wiring the VCML interpreter is what makes detection real.
+const report = {
+  scene: scene.length, volumes: volumes.length,
+  catalogSize: catalog.length,
+  detection: "structural-only", structuralClauses: evaluable.length, vcmlPending: catalog.filter((c) => c.hasExpression).length,
+  counts, fired, catalog,
+};
+import("node:fs").then(({ writeFileSync }) => writeFileSync("out/conflicts.json", JSON.stringify(report)));
+
+console.log("=== ERROR HANDLER — conflict taxonomy (P'X5 conflictrepresentation) ===");
+console.log(`  scene parts: ${scene.length}   volumes(clusters): ${volumes.length}`);
+console.log(`  CATALOG: ${catalog.length} conflict kinds — ${catalog.filter((c) => c.level === "severe").length} severe / ${catalog.filter((c) => c.level === "warning").length} warning / ${catalog.filter((c) => c.level === "info").length} info`);
+console.log(`  DETECTION: structural clause-trees only (${evaluable.length} clauses). ${catalog.filter((c) => c.hasExpression).length} kinds carry VCML logic NOT yet executed -> live detection is partial.`);
+console.log(`  fired on this scene: ${fired.length}  (severe ${counts.severe} / warning ${counts.warning} / info ${counts.info})`);
+for (const f of fired) console.log(`     [${f.level.toUpperCase()}] (${f.category}) ${f.name}${f.problem ? " — " + f.problem.slice(0, 70) : ""}`);
+console.log(`  wrote out/conflicts.json (catalog + classification + any fired)`);
