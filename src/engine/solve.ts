@@ -334,20 +334,56 @@ for (let pass = 0; pass < 20; pass++) {
     if (totalViol() > base - 0.5) for (const [id, m] of snap) world.set(id, m);
     fixed.add(best!);
   }
-  // (3) grid snap: build per-axis grid lines from the anchor block, quantize every part to them
-  if (fixed.size > 1 || true) {
-    const anchorBlock = parts.filter((p) => world.has(p.id) && find(p.id) === find(anchor.id));
-    const lines = (vals: number[], tol: number): number[] => { const s = [...vals].sort((a, b) => a - b); const L: number[] = []; let g: number[] = []; for (const v of s) { if (g.length && v - g[g.length - 1] > tol) { L.push(g.reduce((a, x) => a + x, 0) / g.length); g = []; } g.push(v); } if (g.length) L.push(g.reduce((a, x) => a + x, 0) / g.length); return L; };
-    const ax = lines(anchorBlock.map((p) => getTranslation(world.get(p.id)!)[0]), 5);
-    const ay = lines(anchorBlock.map((p) => getTranslation(world.get(p.id)!)[1]), 5);
-    const az = lines(anchorBlock.map((p) => getTranslation(world.get(p.id)!)[2]), 5);
-    const nearest = (v: number, L: number[], tol: number) => { let b = v, bd = tol; for (const x of L) { const d = Math.abs(v - x); if (d < bd) { bd = d; b = x; } } return b; };
-    const base = totalViol();
-    const anchorRoot = find(anchor.id);
-    const before = new Map(parts.filter((p) => world.has(p.id)).map((p) => [p.id, world.get(p.id)!]));
-    // snap only the non-anchor blocks — the anchor block is already exact, so leave it untouched
-    for (const p of parts) { if (!world.has(p.id) || find(p.id) === anchorRoot) continue; const W = world.get(p.id)!.slice(); const t = getTranslation(W); W[3] = nearest(t[0], ax, 20); W[7] = nearest(t[1], ay, 20); W[11] = nearest(t[2], az, 20); world.set(p.id, W); }
-    if (totalViol() > base + 0.5) for (const [id, m] of before) world.set(id, m); // grid snap made it worse -> revert
+  // (3) lattice regularization: USM is an axis-aligned grid — every tube is exactly horizontal or
+  // vertical. Walk the ball<->ball graph (through tubes) from a seed in the anchor block; for each
+  // tube snap its direction to the nearest axis (keeping length), re-deriving every ball position on a
+  // clean lattice. A ball that sat ~2cm off made its tube lean -> the SHEAR; snapping the tube to its
+  // axis removes it. Then re-place the non-ball parts onto the gridded balls. Near-diagonal tubes
+  // (angled shelves) are left alone. Guarded by total violation so it can't regress P1/P2.
+  {
+    const isBall = (t: string) => /^kugel/.test(t);
+    const isTube = (t: string) => /^(rohr|gewrohr|fraesrohr|gewhilfsrohr|kurzrohr)/.test(t);
+    const ballAdj = new Map<string, { other: GPart }[]>();
+    for (const p of parts) {
+      if (!world.has(p.id) || !isTube(p.type)) continue;
+      const balls = adj.get(p.id)!.filter((e) => world.has(e.them.id) && isBall(e.them.type)).map((e) => e.them);
+      for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
+        (ballAdj.get(balls[i].id) ?? ballAdj.set(balls[i].id, []).get(balls[i].id)!).push({ other: balls[j] });
+        (ballAdj.get(balls[j].id) ?? ballAdj.set(balls[j].id, []).get(balls[j].id)!).push({ other: balls[i] });
+      }
+    }
+    const snapAxis = (v: Vec3): Vec3 => { const len = Math.hypot(v[0], v[1], v[2]); if (len < 1e-6) return v; const n: Vec3 = [v[0] / len, v[1] / len, v[2] / len]; const a = [Math.abs(n[0]), Math.abs(n[1]), Math.abs(n[2])]; const k = a[0] >= a[1] && a[0] >= a[2] ? 0 : a[1] >= a[2] ? 1 : 2; if (a[k] < 0.97) return n; const o: Vec3 = [0, 0, 0]; o[k] = Math.sign(n[k]) || 1; return o; };
+    const seed = parts.find((p) => world.has(p.id) && isBall(p.type) && find(p.id) === find(anchor.id));
+    if (seed && ballAdj.size) {
+      const gpos = new Map<string, Vec3>(); gpos.set(seed.id, getTranslation(world.get(seed.id)!));
+      const q: GPart[] = [seed]; const seen = new Set([seed.id]);
+      while (q.length) {
+        const a = q.shift()!; const ga = gpos.get(a.id)!, ta = getTranslation(world.get(a.id)!);
+        for (const { other } of ballAdj.get(a.id) ?? []) {
+          if (seen.has(other.id)) continue; seen.add(other.id);
+          const to = getTranslation(world.get(other.id)!); const d: Vec3 = [to[0] - ta[0], to[1] - ta[1], to[2] - ta[2]];
+          const len = Math.hypot(d[0], d[1], d[2]); const ax = snapAxis(d);
+          gpos.set(other.id, [ga[0] + ax[0] * len, ga[1] + ax[1] * len, ga[2] + ax[2] * len]);
+          q.push(other);
+        }
+      }
+      const base = totalViol();
+      const before = new Map(parts.filter((p) => world.has(p.id)).map((p) => [p.id, world.get(p.id)!]));
+      for (const p of parts) { if (!world.has(p.id) || !isBall(p.type)) continue; const g = gpos.get(p.id); if (!g) continue; const W = world.get(p.id)!.slice(); W[3] = g[0]; W[7] = g[1]; W[11] = g[2]; world.set(p.id, W); }
+      for (let pass = 0; pass < 20; pass++) {
+        let changed = 0;
+        for (const p of parts) {
+          if (p === anchor || !world.has(p.id) || isBall(p.type)) continue;
+          const placed = adj.get(p.id)!.filter((e) => world.has(e.them.id));
+          if (!placed.length) continue;
+          let best = world.get(p.id)!, bestS = score(p, best, placed, world);
+          for (const e of placed) for (const c of candidatesFor(p, e, world)) { const s = score(p, c, placed, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
+          if (best !== world.get(p.id)) { world.set(p.id, best); changed++; }
+        }
+        if (!changed) break;
+      }
+      if (totalViol() > base * 1.5 + 5) for (const [id, m] of before) world.set(id, m); // catastrophic -> revert
+    }
   }
 }
 
