@@ -89,12 +89,16 @@ for (const p of parts) {
   for (const d of p.docks) {
     const partner = byDockId.get(d.partner);
     if (!partner) { noPartner.set(p.type, (noPartner.get(p.type) ?? 0) + 1); continue; }
-    const myF = frameOf(p.type, d.type, d.index), theirF = frameOf(partner.p.type, partner.type, partner.index);
+    let myF = frameOf(p.type, d.type, d.index), theirF = frameOf(partner.p.type, partner.type, partner.index);
     if (!myF || !theirF) {
+      // No dock frame declared in any componentsystem.xml. This happens for sub-components (handles
+      // griff_*, volcontconnector) that are framed inside parts/*.xml, not at the top level. Rather
+      // than drop the part, fall back to an identity frame at the dock origin: the learned per-dock-
+      // pair mate (from saved transforms) absorbs the true offset, so the part still places relative
+      // to its framed partner. Counted so the report stays honest about which frames were assumed.
       unframed++;
-      if (!myF) missFrame.set(`${p.type}:${d.type}#${d.index}`, (missFrame.get(`${p.type}:${d.type}#${d.index}`) ?? 0) + 1);
-      if (!theirF) missFrame.set(`${partner.p.type}:${partner.type}#${partner.index}`, (missFrame.get(`${partner.p.type}:${partner.type}#${partner.index}`) ?? 0) + 1);
-      continue;
+      if (!myF) { missFrame.set(`${p.type}:${d.type}#${d.index}`, (missFrame.get(`${p.type}:${d.type}#${d.index}`) ?? 0) + 1); myF = { dockType: d.type, index: d.index, t: [0, 0, 0], r: ["0", "0", "0"] }; }
+      if (!theirF) { missFrame.set(`${partner.p.type}:${partner.type}#${partner.index}`, (missFrame.get(`${partner.p.type}:${partner.type}#${partner.index}`) ?? 0) + 1); theirF = { dockType: partner.type, index: partner.index, t: [0, 0, 0], r: ["0", "0", "0"] }; }
     }
     es.push({ myF, them: partner.p, theirF });
   }
@@ -241,7 +245,7 @@ for (const p of parts) {
 
 console.log("=== PLACEMENT SOLVER vs P'X5 (dock-frame composition, M=identity, euler XYZ) ===");
 const unreached = parts.filter((p) => !world.has(p.id));
-console.log(`  parts: ${parts.length}   placed by solver: ${world.size}   unreachable: ${unreached.length}   unframed docks skipped: ${unframed}`);
+console.log(`  parts: ${parts.length}   placed by solver: ${world.size}   unreachable: ${unreached.length}   dock frames assumed identity (sub-components): ${unframed}`);
 console.log(`  VCML dock rotations evaluated: ${vcmlOk} ok / ${vcmlFail} fail`);
 // Honest score: a part the solver could not place counts as a MISS, not as excluded. Denominator = all parts (excl. anchor).
 const allN = parts.length - 1;
