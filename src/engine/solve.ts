@@ -343,13 +343,18 @@ for (let pass = 0; pass < 20; pass++) {
   {
     const isBall = (t: string) => /^kugel/.test(t);
     const isTube = (t: string) => /^(rohr|gewrohr|fraesrohr|gewhilfsrohr|kurzrohr)/.test(t);
-    const ballAdj = new Map<string, { other: GPart }[]>();
+    const ballAdj = new Map<string, { other: GPart; len: number }[]>();
     for (const p of parts) {
       if (!world.has(p.id) || !isTube(p.type)) continue;
       const balls = adj.get(p.id)!.filter((e) => world.has(e.them.id) && isBall(e.them.type)).map((e) => e.them);
+      if (balls.length < 2) continue;
+      // EXACT ball-to-ball spacing = the tube's nominal length: rohr350->35.00cm, rohr750->75.00cm,
+      // etc. (verified on the 100%-correct config, zero variance). Use it instead of the measured
+      // distance so the lattice walk doesn't accumulate the seam tube's small length error.
+      const m = p.type.match(/(\d{2,4})/); const len = m ? Number(m[1]) / 10 : -1;
       for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
-        (ballAdj.get(balls[i].id) ?? ballAdj.set(balls[i].id, []).get(balls[i].id)!).push({ other: balls[j] });
-        (ballAdj.get(balls[j].id) ?? ballAdj.set(balls[j].id, []).get(balls[j].id)!).push({ other: balls[i] });
+        (ballAdj.get(balls[i].id) ?? ballAdj.set(balls[i].id, []).get(balls[i].id)!).push({ other: balls[j], len });
+        (ballAdj.get(balls[j].id) ?? ballAdj.set(balls[j].id, []).get(balls[j].id)!).push({ other: balls[i], len });
       }
     }
     const snapAxis = (v: Vec3): Vec3 => { const len = Math.hypot(v[0], v[1], v[2]); if (len < 1e-6) return v; const n: Vec3 = [v[0] / len, v[1] / len, v[2] / len]; const a = [Math.abs(n[0]), Math.abs(n[1]), Math.abs(n[2])]; const k = a[0] >= a[1] && a[0] >= a[2] ? 0 : a[1] >= a[2] ? 1 : 2; if (a[k] < 0.97) return n; const o: Vec3 = [0, 0, 0]; o[k] = Math.sign(n[k]) || 1; return o; };
@@ -359,11 +364,11 @@ for (let pass = 0; pass < 20; pass++) {
       const q: GPart[] = [seed]; const seen = new Set([seed.id]);
       while (q.length) {
         const a = q.shift()!; const ga = gpos.get(a.id)!, ta = getTranslation(world.get(a.id)!);
-        for (const { other } of ballAdj.get(a.id) ?? []) {
+        for (const { other, len } of ballAdj.get(a.id) ?? []) {
           if (seen.has(other.id)) continue; seen.add(other.id);
           const to = getTranslation(world.get(other.id)!); const d: Vec3 = [to[0] - ta[0], to[1] - ta[1], to[2] - ta[2]];
-          const len = Math.hypot(d[0], d[1], d[2]); const ax = snapAxis(d);
-          gpos.set(other.id, [ga[0] + ax[0] * len, ga[1] + ax[1] * len, ga[2] + ax[2] * len]);
+          const useLen = len > 0 ? len : Math.hypot(d[0], d[1], d[2]); const ax = snapAxis(d);
+          gpos.set(other.id, [ga[0] + ax[0] * useLen, ga[1] + ax[1] * useLen, ga[2] + ax[2] * useLen]);
           q.push(other);
         }
       }
