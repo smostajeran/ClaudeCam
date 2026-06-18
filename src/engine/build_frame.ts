@@ -58,17 +58,21 @@ export function buildFrame(p: PathP): BuildResult {
   if ((p.baseSupport ?? "feet") === "feet") for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) parts.push({ id: id(), type: "hallerfuss", pos: [xs[i], ys[k], 0], quat: [0, 0, 0, 1] });
 
   // panels per cell (default closed-box: back/top/bottom/left/right)
+  // Default blech lies in XY with normal +Z. Orient each face's normal: back->+Y (RotX -90),
+  // top/bottom stay +Z, sides->±X (RotY ±90). Both the quad corners AND the quat encode orientation,
+  // so renderers that use either path draw the panel in the correct plane.
+  const Q_BACK: Q = [-SQRT1_2, 0, 0, SQRT1_2], Q_FLAT: Q = [0, 0, 0, 1], Q_LEFT: Q = [0, SQRT1_2, 0, SQRT1_2], Q_RIGHT: Q = [0, -SQRT1_2, 0, SQRT1_2];
   const cellType = (c: number, r: number) => p.cells?.find((x) => x.col === c && x.row === r)?.type ?? "closed";
-  const quad = (type: string, corners: V3[]) => parts.push({ id: id(), type, pos: [(corners[0][0] + corners[2][0]) / 2, (corners[0][1] + corners[2][1]) / 2, (corners[0][2] + corners[2][2]) / 2], quat: [0, 0, 0, 1], quad: corners });
+  const quad = (type: string, q: Q, corners: V3[]) => parts.push({ id: id(), type, pos: [(corners[0][0] + corners[2][0]) / 2, (corners[0][1] + corners[2][1]) / 2, (corners[0][2] + corners[2][2]) / 2], quat: q, quad: corners });
   for (let i = 0; i < nC; i++) for (let j = 0; j < nR; j++) {
     if (cellType(i, j) === "open") continue;
     const x0 = xs[i], x1 = xs[i + 1], z0 = zs[j], z1 = zs[j + 1], y0 = ys[0], y1 = ys[1];
     const w = cols[i], h = rows[j];
-    quad(`blech${h}_${w}`, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]]);   // back
-    quad(`blech${depth}_${w}`, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]); // top
-    quad(`blech${depth}_${w}`, [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]]); // bottom
-    quad(`blech${h}_${depth}`, [[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]]); // left
-    quad(`blech${h}_${depth}`, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]]); // right
+    quad(`blech${h}_${w}`, Q_BACK, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]]);     // back   (h x w)
+    quad(`blech${depth}_${w}`, Q_FLAT, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]); // top    (depth x w)
+    quad(`blech${depth}_${w}`, Q_FLAT, [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]]); // bottom (depth x w)
+    quad(`blech${depth}_${h}`, Q_LEFT, [[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]]); // left   (depth x h)
+    quad(`blech${depth}_${h}`, Q_RIGHT, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]]); // right  (depth x h)
   }
   return { parts, issues };
 }
