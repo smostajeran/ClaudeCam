@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<componentsystem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/co/componentsystem.xsd">
+	<component type="ct_primo_package">
+	  
+	<component type="ct_primo">
+		<component type="ct_primo_zubehoer">
+		  <component type="co_primo_verbinder"/>
+		  <component type="ct_primo_deckel">
+		     <component type="co_primo_deckel"/>
+		  </component>
+		</component>
+		
+		<component type="ct_primo_panel">
+		  <component type="ct_primo_core" comment="Background Komponenten für Docking und Info-Aggregation + Testkommentar">
+			  <component type="co_panel_docking">
+		      <dock index="1" type="left_2_right" assemblydepended="true">
+		        <translation x="0" y="0" z="0"/>
+		        <rotation x="0" y="0" z="0"/>
+		      </dock>
+		      <dock index="1" type="right_2_next" assemblydepended="true" eval_active_expr="partfeaturechange">
+	          <translation x="my x = Feature('f_primoPanelBreite');
+                            my screen = null;
+                            my panel = Parent('mainstructure',part);
+                            if (panel) {
+                              screen = ChildWithId(panel,'row-1');
+                            }
+                            if (screen) {
+                              if (call createPanelEckVerbinder(screen,1,'all')) {
+                                x = x + 3;
+                              }
+                            }
+                            return x;" 
+                         y="0" 
+                         z="0"/>
+	          <rotation x="0" y="0" z="0"/>
+	        </dock>
+	        <dock index="1" type="right_2_back">
+	          <translation x="Feature('f_primoPanelBreite') + 1.9;" y="1.1" z="0"/>
+	          <rotation x="0" y="0" z="90"/>
+	        </dock>
+	        <dock index="1" type="right_2_front">
+	          <translation x="Feature('f_primoPanelBreite') + 1.9;" y="-1.1" z="0"/>
+	          <rotation x="0" y="0" z="-90"/>
+	        </dock>
+	      </component>
+	      <component type="ct_wand">
+		      <component type="co_panel_wand"  comment="Dummy fuer Vermassung">
+	           <dock type="measuredock" index="0">
+	              <translation x="0" y="0" z="0"/>
+	           </dock>
+	           <dock type="measuredock" index="1">
+	              <translation x="0" y="0" z="4"/>
+	           </dock>
+	           <dock type="measuredock" index="2">
+	              <translation x="0" y="0" z="Number(Feature('f_wandMaxHoehe')) + 4;"/>
+	           </dock>
+	           <dock type="measuredock" index="3">
+	              <translation x="Feature('f_wandMaxLaenge');" y="0" z="Number(Feature('f_wandMaxHoehe')) + 4;"/>
+	           </dock>
+		      </component>
+		      <component type="co_symbol_wand"  comment="Dummy fuer Symbolrep">
+          </component>
+	      </component>
+      </component> 
+      <component type="ct_primo_panel_zubehoer">
+      <component type="ct_fuss">
+        <component type="ct_primo_fussplatte">
+	        <component type="co_primo_fussplatte_klein"/>
+		      <component type="co_primo_fussplatte_gross"/>
+	      </component>
+	      <component type="co_primo_nivellierfuss"></component>
+      </component>
+      <component type="ct_verbinder">
+        <component type="co_primo_eckverbinder"></component>
+        <component type="co_primo_eckverbinder_zapfen"></component>
+      </component>
+      <component type="ct_organisation">
+         <attribute typeref="hoehe" value="35"/>
+         <component type="ct_org_25">
+            <attribute typeref="breite" value="25"/>
+         </component>
+          <component type="ct_org_75">
+            <attribute typeref="breite" value="75"/>
+	        </component>
+      </component>
+     </component>
+	</component>
+		
+		<component type="ct_primo_tischblende">
+		  <component type="ct_primo_tischblende_core">
+      <component type="co_primo_dummy">
+        <feature key="Mounted" value="false"/>
+        <dock index="1" type="primoblende_2_tisch" active="GetCartridge(part) eq 'usm_hallertisch';">
+          <translation x="0" y="0" z="my z = -10; 
+                                      if (Feature('f_primoHalterVariante') eq 'advanced') {
+                                        z = -10.7;
+                                      }z;"/>
+        </dock>
+        <dock index="1" type="primoblende_2_kitostisch" active="GetCartridge(part) eq 'usm_kitos';">
+          <translation x="0" y="0" z="-10"/>
+        </dock>
+      </component>
+      <component type="co_primo_seitenblenden_dummy">
+        <dock index="1" type="primoseitenblende_2_primoblende" active="GetCartridge(part) eq 'usm_hallertisch';">
+          <translation x="Feature('f_primoBlendenBreite')/2;" y="0" z="0"/>
+        </dock>
+      </component>
+      </component>
+      <component type="ct_primo_blendenhalter">
+	      <component type="co_primo_blendenhalter"/>
+	      <component type="co_primo_blendenhalter_adv"/>
+	      <component type="co_primo_blendenhalter_universal"/>
+	      <component type="co_primo_blendenhalter_universal_kitos"/>
+      </component>
+    </component>
+		
+		<component type="ct_primo_screen">
+		  <attribute typeref="tiefe" value="3"/>
+		  <component type="ct_screen_35">
+		    <attribute typeref="hoehe" value="35"/>
+		    <component type="ct_screen_25">
+		      <attribute typeref="breite" value="25"/>
+				  <component type="co_screen_25">
+				    <collisionbox groupid="tischblende" posx="3" posy="-1" posz="1" sizex="19" sizey="5"  sizez="33" />
+				  </component>
+				  <component type="co_standingscreen_25">
+	           <collisionbox groupid="screen" posx="3" posy="-1" posz="1" sizex="19" sizey="2"  sizez="33" />
+	        </component>
+			  </component>
+			  <component type="ct_screen_75">
+			    <attribute typeref="breite" value="75"/>
+			    <component type="co_screen_75">
+			      <collisionbox groupid="tischblende" posx="3" posy="-1" posz="1" sizex="69" sizey="5"  sizez="33" />
+			    </component>
+				  <component type="co_standingscreen_75">
+				     <collisionbox groupid="screen" posx="3" posy="-1" posz="1" sizex="69" sizey="2"  sizez="33" />
+				  </component>
+			  </component>
+		  </component>
+		</component>
+		
+		
+		</component>	
+	</component>
+</componentsystem>

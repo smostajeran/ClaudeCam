@@ -1,0 +1,1496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<componentsystem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/co/componentsystem.xsd">
+	<component type="ct_addons">
+		<component type="co_dummy"/>
+		<component type="co_qs_article">
+			<dock index="1" type="qs_article_2_part"/>
+			<dock index="1" type="part_2_qs_article" active="false;" eval_active_expr="once"/>
+		</component>
+		<component type="ct_kabelkanal">
+			<component type="kabelkanalprofil">
+				<dock type="kanal2deckel" index="1">
+					<translation x="0" y="8.5" z="12.15"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock type="kanal2zarge" index="1">
+					<translation x="0" y="-3.7" z="5.3"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock type="kanal2traverse" index="1">
+					<translation x="0" y="-4.9" z="13.75"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock type="kanal2basis" index="1">
+					<translation x="0" y="-3.7" z="3.25"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<component type="kabelkanalprofil_750">
+					<dock type="kanal2befestigung" index="1">
+						<translation x="-17" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="2">
+						<translation x="17" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="3">
+						<translation x="-8.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="4">
+						<translation x="8.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="kabelkanalprofil_900">
+					<dock type="kanal2befestigung" index="1">
+						<translation x="-11" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="2">
+						<translation x="11" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="kabelkanalprofil_1000">
+					<dock type="kanal2befestigung" index="1">
+						<translation x="-24.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="2">
+						<translation x="24.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="kabelkanalprofil_1250">
+					<dock type="kanal2befestigung" index="1">
+						<translation x="-42" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="2">
+						<translation x="42" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="kabelkanalprofil_1500">
+					<dock type="kanal2befestigung" index="1">
+						<translation x="-54.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="2">
+						<translation x="54.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="3">
+						<translation x="-20.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="4">
+						<translation x="-37.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="5">
+						<translation x="37.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="6">
+						<translation x="20.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="kabelkanalprofil_1750">
+					<dock type="kanal2befestigung" index="1">
+						<translation x="-67.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="2">
+						<translation x="67.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="3">
+						<translation x="-37.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="4">
+						<translation x="-50" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="5">
+						<translation x="50" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="6">
+						<translation x="37.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="kabelkanalprofil_2000">
+					<dock type="kanal2befestigung" index="1">
+						<translation x="-79.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="kanal2befestigung" index="2">
+						<translation x="79.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+			</component>
+			<component type="kabelkanaldeckel">
+				<dock type="deckel2kanal" index="1">
+					<translation x="0" y="8.5" z="-0.5025"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<component type="ct_kabelkanaldeckel_kurz">
+					<component type="kabelkanaldeckel_750"/>
+					<component type="kabelkanaldeckel_900"/>
+				</component>
+				<component type="ct_kabelkanaldeckel_lang">
+					<component type="kabelkanaldeckel_1000"/>
+					<component type="kabelkanaldeckel_1250"/>
+					<component type="kabelkanaldeckel_1500"/>
+					<component type="kabelkanaldeckel_1750"/>
+					<component type="kabelkanaldeckel_2000"/>
+				</component>
+			</component>
+			<component type="kabelkanalbefestigung">
+				<component type="kabelkanalbef_hallertisch">
+					<dock type="befestigung2kanal" index="1" eval_transform_expr="partfeaturechange">
+						<translation x="my rohr= FindPart('kabelkanalprofil', 'traverse','eckverbinder','kitos_aufbaurohr');
+my b= rohr ?  Parent('mainstructure', rohr) :0;
+my t= b ? ChildOfTypeDeep(b, 'traverse') : 0;
+my sym= t ? Feature(t, 'Symetrie') : '';
+my turn= t ? Feature(t, 'Turn') : '' ;
+((sym EQ 'L' AND turn EQ 'V') OR (sym EQ 'R' AND turn EQ 'H')) ? -7.5 : ((sym EQ 'R' AND turn EQ 'V') OR (sym EQ 'L' AND turn EQ 'H')) ? 7.5 : 0;" y="3.7" z="-7.75"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<collisionbox groupid="10" posx="-2.500000" posy="-1.893510" posz="-8.549800" sizex="5.000000" sizey="10.093510" sizez="11.699800"/>
+				</component>
+				<component type="kabelkanalbef_kitos_basis">
+					<dock type="befestigung2kanal" index="1" eval_transform_expr="partfeaturechange">
+						<translation x="my rohr= FindPart('kabelkanalprofil', 'traverse','eckverbinder','kitos_aufbaurohr');
+my b= rohr ?  Parent('mainstructure', rohr) :0;
+my t= b ? ChildOfTypeDeep(b, 'traverse') : 0;
+my sym= t ? Feature(t, 'Symetrie') : '';
+my turn= t ? Feature(t, 'Turn') : '' ;
+((sym EQ 'L' AND turn EQ 'V') OR (sym EQ 'R' AND turn EQ 'H')) ? -7.5 : ((sym EQ 'R' AND turn EQ 'V') OR (sym EQ 'L' AND turn EQ 'H')) ? 7.5 : 0;" y="1.3" z="-1.3"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="befestigung2eckverbinder" index="1">
+						<translation x="0" y="-2" z="0"/>
+						<rotation x="0" y="0" z="180"/>
+					</dock>
+				</component>
+				<component type="kabelkanalbef_kitos_traverse">
+					<dock type="befestigung2kanal" index="1">
+						<translation x="my t= FindPart('traverse');
+my t= not t ? FindPart('kabelkanalprofil','traverse') : t;
+my parent= t ?  Parent('mainstructure', t) : 0;
+my isbasis= parent AND IsSubTypeOf(parent, 'basistraeger') ? true : false;
+my sym= t ? Feature(t, 'Symetrie') : '';
+my turn= t ? Feature(t, 'Turn') : '' ;
+((isbasis AND sym EQ 'L' AND turn EQ 'V') OR (isbasis AND sym EQ 'R' AND turn EQ 'H')) ? -7.5 : ((isbasis AND sym EQ 'R' AND turn EQ 'V') OR (isbasis AND sym EQ 'L' AND turn EQ 'H')) ? 7.5 : 0;" y="4.9" z="-13.75"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+			</component>
+		</component>
+		<component type="bodenelement">
+		  <collisionbox groupid="screen" posx="-1.0" posy="-1.0" posz="0" sizex="2" sizey="2" sizez="35" />
+			<component type="fuesse">
+				<component type="keinfuss">
+				  <attribute typeref="usedHallerE" value="true"/>
+					<dock type="fuss2kugel" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="-90" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="hallerfuss">
+				  <attribute typeref="usedHallerE" value="true"/>
+					<dock type="fuss2kugel" index="1">
+						<translation x="0" y="0" z="2"/>
+						<rotation x="-90" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="hallerfuss_klein">
+				  <attribute typeref="usedHallerE" value="true"/>
+					<dock type="fuss2kugel" index="1">
+						<translation x="0" y="0" z="2"/>
+						<rotation x="-90" y="0" z="0"/>
+					</dock>
+				</component>
+			</component>
+			<component type="rollen">
+				<dock type="rolle2kugel" index="1">
+					<translation x="0" y="0" z="6.9"/>
+					<rotation x="-90" y="0" z="0"/>
+				</dock>
+				<component type="hallerrolle"/>
+				<component type="hallerrolle_weich"/>
+				<component type="rolle_bremse"/>
+				<component type="rolle_bremse_weich"/>
+				<component type="hallerrolle_gross"/>
+				<component type="hallerrolle_gross_bremse"/>
+				<component type="hallerrolle_gross_2003">
+					<dock type="rolle2kugel" index="1">
+						<translation x="0" y="0" z="12.5"/>
+						<rotation x="-90" y="0" z="0"/>
+					</dock>
+					<dock type="grounddock" index="1">
+						<translation z="3.6"/>
+					</dock>
+				</component>
+				<component type="hallerrolle_gross_bremse_2003">
+					<dock type="rolle2kugel" index="1">
+						<translation x="0" y="0" z="12.5"/>
+						<rotation x="-90" y="0" z="0"/>
+					</dock>
+					<dock type="grounddock" index="1">
+						<translation z="3.6"/>
+					</dock>
+				</component>
+			</component>
+		</component>
+		<component type="haller_tischzubehoer">
+			<component type="lampen_zapfen">
+				<component type="lampenzapfen_bein"/>
+				<component type="lampenzapfen_13"/>
+				<component type="lampenzapfen_multiebene"/>
+			</component>
+			<component type="ct_universalhalter">
+				<component type="universalhalter_versetzt">
+					<dock type="hilfe2zarge" index="1">
+						<translation x="0" y="0" z="-2.93"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellring" index="0">
+						<translation x="0" y="-0.86" z="18"/>
+						<rotation x="0" y="0" z="180"/>
+					</dock>
+					<dock type="universalhalter2stellverbinder" index="4">
+						<translation x="0" y="-0.86" z="6"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellverbinder" index="5">
+						<translation x="0" y="-0.86" z="8"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellverbinder" index="6">
+						<translation x="0" y="-0.86" z="10"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellverbinder" index="7">
+						<translation x="0" y="-0.86" z="12"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellverbinder" index="8">
+						<translation x="0" y="-0.86" z="14"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellverbinder" index="9">
+						<translation x="0" y="-0.86" z="16"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellverbinder" index="10">
+						<translation x="0" y="-0.86" z="18"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<collisionbox groupid="10" posx="-5.000000" posy="-4.950000" posz="-4.500000" sizex="10.000000" sizey="8.199999" sizez="9.0"/>
+					<collisionbox groupid="10" posx="-1.25" posy="-1.5" posz="4.5" sizex="2.5" sizey="2.5" sizez="23.0"/>
+				</component>
+				<component type="ct_cpuset">
+					<component type="cputraeger_rohr">
+						<dock type="cputraeger_rohr2tischzarge" index="1" active="Feature('f_flip') eq 'no' ? TRUE:FALSE;" eval_active_expr="partfeaturechange">
+							<translation x="-0.6" y="0" z="-2.5"/>
+							<rotation x="0" y="0" z="-270"/>
+						</dock>
+						<dock type="cputraeger_rohr2tischzarge" index="2" active="Feature('f_flip') eq 'yes' ? TRUE:FALSE;" eval_active_expr="partfeaturechange">
+							<translation x="-0.6" y="0" z="-2.5"/>
+							<rotation x="0" y="0" z="-90"/>
+						</dock>
+						<dock type="cputraeger_rohr2cpuset" index="1">
+							<translation x="3.45" y="0" z="-7"/>
+							<rotation x="0" y="180" z="0"/>
+						</dock>
+						<dock type="cputraeger_rohr2traegerrohr" index="1" active="Feature('f_flip') eq 'no' ? TRUE:FALSE;" eval_active_expr="partfeaturechange">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="cputraeger_rohr2traegerrohr" index="2" active="Feature('f_flip') eq 'yes' ? TRUE:FALSE;" eval_active_expr="partfeaturechange">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<collisionbox groupid="10" posx="-1.830000" posy="-2.454350" posz="-54.865299" sizex="6.600130" sizey="5.000000" sizez="57.461658"/>
+					</component>
+					<component type="cpuset">
+						<dock type="measuredock" index="1">
+							<translation x="-20.25" y="-3" z="-0.5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="measuredock" index="2">
+							<translation x="20.25" y="-3" z="-0.5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="measuredock" index="3">
+							<translation x="20.25" y="20.5" z="-0.5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="measuredock" index="4">
+							<translation x="-20.25" y="20.5" z="-0.5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="measuredock" index="0">
+							<translation x="-20.25" y="-3" z="44.5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="measuredock" index="6">
+							<translation x="20.25" y="20.5" z="44.5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="cpuset2cputraeger_rohr" index="1">
+							<translation x="0" y="-1.35" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+			</component>
+			<component type="arm">
+				<component type="stellringarm">
+					<dock type="stellring2aufbaurohr" index="0">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="stellring2ttarm" index="0">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="ausleger_screen">
+					<dock type="ausleger2platte" index="0">
+						<translation x="-41.2" y="0.0" z="49.6"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+				</component>
+				<component type="schwenkarmhalter">
+					<dock type="hilfe2zarge" index="1">
+						<translation x="-5.1" y="0" z="-7"/>
+						<rotation x="0" y="0" z="-90"/>
+					</dock>
+					<dock type="schwenkarmhalter2rohr" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="schwenkarmverbinder">
+					<dock type="ttarm2stellring" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="verbinder2arm" index="0">
+						<translation x="-6.7" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+				</component>
+				<component type="flachschwenkarm">
+					<dock type="arm2verbinder" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="arm2kugel" index="0">
+						<translation x="-16.8" y="0.0" z="18.8"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+				</component>
+				<component type="flachschwenkarm_fix">
+					<dock index="0" type="ttarm2stellring">
+						<translation x="-25.7" y="0.0" z="-9.9"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock index="0" type="kugel2platte">
+						<translation x="1.75" y="0.0" z="-0.275"/>
+						<rotation x="0.0" y="0.0" z="180"/>
+					</dock>
+				</component>
+				<component type="buecher_stuetzenbuegel"/>
+				<component type="stellringnt">
+					<dock type="stellringnt2aufbaurohr" index="0">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="stellring2neigtraeger" index="0">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="schwenkkugel">
+					<dock type="kugel2arm" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="kugel2platte" index="0">
+						<translation x="-3.5" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+				</component>
+				<component type="stellring">			
+					<dock type="stellring2universalhalter" index="0">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="stellring2aufbaurohr" index="0">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="stellring2dzapfen" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="stellring2rohr" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="stellring2ttarm" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="stellring2neigtraeger" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="stellring2verbinder" index="1">
+						<translation x="0" y="2" z="0"/>
+						<rotation x="0" y="0" z="90"/>
+					</dock>
+					<dock type="stellring2verbinder" index="2">
+						<translation x="0" y="-2" z="0"/>
+						<rotation x="0" y="0" z="-90"/>
+					</dock>
+					<collisionbox groupid="stellring" posx="-1" posy="-1" posz="-0.5" sizex="2" sizey="2" sizez="1"/>
+				</component>
+			</component>
+			<component type="platte">
+				<component type="bildschirmplatte">
+					<dock type="platte2addon" index="1">
+						<translation x="0" y="0" z="8"/>
+					</dock>
+					<component type="bildschirmplatte_x">
+						<dock type="platte2addon" index="1">
+							<translation x="0" y="0" z="6"/>
+						</dock>
+						<component type="bildschirmplatte360x330">
+							<dock type="platte2schlitten" index="0">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<collisionbox groupid="10" posx="-24.250000" posy="-16.500000" posz="-2.250000" sizex="49.250000" sizey="33.000000" sizez="6.700000"/>
+						</component>
+						<component type="bildschirmplatte440x420">
+							<dock type="platte2schlitten" index="0">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="neigtraeger2stellring" index="0">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<collisionbox groupid="10" posx="-28.250000" posy="-21.000000" posz="-2.250000" sizex="57.250000" sizey="42.000000" sizez="6.700000"/>
+						</component>
+					</component>
+					<component type="bildschirmplatte_x_niv">
+						<component type="bildschirmplatte360x330niv">
+							<dock type="niv2schlitten" index="0">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="bildschirmplatte440x420niv">
+							<dock type="niv2schlitten" index="0">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+					<component type="bildschirmplatte_x_set">
+						<dock type="platte2addon" index="1">
+							<translation x="0" y="0" z="2.5"/>
+						</dock>
+						<component type="bildschirmplatte360x330set">
+							<dock type="neigtraeger2stellring" index="0">
+								<translation x="0" y="0" z="-0.05"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<collisionbox groupid="10" posx="-24.250000" posy="-16.500000" posz="-2.250000" sizex="49.250000" sizey="33.000000" sizez="6.700000"/>
+						</component>
+						<component type="bildschirmplatte440x420set">
+							<dock type="neigtraeger2stellring" index="0">
+								<translation x="0" y="0" z="-0.05"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<collisionbox groupid="10" posx="-28.250000" posy="-21.000000" posz="-2.250000" sizex="57.250000" sizey="42.000000" sizez="6.700000"/>
+						</component>
+					</component>
+				</component>
+				<component type="vesaplatte">
+					<component type="vesaplatte75">
+						<dock type="platte2kugel" index="0">
+							<translation x="3.5" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="schwenkarm2addon" index="0">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="vesaplatte100">
+						<dock type="platte2kugel" index="0">
+							<translation x="3.5" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="schwenkarm2addon" index="0">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+			</component>
+			<component type="aufbaurohr">
+				<dock type="rohr2halter" index="1">
+					<translation x="0" y="0" z="15"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock type="rohr2stellring" index="1">
+					<translation x="0" y="0" z="33"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<collisionbox groupid="cpu" posz="-10" posy="-5" sizez="20" posx="-5" sizey="10" sizex="10"/>
+			</component>
+			<component type="papierkorb">
+				<component type="papierkorb_o"/>
+				<component type="papierkorb_m"/>
+			</component>
+			<component type="ct_tischblende_parts">
+				<component type="ct_tischblende">
+				  <!-- Tische i -->
+				  <dock index="11" type="tischblende2halter" eval_transform_expr="once">
+              <translation x="-PartAttr(part,'laenge')/2 + 37.5;" y="0" z="0"/>
+          </dock>
+          <dock index="12" type="tischblende2halter" eval_transform_expr="once">
+              <translation x="PartAttr(part,'laenge')/2 - 37.5;" y="0" z="0"/>
+          </dock>
+          <dock index="1" type="tischblende2tisch_i">
+              <translation x="0" y="-5.5" z="-6"/>
+          </dock>
+					<component type="tischblende_master">
+					  <attribute typeref="laenge" value="75"/>
+						<dock index="1" type="tischblende2tisch75">
+							<translation x="0" y="-2.7" z="-8.4"/>
+						</dock>
+					</component>
+					<component type="tischblende_34x75">
+					  <attribute typeref="laenge" value="75"/>
+						<dock index="1" type="tischblende2tisch75">
+							<translation x="0" y="-2.7" z="-8.4"/>
+						</dock>
+						<!--hallertisch-->
+						<dock index="1" type="tischblende2halter">
+							<translation x="-20.0" y="-2.7" z="-6"/>
+						</dock>
+						<dock index="2" type="tischblende2halter">
+							<translation x="20.0" y="-2.7" z="-6"/>
+						</dock>
+						<collisionbox groupid="10" posx="-37.25" posy="-0.65" posz="0" sizex="74.5" sizey="1.3" sizez="34.0"/>
+						<collisionbox groupid="tischblende" posx="-37.25" posy="-0.65" posz="0" sizex="74.5" sizey="1.3" sizez="34.0"/>
+					</component>
+					<component type="tischblende_34x100">
+					  <attribute typeref="laenge" value="100"/>
+						<dock index="1" type="tischblende2tisch100">
+							<translation x="0" y="-2.7" z="-8.4"/>
+						</dock>
+						<!--hallertisch-->
+						<dock index="1" type="tischblende2halter">
+							<translation x="-37.5" y="-2.7" z="-6"/>
+						</dock>
+						<dock index="2" type="tischblende2halter">
+							<translation x="37.5" y="-2.7" z="-6"/>
+						</dock>
+						<collisionbox groupid="10" posx="-49.75" posy="-0.65" posz="0" sizex="99.5" sizey="1.3" sizez="34.0"/>
+						<collisionbox groupid="tischblende" posx="-49.75" posy="-0.65" posz="0" sizex="99.5" sizey="1.3" sizez="34.0"/>
+					</component>
+					<component type="tischblende_34x150">
+					  <attribute typeref="laenge" value="150"/>
+						<dock index="1" type="tischblende2tisch150">
+							<translation x="0" y="-2.7" z="-8.4"/>
+						</dock>
+						<!--hallertisch-->
+						<dock index="1" type="tischblende2halter">
+							<translation x="-45.0" y="-2.7" z="-6"/>
+						</dock>
+						<dock index="2" type="tischblende2halter">
+							<translation x="45.0" y="-2.7" z="-6"/>
+						</dock>
+						<!--kitos-->
+						<dock index="3" type="tischblende2halter">
+							<translation x="-37.5" y="0" z="0"/>
+						</dock>
+						<dock index="4" type="tischblende2halter">
+							<translation x="37.5" y="0" z="0"/>
+						</dock>
+						<dock index="5" type="tischblende2halter">
+							<translation x="-45.0" y="0" z="0"/>
+						</dock>
+						<dock index="6" type="tischblende2halter">
+							<translation x="45.0" y="0" z="0"/>
+						</dock>
+						<!--asymetrische Docks-->
+						<dock index="7" type="tischblende2halter">
+							<translation x="30.0" y="0" z="0"/>
+						</dock>
+						<dock index="8" type="tischblende2halter">
+							<translation x="-30.0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-74.75" posy="-0.65" posz="0" sizex="149.5" sizey="1.3" sizez="34.0"/>
+						<collisionbox groupid="tischblende" posx="-74.75" posy="-0.65" posz="0" sizex="149.5" sizey="1.3" sizez="34.0"/>
+					</component>
+					<component type="tischblende_34x175">
+					  <attribute typeref="laenge" value="175"/>
+						<dock index="1" type="tischblende2tisch175">
+							<translation x="0" y="-2.7" z="-8.4"/>
+						</dock>
+						<!--haller-->
+						<dock index="1" type="tischblende2halter">
+							<translation x="-50.0" y="-2.8" z="-6"/>
+						</dock>
+						<dock index="2" type="tischblende2halter">
+							<translation x="50.0" y="-2.8" z="-6"/>
+						</dock>
+						<!--kitos-->
+						<dock index="3" type="tischblende2halter">
+							<translation x="-45" y="0" z="0"/>
+						</dock>
+						<dock index="4" type="tischblende2halter">
+							<translation x="45" y="0" z="0"/>
+						</dock>
+						<dock index="5" type="tischblende2halter">
+							<translation x="-50.0" y="0" z="0"/>
+						</dock>
+						<dock index="6" type="tischblende2halter">
+							<translation x="50.0" y="0" z="0"/>
+						</dock>
+						<!--asymetrisch-->
+						<dock index="7" type="tischblende2halter">
+							<translation x="57.5" y="0" z="0"/>
+						</dock>
+						<dock index="8" type="tischblende2halter">
+							<translation x="-57.5" y="0" z="0"/>
+						</dock>
+						<dock index="9" type="tischblende2halter">
+							<translation x="42.5" y="0" z="0"/>
+						</dock>
+						<dock index="10" type="tischblende2halter">
+							<translation x="-42.5" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-87.25" posy="-0.65" posz="0" sizex="174.5" sizey="1.3" sizez="34.0"/>
+						<collisionbox groupid="tischblende" posx="-87.25" posy="-0.65" posz="0" sizex="174.5" sizey="1.3" sizez="34.0"/>
+					</component>
+					<component type="tischblende_34x200">
+					  <attribute typeref="laenge" value="200"/>
+						<dock index="1" type="tischblende2tisch200">
+							<translation x="0" y="-2.7" z="-8.4"/>
+						</dock>
+						<dock index="1" type="tischblende2halter">
+							<translation x="-50.0" y="-2.7" z="-6"/>
+						</dock>
+						<dock index="2" type="tischblende2halter">
+							<translation x="50.0" y="-2.7" z="-6"/>
+						</dock>
+						<collisionbox groupid="10" posx="-99.75" posy="-0.65" posz="0" sizex="199.5" sizey="1.3" sizez="34.0"/>
+						<collisionbox groupid="tischblende" posx="-99.75" posy="-0.65" posz="0" sizex="199.5" sizey="1.3" sizez="34.0"/>
+					</component>
+				</component>
+				<component type="ct_tischblendenhalter">
+					<component type="tischblende_universalhalter">
+						<dock index="1" type="halter2tischblende">
+							<translation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-2.500000" posy="-1.893510" posz="-4.603640" sizex="5.000000" sizey="6.725801" sizez="10.000000"/>
+					</component>
+					<component type="tischblende_aufbaurohrhalter">
+						<dock index="1" type="halter2tischblende">
+							<translation x="0" y="0" z="0"/>
+						</dock>
+						<dock index="1" type="aufbaurohrhalter2aufbaurohr">
+							<translation x="0" y="-0.05" z="-3.6"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-1.330400" posy="-1.350000" posz="-3" sizex="2.680400" sizey="2.700000" sizez="2"/>
+					</component>
+				</component>
+			</component>
+			<component type="kabelkanaldeckelausschnitt"/>
+		</component>
+		<component type="elektrifizierung">
+			<component type="steckdose_ch"/>
+			<component type="steckdose_d"/>
+			<component type="steckdose_m_ch"/>
+			<component type="steckdose_m_d"/>
+			<component type="kabelfuehrungs_set"/>
+			<component type="kabelhalter_set"/>
+			<component type="kabelwickler_set"/>
+			<component type="kabelfuehrung">
+				<component type="kabelfuehrung_8_kurz"/>
+				<component type="kabelfuehrung_8_250"/>
+				<component type="kabelfuehrung_8_350"/>
+				<component type="kabelfuehrung_8_500"/>
+				<component type="kabelfuehrung_8_750"/>
+				<component type="kabelfuehrung_20_250"/>
+				<component type="kabelfuehrung_20_350"/>
+				<component type="kabelfuehrung_20_500"/>
+				<component type="kabelfuehrung_20_750"/>
+			</component>
+			<component type="kabel_binder"/>
+			<component type="gliederketten_set_500"/>
+			<component type="gliederketten_set_750"/>
+			<component type="gliederketten_set_1100"/>
+			<component type="gliederketten_set_1400"/>
+			<component type="gliederkette_element"/>
+			<component type="gliederkette_schraubklemme"/>
+			<component type="gliederkette_endteil"/>
+			<component type="gliederkette_bodenplatte"/>
+		</component>
+		<component type="ct_dummy">
+			<component type="co_dummy45"/>
+			<component type="co_dummytischplatte"/>
+			<component type="co_dummytischborder"/>
+			<component type="co_dummyPoint"/>
+		</component>
+
+		<component type="ct_standalone">
+			<component type="ct_pflanzen">
+				<feature key="bbox" value="PartBoundingBox(part, '1000');"/>
+				<feature key="width" value="Feature('bbox')['extent']['x'];"/>
+				<feature key="depth" value="Feature('bbox')['extent']['y'];"/>
+				<feature key="height" value="Feature('bbox')['extent']['z'];"/>
+				<feature key="f_handle_line_color" value="EnvValue('HandleLineColor', '#fff236');"/>
+				<component type="co_pflanze_niedrig">
+					<dock type="pflanze2topf" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+				</component>
+				<component type="co_pflanze_normal">
+					<dock type="pflanze2topf" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+				</component>
+				<component type="co_pflanze_hoch">
+					<dock type="pflanze2topf" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+				</component>
+				<component type="co_pflanze_haengend">
+					<dock type="pflanze2topf" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+				</component>
+			</component>
+			<component type="ct_decoration">
+				<component type="co_generic_planer">
+					<dock index="1" type="addon2attacher">
+					</dock>
+					<dock index="1" type="grounddock">
+						<translation z="Feature('f_planer_ground_offset');"/>
+					</dock>
+				</component>
+				<component type="ct_ontop">
+					<component type="ct_onplatte">
+						<component type="bildschirm">
+							<dock type="addon2attacher" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="addon2attacherplatte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="flachbildschirm">
+							<dock type="addon2attacherplatte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="addon2attacher" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="flachbildschirmSM">
+							<dock type="addon2attacherplatte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="addon2attacher" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+					<component type="telefon">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="funktelefon">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="smartphone">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="tablet">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="projector">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="co_tvbox">
+						<dock type="addon2attacher" index="1">
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+						</dock>
+					</component>
+					<component type="co_minipc">
+						<dock type="addon2attacher" index="1">
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+						</dock>
+					</component>
+					<component type="tv">
+						<dock type="addon2attacher" index="1">
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+						</dock>
+					</component>
+					<component type="stereo">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="boxXL">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="boxSM">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="addon2attacherplatte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="fax">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="ct_flachbildschirm_an_schwenkarm">
+					<component type="flachbildschirm_an_schwenkarm">
+						<dock type="addon2schwenkarm" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="90"/>
+						</dock>
+					</component>
+					<component type="flachbildschirm_an_schwenkarmS">
+						<dock type="addon2schwenkarm" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="90"/>
+						</dock>
+					</component>					
+					</component>
+				<component type="laptop">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="tastatur">
+						<dock type="addon2attacher" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="90"/>
+						</dock>
+					</component>
+				</component>
+				<component type="ct_onfloor">
+					<component type="multidrucker02" />
+					<component type="kompaktdrucker"  comment="Legacy, nicht mehr benutzt"/>
+					<component type="cpu">
+						<dock index="1" type="addon2attacher">
+							<translation x="0" y="0" z="0" />
+							<rotation x="0" y="0" z="0" />
+						</dock>
+					</component>
+					<component type="stuehle">
+						<component type="besucherstuhl" />
+						<component type="besucherstuhl2" />
+						<component type="drehstuhlteile">
+							<component type="stuhl1_bottom">
+								<dock index="0" type="stuhl1bottom2top">
+									<translation x="0" y="0" z="20" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+							</component>
+							<component type="stuhl1_top">
+								<dock index="0" type="stuhl1top2bottom">
+									<translation x="0" y="0" z="20" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+							</component>
+							<component type="buerostuhl_top">
+								<dock index="0" type="stuhl1top2bottom">
+									<translation x="0" y="0" z="20" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+							</component>
+							<component type="buerostuhl_bottom">
+								<dock index="0" type="stuhl1bottom2top">
+									<translation x="0" y="0" z="20" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+							</component>
+						</component>
+						<component type="sofa">
+							<component type="corbi_sofa1" />
+							<component type="corbi_sofa2" />
+							<component type="corbi_sofa3" />
+							<component type="sofa02" />
+						</component>
+					</component>
+				</component>
+				<component type="ct_attacher">
+					<component type="attacher">
+						<dock type="addon2tisch" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="attacher2addon" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="co_generic_planer_attacher">
+						<dock type="addon2tisch" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="attacher2addon" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="attacherplatte">
+						<dock type="addon2platte" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="attacherplatte2addon" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+			</component>
+		</component>
+		<component type="addons_no_more_supported_parts">
+			<attribute typeref="deprecated" value="31.12.2009"/>
+			<component type="ttarm">
+				<component type="ttarm290">
+					<dock type="ttarm2stellring" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="ttarm2ttarm" index="0">
+						<translation x="29.0" y="0.0" z="1.5"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+				</component>
+				<component type="ttarm420">
+					<dock type="ttarm2stellring" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="ttarm2ttarm" index="0">
+						<translation x="42.0" y="0.0" z="1.5"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+				</component>
+				<component type="bildschirmschwenkarm420x50">
+					<dock type="ttarm2stellring" index="0">
+						<translation x="0.0" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+					<dock type="bildschirmschwenkarm2schlitten420x50" index="0">
+						<translation x="24.5" y="0.0" z="0.0"/>
+						<rotation x="0.0" y="0.0" z="0.0"/>
+					</dock>
+				</component>
+			</component>
+			<component type="ausleger_telefon">
+				<dock type="ausleger2platte" index="0">
+					<translation x="-41.2" y="0.0" z="49.6"/>
+					<rotation x="0.0" y="0.0" z="0.0"/>
+				</dock>
+			</component>
+			<component type="drehzapfen_multiebene">
+				<dock type="dzapfen2ebene" index="1">
+					<translation x="0" y="0" z="0"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock type="rohr2stellring" index="1">
+					<translation x="0" y="0" z="2.5"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+			</component>
+			<component type="haller_no_more_supported_parts">
+				<component type="cpu_ausleger">
+					<component type="cpu_ausleger300">
+						<dock type="cpu_ring2bein" index="0">
+							<translation x="0.0" y="0.0" z="0.0"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+					<component type="cpu_ausleger420">
+						<dock type="cpu_ring2bein" index="0">
+							<translation x="0.0" y="0.0" z="0.0"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+					<component type="bildschirmplattenschlitten">
+						<dock type="schlitten2platte" index="0">
+							<translation x="0.0" y="0.0" z="0.0"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+						<dock type="schlitten2traversenrohr" index="0">
+							<translation x="0.0" y="0.0" z="0.0"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+					<component type="cpu_halter">
+						<dock type="niv2schlitten" index="0">
+							<translation x="0.0" y="0.0" z="0.0"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+				</component>
+				<component type="ausleger_buegel"/>
+				<component type="cpuausleger">
+					<component type="cpuausleger420"/>
+					<component type="cpuausleger300"/>
+				</component>
+				<component type="cpuhalter">
+					<dock type="niv2schlitten" index="0">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+			</component>
+			<component type="ct_kitos">
+				<component type="telefonplatte">
+					<dock type="platte2addon" index="1">
+						<translation x="9" y="0" z="3"/>
+					</dock>
+					<component type="telefonplatte220x220">
+						<dock type="neigtraeger2stellring" index="0">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="telefonplatte280x186">
+						<dock type="neigtraeger2stellring" index="0">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+				<component type="telefonplatte_ausleger">
+					<component type="teleplatte_ausleger_186_280">
+						<dock type="neigtraeger2stellring" index="0">
+							<translation x="-40" y="0.0" z="49.6"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+					<component type="teleplatte_ausleger_220_220">
+						<dock type="neigtraeger2stellring" index="0">
+							<translation x="-40" y="0.0" z="50"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+					<component type="teleplatte_ausleger_280_280">
+						<dock type="neigtraeger2stellring" index="0">
+							<translation x="-40" y="0.0" z="49.6"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+				</component>
+				<component type="ct_platte">
+					<component type="ct_telefonplatte">
+						<dock type="platte2addon" index="1">
+							<translation x="0" y="0" z="1"/>
+						</dock>
+						<component type="telefonplatte220x220set">
+							<dock type="neigtraeger2stellring" index="0">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="telefonplatte280x186set">
+							<dock type="neigtraeger2stellring" index="0">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+				</component>
+				<component type="ct_arm">
+					<component type="290ttarm">
+						<dock type="ttarm2stellring" index="0">
+							<translation x="0.0" y="0.0" z="0.0"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+						<dock type="ttarm2ttarm" index="0">
+							<translation x="29.0" y="0.0" z="1.5"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+					<component type="420ttarm">
+						<dock type="ttarm2stellring" index="0">
+							<translation x="0.0" y="0.0" z="0.0"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+						<dock type="ttarm2ttarm" index="0">
+							<translation x="42.0" y="0.0" z="1.5"/>
+							<rotation x="0.0" y="0.0" z="0.0"/>
+						</dock>
+					</component>
+				</component>
+			</component>
+		</component>
+		<component comment="Zubehoer 2012" type="ct_accessoirs">
+			<component type="co_lampenzapfen_i">
+				<dock index="2" type="zubehoer_2_adaptionspunkt">
+					<translation x="0" y="0" z="-0.2" />
+					<rotation x="0" y="0" z="0" />
+				</dock>
+				
+			</component>
+			<component type="ct_bildschirmbuegel">
+				<dock index="1" type="buegel_2_tisch">
+					<translation x="0" y="0" z="0" />
+					<rotation x="0" y="0" z="0" />
+				</dock>
+				<dock amount="4" index="1" type="buegel_2_bildschirm_adaption">
+					<translation x="0" y="-5.5" z="30.1" />
+					<rotation x="-90" y="180" z="0" />
+				</dock>
+				<collisionbox groupid="buegel" posx="-PartAttr(part,'laenge')/2;" 
+				              posy="-2" posz="0" 
+				              sizex="PartAttr(part,'laenge');" sizey="4" sizez="30"/>
+				<component type="co_bildschirmbuegel_basic_630">
+					<attribute typeref="laenge" value="65" />
+				</component>
+				<component type="co_bildschirmbuegel_basic_880">
+					<attribute typeref="laenge" value="90" />	
+				</component>
+				<component type="co_bildschirmbuegel_basic_1130">
+					<attribute typeref="laenge" value="115" />
+				</component>
+			</component>
+			<component type="ct_bildschirmbuegel_flex">
+				<component type="co_buegel_fix">
+						<dock index="1" type="buegelflex_2_tisch">
+						<translation x="0" y="0" z="-7.2" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock index="1" type="fix_2_flex" />
+				  <collisionbox groupid="buegel" posx="-Feature('f_buegelbreite');" 
+				                posy="-2" posz="-7" 
+				                sizex="Feature('f_buegelbreite')*2;" sizey="4" sizez="9"/>
+			  </component>
+				<component type="co_buegel_flex">
+					<dock index="1" type="flex_2_fix" />
+					<dock index="1" type="buegel_2_bildschirm_adaption" eval_transform_expr="always">
+	          <translation x="-25" 
+	                       y="call flexBuegelDockPos(part,'y');" 
+	                       z="call flexBuegelDockPos(part,'z');" 
+	                       />
+	          <rotation x="-90 - GetDOFValue(DockGetConnectedDock(Dock('flex_2_fix')));" 
+	                    y="180" 
+	                    z="0"
+	                    />
+	        </dock>
+					<dock index="2" type="buegel_2_bildschirm_adaption" eval_transform_expr="always">
+	          <translation x="-10" 
+	                       y="call flexBuegelDockPos(part,'y');" 
+	                       z="call flexBuegelDockPos(part,'z');" 
+	                       />
+	          <rotation x="-90 - GetDOFValue(DockGetConnectedDock(Dock('flex_2_fix')));" 
+	                    y="180" 
+	                    z="0"
+	                    />
+	        </dock>
+					<dock index="3" type="buegel_2_bildschirm_adaption" eval_transform_expr="always">
+	          <translation x="5" 
+	                       y="call flexBuegelDockPos(part,'y');" 
+	                       z="call flexBuegelDockPos(part,'z');" 
+	                       />
+	          <rotation x="-90 - GetDOFValue(DockGetConnectedDock(Dock('flex_2_fix')));" 
+	                    y="180" 
+	                    z="0"
+	                    />
+	        </dock>
+					<dock index="4" type="buegel_2_bildschirm_adaption" eval_transform_expr="always">
+	          <translation x="20" 
+	                       y="call flexBuegelDockPos(part,'y');" 
+	                       z="call flexBuegelDockPos(part,'z');" 
+	                       />
+	          <rotation x="-90 - GetDOFValue(DockGetConnectedDock(Dock('flex_2_fix')));" 
+	                    y="180" 
+	                    z="0"
+	                    />
+	        </dock>
+					<dock index="5" type="buegel_2_bildschirm_adaption" eval_transform_expr="always">
+	          <translation x="35" 
+	                       y="call flexBuegelDockPos(part,'y');" 
+	                       z="call flexBuegelDockPos(part,'z');" 
+	                       />
+	          <rotation x="-90 - GetDOFValue(DockGetConnectedDock(Dock('flex_2_fix')));" 
+	                    y="180" 
+	                    z="0"
+	                    />
+	        </dock>
+	      </component>				
+			</component>
+			<component type="ct_bildschirmschwenkarm">
+				<component type="co_bildschirmschwenkarm_kugel">
+					<dock index="1" type="kugel_2_platte" />
+					<dock index="1" type="kugel_2_adapter">
+						<dof axis="y" type="rota">
+							<domain from="0" to="180" type="continuous" />
+						</dof>
+					</dock>
+				</component>
+				<component type="co_bildschirmschwenkarm_platte">
+					<dock index="1" type="platte_2_kugel">
+						<translation x="0" y="0" z="0" />
+						<rotation x="180" y="180" z="0" />
+					</dock>
+					<dock index="1" type="schwenkarm2addon">
+						<translation x="0" y="-4" z="4" />
+						<rotation x="90" y="0" z="-90" />
+					</dock>
+				</component>
+				<component type="co_bildschirmschwenkarm_adapter">
+					<dock index="1" type="adapter_2_kugel" />
+					<dock index="1" type="adapter_2_buegel" />
+				</component>
+				<component type="co_bildschirmschwenkarm_buegel">
+					<dock index="1" type="buegel_2_adapter" />
+					<dock index="2" type="zubehoer_2_adaptionspunkt">
+						<translation x="37.8" y="-33.5" z="0" />
+						<rotation x="-90" y="0" z="" />
+					</dock>
+					
+				</component>
+			</component>
+			<component type="ct_monitor_adapter_u_buegel">
+				<component type="co_schwenkkugel">
+					<dock index="1" type="kugel_2_platte" />
+					<dock index="1" type="kugel_2_adapter">
+						<dof axis="y" type="rota">
+							<domain from="-25" to="25" type="continuous" />
+						</dof>
+					</dock>
+				</component>
+				<component type="co_adapter">
+					<dock index="1" type="adapter_2_kugel" />
+					<dock index="1" type="bildschirm_adaption_2_buegel">
+						<translation x="0" y="0" z="0" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<collisionbox posx="0" posy="0" posz="0" sizex="10" sizey="10" sizez="10" />
+				</component>
+				<component type="co_platte">
+					<dock index="1" type="platte_2_kugel" />
+					<dock index="1" type="schwenkarm2addon">
+						<translation x="0" y="-4" z="4" />
+						<rotation x="90" y="0" z="-90" />
+					</dock>
+				</component>
+			</component>
+			<component type="co_aufbaublendenbefestigung">
+				<dock index="1" type="halter2tischblende">
+					<translation x="0" y="5.4" z="6.1" />
+				</dock>
+			</component>
+			<component type="co_aufbaurohr_bildschirmarm">
+				<dock index="2" type="zubehoer_2_adaptionspunkt">
+					<translation x="0" y="0" z="0" />
+					<rotation x="0" y="0" z="0" />
+				</dock>
+				<dock index="1" type="rohr2stellring">
+					<translation x="0" y="0" z="22.5" />
+					<rotation x="0" y="0" z="0" />
+				</dock>
+				<collisionbox groupid="cpu" posz="-10" posy="-5" sizez="20" posx="-5" sizey="10" sizex="10"/>
+			</component>
+			<component type="co_usb_halter">
+				<dock index="2" type="zubehoer_2_adaptionspunkt">
+					<translation x="0" y="0" z="0.1" />
+					<rotation x="0" y="0" z="0" />
+				</dock>
+			</component>
+			<component type="co_usb_c_halter">
+				<dock index="2" type="zubehoer_2_adaptionspunkt">
+					<translation x="0" y="0" z="0.1" />
+					<rotation x="0" y="0" z="0" />
+				</dock>
+			</component>
+		</component>
+		<component type="co_universalhalter_adapter" >
+			<dock index="1" type="adaptionspunkt_2_zubehoer">
+				<translation x="0" y="3.65" z="2.1" />
+				<rotation x="0" y="0" z="0" />
+			</dock>
+			<dock index="0" type="universalhalter2traversenrohr">
+				<translation x="0" y="0" z="2" />
+				<rotation x="180" y="180" z="0" />
+			</dock>
+					<dock type="hilfe2zarge" index="1">
+						<translation x="0" y="0" z="-0.5"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="universalhalter2stellring" index="0">
+						<translation x="0" y="-0.86" z="18"/>
+						<rotation x="0" y="0" z="180"/>
+					</dock>
+			<collisionbox groupid="10" posx="-2.5" posy="-1.94" posz="-2.6" sizex="5" sizey="7.1"
+				sizez="9.2" />
+		</component>	
+		<component type="ct_images">
+		  <component type="co_image_113x70">
+		    <dock index="1" type="addons_image_2_CCN_struct_WC_wall">
+		       <translation x="0" y="1" z="35"/>
+		    </dock>
+		  </component>
+		</component>
+		<component type="ct_gliederkette">
+			<feature key="Mounted" value="false"/>
+			<component type="co_gliederkette">
+				<feature key="f_basearticle" value="
+				my article = '15638';
+				my length = Feature('f_length');
+				if (length eq 1100) {
+					article = '14925';
+				} else
+				if (length eq 750) {
+					article = '14924';
+				} else
+				if (length eq 500) {
+					article = '14923';
+				};
+				article;
+				"/>
+				<feature key="f_setarticle" value="
+				my article = 'USM10419';
+				my length = Feature('f_length');
+				if (length eq 1100) {
+					article = 'USM10418';
+				} else
+				if (length eq 750) {
+					article = 'USM10417';
+				} else
+				if (length eq 500) {
+					article = 'USM10416';
+				};
+				article;
+				"/>
+				<dock index="1" type="kette2snapper" >
+					<translation x="0" y="0" z="0"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+			</component>
+			<component type="co_gliederkette_schraubklemme">
+				<feature key="f_basearticle" value="14927"/>
+			</component>
+			<component type="co_gliederkette_bodenplatte">
+				<feature key="f_basearticle" value="14936"/>
+				
+			</component>
+		  	<component type="co_kettensnapper">
+				<dock index="1" type="snapper2kette" >
+					<translation x="0" y="0" z="0"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock index="1" type="kette2kabelwanne" >
+					<translation x="0" y="0" z="Feature('f_height')/10;"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock index="1" type="kette2traegerrohr" >
+					<translation x="0" y="0" z="Feature('f_height')/10;"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock index="1" type="kette2zarge" >
+					<translation x="0" y="0" z="Feature('f_height')/10;"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+		  	</component>
+		</component>
+	</component>
+</componentsystem>
+

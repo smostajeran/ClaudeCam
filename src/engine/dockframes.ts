@@ -3,6 +3,8 @@
 // Rotation components may be literals or VCML expressions (e.g. "call dockRotationKugel(part,'x');").
 import { parseXmlFile, tagOf, attr, kids, byTag } from "../xml/parse.ts";
 import { SNX } from "../import/paths.ts";
+import { readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
 
 export interface DockFrame {
   dockType: string;
@@ -50,6 +52,32 @@ export function loadDockFrames(file = `${SNX}/cartridge/componentsystem.xml`): D
     const seen = new Set(existing.map((f) => f.dockType + "#" + f.index));
     for (const f of frames) if (!seen.has(f.dockType + "#" + f.index)) { existing.push(f); seen.add(f.dockType + "#" + f.index); }
     map.set(type, existing);
+  }
+  return map;
+}
+
+// Merge a source map into a target map, additively (first definition of a dockType#index wins).
+function mergeInto(target: DockFrameMap, src: DockFrameMap): void {
+  for (const [type, frames] of src) {
+    const existing = target.get(type) ?? [];
+    const seen = new Set(existing.map((f) => f.dockType + "#" + f.index));
+    for (const f of frames) if (!seen.has(f.dockType + "#" + f.index)) { existing.push(f); seen.add(f.dockType + "#" + f.index); }
+    target.set(type, existing);
+  }
+}
+
+// Load and merge dock frames from EVERY package under the packages root, not just hallerpackage.
+// USM splits component definitions across packages (feet/plants/handles live in addonspackage, etc.);
+// loading one package silently drops every part whose docks are defined elsewhere. hallerpackage is
+// loaded first so it wins for any shared type (in practice the type sets are disjoint).
+export function loadAllDockFrames(packagesRoot = join(SNX, "..")): DockFrameMap {
+  const map: DockFrameMap = new Map();
+  let dirs: string[] = [];
+  try { dirs = readdirSync(packagesRoot, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); } catch { /* root absent */ }
+  dirs.sort((a, b) => (a === "hallerpackage" ? -1 : b === "hallerpackage" ? 1 : a.localeCompare(b)));
+  for (const pkg of dirs) {
+    const file = join(packagesRoot, pkg, "cartridge", "componentsystem.xml");
+    if (existsSync(file)) mergeInto(map, loadDockFrames(file));
   }
   return map;
 }

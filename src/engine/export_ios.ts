@@ -67,7 +67,9 @@ export const identity = (type: string) => { const label = prettyName(type); retu
 
 // Convert a solved placement to the one52 iOS payload (own ids/labels + RealityKit transforms only).
 export function placementToRK(pl: any): any {
-  const parts = (pl.parts ?? []).map((p: any) => {
+  // Only ship parts the engine actually solved — unplaced parts are flagged (placed:false) and shown
+  // at a reference position in the internal viewer, but must never reach the app payload.
+  const parts = (pl.parts ?? []).filter((p: any) => p.placed !== false).map((p: any) => {
     const id = identity(p.type);
     return {
       id: p.id, part: id.part, label: id.label, family: id.family,

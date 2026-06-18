@@ -1,0 +1,1009 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<componentsystem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/co/componentsystem.xsd">
+	<component type="ct_display_component">
+		<!--Addons-->
+		<component type="ct_addonspackage" include="../../addonspackage/cartridge/componentsystem.xml"/>
+		<component type="display_component">
+			<component type="co_dummies">
+				<component type="co_dummy_scharnier"/>
+			</component>
+			<component type="co_h_verbindungsrohr">
+				<dock type="hvrohr2vdtraeger" index="1">
+					<translation x="-43.29" y="0" z="0"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+				<dock type="hvrohr2vdtraeger" index="2">
+					<translation x="43.29" y="0" z="0"/>
+					<rotation x="0" y="0" z="180"/>
+				</dock>
+				<collisionbox posx="-45" posz="-1" posy="-1" sizex="90" sizey="2" sizez="2" groupid="rohr"/>
+			</component>
+			<component type="co_warenhalter"/>
+			<component type="co_ringen">
+				<component type="co_scharnier">
+					<component type="co_scharnier_r">
+						<dock type="ptraeger2vdtraeger" index="1">
+							<translation x="0.35" y="-2.5" z="1.3"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+					</component>
+					<component type="co_scharnier_l">
+						<dock type="ptraeger2vdtraeger" index="1">
+							<translation x="1.65" y="-2.5" z="1.3"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+				<component type="co_abdeckring">
+					<dock type="ptraeger2vdtraeger" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+			</component>
+			<component type="co_paneeltraeger">
+				<dock type="ptraeger2vdtraeger" index="1">
+					<translation x="0" y="0" z="0"/>
+					<rotation x="0" y="0" z="0"/>
+				</dock>
+			</component>
+			<component type="co_paneelsicherung"/>
+			<component type="co_fuessen">
+				<component type="co_halbfuss">
+					<component type="co_halbfuss_kurz">
+						<dock type="measuredock" index="1">
+							<translation x="0" y="-19" z="0"/>
+						</dock>
+						<dock type="halbfuss2vdtraeger" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="halbfuss2fuss" index="1">
+							<translation x="0" y="-17.28" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<collisionbox groupid="global" posx="-2.2" posy="-4.4" posz="0" sizex="4.4" sizey="4.4" sizez="6"/>
+					</component>
+					<component type="co_halbfuss_lang">
+						<dock type="measuredock" index="1">
+							<translation x="0" y="-27" z="0"/>
+						</dock>
+						<dock type="halbfuss2vdtraeger" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="halbfuss2fuss" index="1">
+							<translation x="0" y="-25.29" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<collisionbox groupid="global" posx="-2.2" posy="-4.4" posz="0" sizex="4.4" sizey="4.4" sizez="6"/>
+					</component>
+				</component>
+				<component type="co_fuss">
+					<component type="co_nivellierfuss">
+						<dock type="measuredock" index="1"/>
+						<dock type="fuss2halbfuss" index="1">
+							<translation x="0" y="0" z="2"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="co_rolle">
+						<dock type="measuredock" index="1"/>
+						<component type="co_rolle_hart">
+							<dock type="rolle2halbfuss" index="1">
+								<translation x="0" y="0" z="6"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="co_rolle_weich">
+							<dock type="rolle2halbfuss" index="1">
+								<translation x="0" y="0" z="6"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+				</component>
+			</component>
+			<component type="co_paneele">
+				<component type="co_weisswandtafel">
+					<dock type="weisswand2vdtraeger" index="1">
+						<translation x="-32.96" y="2.8" z="129.56"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="weisswand2flipchart" index="1">
+						<translation x="0" y="-1.65" z="134.9"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<collisionbox posx="-45" posy="-3" posz="0" sizex="90" sizey="3" sizez="134" groupid="paneel"/>
+				</component>
+				<component type="co_interchangeable_panels">
+					<dock type="weisswand2flipchart" index="1">
+						<translation x="45" y="-1.6" z="45.1"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<component type="co_paneel_glas">
+						<dock type="panel2vdtraeger" index="1">
+							<translation x="1.6" y="2.8" z="39.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="1">
+							<translation x="11.6" y="2.8" z="84.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="2">
+							<translation x="11.6" y="2.8" z="129.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="0" posy="-3" posz="0" sizex="90" sizey="3" sizez="44" groupid="paneel"/>
+					</component>
+					<component type="co_paneel_std">
+						<dock type="panel2vdtraeger" index="1">
+							<translation x="1.6" y="2.8" z="39.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="1">
+							<translation x="11.6" y="2.8" z="84.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="2">
+							<translation x="11.6" y="2.8" z="129.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand_block" index="1">
+							<translation x="45" y="-1.65" z="0.1"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="0" posy="-3" posz="0" sizex="90" sizey="3" sizez="44" groupid="paneel"/>
+					</component>
+					<component type="co_paneel_perforiert">
+						<dock type="panel2vdtraeger" index="1">
+							<translation x="1.6" y="2.8" z="39.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="1">
+							<translation x="11.6" y="2.8" z="84.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="2">
+							<translation x="11.6" y="2.8" z="129.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="0" posy="-3" posz="0" sizex="90" sizey="3" sizez="44" groupid="paneel"/>
+					</component>
+					<component type="co_paneel_perforiert_ak">
+						<dock type="panel2vdtraeger" index="1">
+							<translation x="1.6" y="2.8" z="39.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="1">
+							<translation x="11.6" y="2.8" z="84.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="weisswand2vdtraeger" index="2">
+							<translation x="11.6" y="2.8" z="129.7"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="0" posy="-3" posz="0" sizex="90" sizey="3" sizez="44" groupid="paneel"/>
+					</component>
+				</component>
+			</component>
+			<component type="co_tablare">
+				<component type="co_tablar_schraeg">
+					<dock type="schraegtablar2schraegbuegel_l" index="1">
+						<translation x="-45.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="schraegtablar2schraegbuegel_r" index="2">
+						<translation x="45.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="180"/>
+					</dock>
+					<collisionbox posx="-45" posz="-15" posy="-14" sizex="90" sizey="28" sizez="30" groupid="tablare"/>
+				</component>
+				<component type="co_tablar">
+					<dock type="tablar2buegel_l" index="1">
+						<translation x="-43.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="tablar2buegel_r" index="2">
+						<translation x="43.5" y="0" z="0"/>
+						<rotation x="0" y="0" z="180"/>
+					</dock>
+					<collisionbox posx="-45" posz="-0.7" posy="-15" sizex="90" sizey="24" sizez="1.5" groupid="tablare"/>
+				</component>
+			</component>
+			<component type="co_buegeln">
+				<component type="co_buegel_norm">
+					<component type="co_buegel_klein">
+						<dock type="buegel2tablar_l" index="1">
+							<translation x="-2" y="-11" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="buegel2tablar_r" index="1">
+							<translation x="2" y="-11" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger" index="1">
+							<translation x="0" y="-2" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_second" index="1">
+							<translation x="0" y="-2" z="10"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="1">
+							<translation x="0" y="-2" z="5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="-1" posy="-25" posz="0" sizex="2" sizey="25" sizez="10" groupid="global"/>
+					</component>
+					<component type="co_buegel_klein_rotated">
+						<dock type="buegel2tablar_l" index="1">
+							<translation x="-2" y="-11" z="10"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="buegel2tablar_r" index="1">
+							<translation x="2" y="-11" z="10"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger" index="1">
+							<translation x="0" y="-2" z="10"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_second" index="1">
+							<translation x="0" y="-2" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="1">
+							<translation x="0" y="-2" z="5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="-1" posy="-25" posz="0" sizex="2" sizey="25" sizez="10" groupid="global"/>
+					</component>
+					<component type="co_buegel_gross_rotated">
+						<dock type="buegel2tablar_r" index="1">
+							<translation x="2" y="-11" z="30"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2tablar_l" index="1">
+							<translation x="-2" y="-11" z="30"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="buegel2vdtraeger" index="1">
+							<translation x="0" y="-2" z="30"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_second" index="1">
+							<translation x="0" y="-2" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="1">
+							<translation x="0" y="-2" z="5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="2">
+							<translation x="0" y="-2" z="10"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="3">
+							<translation x="0" y="-2" z="15"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="4">
+							<translation x="0" y="-2" z="20"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="5">
+							<translation x="0" y="-2" z="25"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="-1" posy="-25" posz="0" sizex="2" sizey="25" sizez="30" groupid="global"/>
+					</component>
+				</component>
+				<component type="co_buegel_schraeg">
+					<component type="co_buegel_gross">
+						<dock type="buegel2tablar_r" index="1">
+							<translation x="2" y="-11" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2tablar_l" index="1">
+							<translation x="-2" y="-11" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="schraegbuegel2schraegtablar_r" index="1">
+							<translation x="0" y="-14" z="16"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="schraegbuegel2schraegtablar_l" index="1">
+							<translation x="0" y="-14" z="16"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="buegel2vdtraeger" index="1">
+							<translation x="0" y="-2" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_second" index="1">
+							<translation x="0" y="-2" z="30"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="1">
+							<translation x="0" y="-2" z="25"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="2">
+							<translation x="0" y="-2" z="20"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="3">
+							<translation x="0" y="-2" z="15"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="4">
+							<translation x="0" y="-2" z="10"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="buegel2vdtraeger_block" index="5">
+							<translation x="0" y="-2" z="5"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox posx="-1" posy="-25" posz="0" sizex="2" sizey="25" sizez="30" groupid="global"/>
+					</component>
+				</component>
+			</component>
+			<component type="co_metall_frame_elements">
+				<component type="co_bildschiene">
+					<dock type="flipchart2weisswand" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="co_flipchart">
+					<dock type="flipchart2weisswand" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="ct_v_doppeltraeger_l">
+					<dock type="measuredock" index="1">
+						<translation x="2.53" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="measuredock" index="2">
+						<translation x="-2.53" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="measuredock" index="3">
+						<translation x="-2.53" y="0" z="186"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<component type="co_v_doppeltraeger_l_spez">
+						<dock type="vdtraeger2vdtraeger_l2r" index="1">
+							<translation x="-0.35" y="0" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="vdtraeger2vdtraeger_l2l_1_dof" index="1">
+							<translation x="2.2" y="2.5" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="vdtraeger2scharnier" index="1">
+							<translation x="1.85" y="0" z="56"/>
+							<rotation x="180" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2scharnier" index="2">
+							<translation x="1.85" y="0" z="181"/>
+							<rotation x="180" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="1">
+							<translation x="-0.35" y="-6.6" z="11"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="2">
+							<translation x="-0.35" y="-6.6" z="16"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="3">
+							<translation x="-0.35" y="-6.6" z="21"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="4">
+							<translation x="-0.35" y="-6.6" z="26"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="5">
+							<translation x="-0.35" y="-6.6" z="31"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="6">
+							<translation x="-0.35" y="-6.6" z="36"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="7">
+							<translation x="-0.35" y="-6.6" z="41"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="8">
+							<translation x="-0.35" y="-6.6" z="46"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="9">
+							<translation x="-0.35" y="-6.6" z="51"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="10">
+							<translation x="-0.35" y="-6.6" z="56"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="11">
+							<translation x="-0.35" y="-6.6" z="61"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="12">
+							<translation x="-0.35" y="-6.6" z="66"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="13">
+							<translation x="-0.35" y="-6.6" z="71"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="14">
+							<translation x="-0.35" y="-6.6" z="76"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="15">
+							<translation x="-0.35" y="-6.6" z="81"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="16">
+							<translation x="-0.35" y="-6.6" z="86"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="17">
+							<translation x="-0.35" y="-6.6" z="91"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="18">
+							<translation x="-0.35" y="-6.6" z="96"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="19">
+							<translation x="-0.35" y="-6.6" z="101"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="20">
+							<translation x="-0.35" y="-6.6" z="106"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="21">
+							<translation x="-0.35" y="-6.6" z="111"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="22">
+							<translation x="-0.35" y="-6.6" z="116"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="23">
+							<translation x="-0.35" y="-6.6" z="121"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="24">
+							<translation x="-0.35" y="-6.6" z="126"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="25">
+							<translation x="-0.35" y="-6.6" z="131"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="26">
+							<translation x="-0.35" y="-6.6" z="136"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="27">
+							<translation x="-0.35" y="-6.6" z="141"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="28">
+							<translation x="-0.35" y="-6.6" z="146"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="29">
+							<translation x="-0.35" y="-6.6" z="151"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="30">
+							<translation x="-0.35" y="-6.6" z="156"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="31">
+							<translation x="-0.35" y="-6.6" z="161"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="32">
+							<translation x="-0.35" y="-6.6" z="166"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="33">
+							<translation x="-0.35" y="-6.6" z="171"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="34">
+							<translation x="-0.35" y="-6.6" z="176"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="35">
+							<translation x="-0.35" y="-6.6" z="181"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="1">
+							<translation x="1.85" y="0" z="11"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="2">
+							<translation x="1.85" y="0" z="46"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="3">
+							<translation x="1.85" y="0" z="56"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="4">
+							<translation x="1.85" y="0" z="91"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="5">
+							<translation x="1.85" y="0" z="101"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="6">
+							<translation x="1.85" y="0" z="136"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="7">
+							<translation x="1.85" y="0" z="146"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="8">
+							<translation x="1.85" y="0" z="181"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="global" posx="0" posy="-2.675" posz="0" sizex="1.85" sizey="5.35" sizez="6"/>
+					</component>
+					<component type="co_v_doppeltraeger_l">
+						<dock type="vdtraeger2scharnier" index="1">
+							<translation x="1.85" y="0" z="56"/>
+							<rotation x="180" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2scharnier" index="2">
+							<translation x="1.85" y="0" z="181"/>
+							<rotation x="180" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2vdtraeger_l2l_1" index="1">
+							<translation x="2.2" y="-2.5" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2vdtraeger_l2l_2" index="1">
+							<translation x="2.2" y="2.5" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<dock type="vdtraeger2vdtraeger_l2r" index="1">
+							<translation x="-0.35" y="0" z="0"/>
+							<rotation x="0" y="0" z="180"/>
+						</dock>
+						<!-- Script generated dock list -->
+						<dock type="vdtraeger2buegel" index="1">
+							<translation x="-0.35" y="-6.6" z="11"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="2">
+							<translation x="-0.35" y="-6.6" z="16"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="3">
+							<translation x="-0.35" y="-6.6" z="21"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="4">
+							<translation x="-0.35" y="-6.6" z="26"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="5">
+							<translation x="-0.35" y="-6.6" z="31"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="6">
+							<translation x="-0.35" y="-6.6" z="36"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="7">
+							<translation x="-0.35" y="-6.6" z="41"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="8">
+							<translation x="-0.35" y="-6.6" z="46"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="9">
+							<translation x="-0.35" y="-6.6" z="51"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="10">
+							<translation x="-0.35" y="-6.6" z="56"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="11">
+							<translation x="-0.35" y="-6.6" z="61"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="12">
+							<translation x="-0.35" y="-6.6" z="66"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="13">
+							<translation x="-0.35" y="-6.6" z="71"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="14">
+							<translation x="-0.35" y="-6.6" z="76"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="15">
+							<translation x="-0.35" y="-6.6" z="81"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="16">
+							<translation x="-0.35" y="-6.6" z="86"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="17">
+							<translation x="-0.35" y="-6.6" z="91"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="18">
+							<translation x="-0.35" y="-6.6" z="96"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="19">
+							<translation x="-0.35" y="-6.6" z="101"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="20">
+							<translation x="-0.35" y="-6.6" z="106"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="21">
+							<translation x="-0.35" y="-6.6" z="111"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="22">
+							<translation x="-0.35" y="-6.6" z="116"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="23">
+							<translation x="-0.35" y="-6.6" z="121"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="24">
+							<translation x="-0.35" y="-6.6" z="126"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="25">
+							<translation x="-0.35" y="-6.6" z="131"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="26">
+							<translation x="-0.35" y="-6.6" z="136"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="27">
+							<translation x="-0.35" y="-6.6" z="141"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="28">
+							<translation x="-0.35" y="-6.6" z="146"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="29">
+							<translation x="-0.35" y="-6.6" z="151"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="30">
+							<translation x="-0.35" y="-6.6" z="156"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="31">
+							<translation x="-0.35" y="-6.6" z="161"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="32">
+							<translation x="-0.35" y="-6.6" z="166"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="33">
+							<translation x="-0.35" y="-6.6" z="171"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="34">
+							<translation x="-0.35" y="-6.6" z="176"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2buegel" index="35">
+							<translation x="-0.35" y="-6.6" z="181"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="1">
+							<translation x="1.85" y="0" z="11"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="2">
+							<translation x="1.85" y="0" z="46"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="3">
+							<translation x="1.85" y="0" z="56"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="4">
+							<translation x="1.85" y="0" z="91"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="5">
+							<translation x="1.85" y="0" z="101"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="6">
+							<translation x="1.85" y="0" z="136"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="7">
+							<translation x="1.85" y="0" z="146"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="vdtraeger2ptraeger" index="8">
+							<translation x="1.85" y="0" z="181"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="global" posx="0" posy="-2.675" posz="0" sizex="1.85" sizey="5.35" sizez="6"/>
+					</component>
+				</component>
+				<component type="co_v_doppeltraeger_r">
+					<dock type="measuredock" index="1">
+						<translation x="2.53" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="measuredock" index="2">
+						<translation x="-2.53" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="measuredock" index="3">
+						<translation x="-2.53" y="0" z="186"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2fuss" index="1">
+						<translation x="-0.35" y="0" z="0"/>
+						<rotation x="0" y="0" z="-90"/>
+					</dock>
+					<dock type="vdtraeger2vdtraeger_r2l" index="1">
+						<translation x="-0.35" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2vdtraeger_r2r" index="1">
+						<translation x="-0.35" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2hvrohr" index="1">
+						<translation x="1.85" y="0" z="56"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2hvrohr" index="2">
+						<translation x="1.85" y="0" z="181"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2panel" index="1">
+						<translation x="1.85" y="0" z="181"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2weisswand" index="1">
+						<translation x="11.85" y="0" z="181"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2panel" index="2">
+						<translation x="1.85" y="0" z="136"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2weisswand" index="2">
+						<translation x="11.85" y="0" z="136"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2panel" index="3">
+						<translation x="1.85" y="0" z="91"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2panel" index="4">
+						<translation x="1.85" y="0" z="46"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2halbfuss_front" index="1">
+						<translation x="-0.35" y="-2.7" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2halbfuss_back" index="1">
+						<translation x="-0.35" y="2.7" z="0"/>
+						<rotation x="0" y="0" z="180"/>
+					</dock>
+					<!-- Script generated dock list -->
+					<dock type="vdtraeger2buegel" index="1">
+						<translation x="-0.35" y="-6.6" z="11"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="2">
+						<translation x="-0.35" y="-6.6" z="16"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="3">
+						<translation x="-0.35" y="-6.6" z="21"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="4">
+						<translation x="-0.35" y="-6.6" z="26"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="5">
+						<translation x="-0.35" y="-6.6" z="31"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="6">
+						<translation x="-0.35" y="-6.6" z="36"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="7">
+						<translation x="-0.35" y="-6.6" z="41"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="8">
+						<translation x="-0.35" y="-6.6" z="46"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="9">
+						<translation x="-0.35" y="-6.6" z="51"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="10">
+						<translation x="-0.35" y="-6.6" z="56"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="11">
+						<translation x="-0.35" y="-6.6" z="61"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="12">
+						<translation x="-0.35" y="-6.6" z="66"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="13">
+						<translation x="-0.35" y="-6.6" z="71"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="14">
+						<translation x="-0.35" y="-6.6" z="76"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="15">
+						<translation x="-0.35" y="-6.6" z="81"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="16">
+						<translation x="-0.35" y="-6.6" z="86"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="17">
+						<translation x="-0.35" y="-6.6" z="91"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="18">
+						<translation x="-0.35" y="-6.6" z="96"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="19">
+						<translation x="-0.35" y="-6.6" z="101"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="20">
+						<translation x="-0.35" y="-6.6" z="106"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="21">
+						<translation x="-0.35" y="-6.6" z="111"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="22">
+						<translation x="-0.35" y="-6.6" z="116"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="23">
+						<translation x="-0.35" y="-6.6" z="121"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="24">
+						<translation x="-0.35" y="-6.6" z="126"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="25">
+						<translation x="-0.35" y="-6.6" z="131"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="26">
+						<translation x="-0.35" y="-6.6" z="136"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="27">
+						<translation x="-0.35" y="-6.6" z="141"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="28">
+						<translation x="-0.35" y="-6.6" z="146"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="29">
+						<translation x="-0.35" y="-6.6" z="151"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="30">
+						<translation x="-0.35" y="-6.6" z="156"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="31">
+						<translation x="-0.35" y="-6.6" z="161"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="32">
+						<translation x="-0.35" y="-6.6" z="166"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="33">
+						<translation x="-0.35" y="-6.6" z="171"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="34">
+						<translation x="-0.35" y="-6.6" z="176"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2buegel" index="35">
+						<translation x="-0.35" y="-6.6" z="181"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="1">
+						<translation x="1.85" y="0" z="11"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="2">
+						<translation x="1.85" y="0" z="46"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="3">
+						<translation x="1.85" y="0" z="56"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="4">
+						<translation x="1.85" y="0" z="91"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="5">
+						<translation x="1.85" y="0" z="101"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="6">
+						<translation x="1.85" y="0" z="136"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="7">
+						<translation x="1.85" y="0" z="146"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="vdtraeger2ptraeger" index="8">
+						<translation x="1.85" y="0" z="181"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<collisionbox groupid="global" posx="0" posy="-2.675" posz="0" sizex="1.85" sizey="5.35" sizez="6"/>
+				</component>
+			</component>
+		</component>
+	</component>
+</componentsystem>

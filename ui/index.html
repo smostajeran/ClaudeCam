@@ -336,15 +336,16 @@ function draw(){
     }
     // tubes: draw as a real-length rod along their axis (local Y), so size is visible and a
     // misplaced tube reads as "right size, wrong place" rather than looking like a smaller tube.
+    const unpl = p.placed===false; // engine could not place it; shown at reference position, flagged
     if(/^(rohr|trapezrohr|fraesrohr|gewhilfsrohr|kurzrohr|normalrohr|schlitzrohr)/.test(p.type)){
       const dm=p.type.match(/(\d{2,4})/); const h=dm?+dm[1]/20:17.5;
       const e1=qrot(p.quat,[0,-h,0]), e2=qrot(p.quat,[0,h,0]);
       const A=project([p.pos[0]+e1[0],p.pos[1]+e1[1],p.pos[2]+e1[2]]), B=project([p.pos[0]+e2[0],p.pos[1]+e2[1],p.pos[2]+e2[2]]);
-      if(A&&B) prims.push({depth:(A.depth+B.depth)/2,kind:"rod",A,B,e:p.e});
+      if(A&&B) prims.push({depth:(A.depth+B.depth)/2,kind:"rod",A,B,e:p.e,unpl});
     }
     screenParts.push({id:p.id,sx:P.x,sy:P.y,type:p.type,e:p.e});
     const eOn=$("#optE").checked && p.e;
-    prims.push({depth:P.depth,kind:"dot",P,color:eOn?eColor[p.e]:famColor(p.type),r:eOn?4:(/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2),type:p.type,id:p.id,e:p.e});
+    prims.push({depth:P.depth,kind:"dot",P,color:unpl?"#ff3b6b":(eOn?eColor[p.e]:famColor(p.type)),r:unpl?3.6:(eOn?4:(/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2)),type:p.type,id:p.id,e:p.e,unpl});
     if($("#optTriad").checked && isFitting(p.type))
       for(const [ax,col] of [[[0,0,5],"#ff5d6c"],[[5,0,0],"#7ee0a0"]]){ const r=qrot(p.quat,ax); const E=project([p.pos[0]+r[0],p.pos[1]+r[1],p.pos[2]+r[2]]); if(E) prims.push({depth:P.depth-0.01,kind:"line",A:P,B:E,color:col,w:1.8}); }
   }
@@ -352,8 +353,9 @@ function draw(){
   for(const o of prims){
     if(o.kind==="line"){ ctx.strokeStyle=o.color||"rgba(120,130,150,0.28)"; ctx.lineWidth=o.w||1; ctx.beginPath(); ctx.moveTo(o.A.x,o.A.y); ctx.lineTo(o.B.x,o.B.y); ctx.stroke(); }
     else if(o.kind==="quad"){ ctx.fillStyle=o.glass?"rgba(79,208,224,0.16)":"rgba(150,160,175,0.13)"; ctx.strokeStyle=o.glass?"rgba(79,208,224,0.75)":"rgba(150,160,175,0.5)"; ctx.beginPath(); ctx.moveTo(o.C[0].x,o.C[0].y); for(let i=1;i<4;i++)ctx.lineTo(o.C[i].x,o.C[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    else if(o.kind==="rod"){ ctx.strokeStyle = ($("#optE").checked&&o.e==="live")?"rgba(255,170,90,0.95)":($("#optE").checked&&o.e)?"rgba(120,200,150,0.9)":"rgba(170,184,208,0.85)"; ctx.lineWidth=2.6; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(o.A.x,o.A.y); ctx.lineTo(o.B.x,o.B.y); ctx.stroke(); ctx.lineCap="butt"; }
+    else if(o.kind==="rod"){ ctx.strokeStyle = o.unpl?"rgba(255,59,107,0.9)":($("#optE").checked&&o.e==="live")?"rgba(255,170,90,0.95)":($("#optE").checked&&o.e)?"rgba(120,200,150,0.9)":"rgba(170,184,208,0.85)"; ctx.lineWidth=2.6; ctx.lineCap="round"; if(o.unpl)ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(o.A.x,o.A.y); ctx.lineTo(o.B.x,o.B.y); ctx.stroke(); ctx.setLineDash([]); ctx.lineCap="butt"; }
     else { const hi=isHi(o.type), sel=o.id===picked; ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,sel?o.r+2:o.r,0,7); ctx.fill();
+      if(o.unpl){ ctx.strokeStyle="#ff3b6b"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+3,0,7); ctx.stroke(); }
       if(sel){ ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+5,0,7); ctx.stroke(); }
       else if(hi){ ctx.strokeStyle="#ffd166"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); }
       else if($("#optE").checked && o.e){ ctx.strokeStyle=eColor[o.e]; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); } }
@@ -389,7 +391,7 @@ for(const id of ["optGlass","optTriad","optLabels"]) $("#"+id).onchange=draw;
 $("#optE").onchange=()=>{ draw();
   if(!PLACE) return;
   if($("#optE").checked){ const c={}; for(const p of PLACE.parts) if(p.e) c[p.e]=(c[p.e]||0)+1; $("#viewInfo").textContent="Haller E: "+(Object.entries(c).map(([k,n])=>k+" "+n).join(" · ")||"none in this scene"); }
-  else $("#viewInfo").textContent=`${PLACE.parts.length} parts · ${PLACE.connections.length} connections`;
+  else { const np=PLACE.parts.filter(p=>p.placed===false).length; $("#viewInfo").textContent=`${PLACE.parts.length} parts · ${PLACE.connections.length} connections`+(np?` · ${np} unplaced (red)`:""); }
 };
 
 // ---- type -> rules graph (client-side, from MODEL) ----
@@ -428,7 +430,7 @@ function jumpToRule(tab,key){
 async function openView(){
   $("#view3d").classList.add("show"); $("#viewInfo").textContent="solving…";
   try{ PLACE=await (await fetch("/api/placement")).json();
-    $("#viewInfo").textContent = PLACE.parts.length ? `${PLACE.parts.length} parts · ${PLACE.connections.length} connections` : (PLACE.error||"no placement");
+    { const np=(PLACE.parts||[]).filter(p=>p.placed===false).length; $("#viewInfo").textContent = PLACE.parts.length ? `${PLACE.parts.length} parts · ${PLACE.connections.length} connections`+(np?` · ${np} unplaced (red)`:"") : (PLACE.error||"no placement"); }
     requestAnimationFrame(()=>{ cv.width=cv.clientWidth; cv.height=cv.clientHeight; fit(); draw(); });
   }catch(e){ $("#viewInfo").textContent="failed: "+e; }
 }

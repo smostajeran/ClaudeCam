@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<componentsystem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/co/componentsystem.xsd">
+	<component type="ct_component">
+		<dock amount="dynamic" index="1"
+			type="measuredock2measureline">
+			<translation
+				x="call getMeasureDockPositionX(part, DockGetIndex());"
+				y="call getMeasureDockPositionY(part, DockGetIndex());"
+				z="call getMeasureDockPositionZ(part, DockGetIndex());" />
+			<rotation x="0" y="0" z="0" />
+		</dock>
+		<component type="ct_space_configurator">
+			<component type="ct_CCNwall">
+				<component type="ct_CCNwall_wall">
+					<dock index="1" type="CCN_struct_WC_wall_2_addons_image" amount="dynamic">				   
+						 <translation x="-Feature('f_CCNwall_width') / 2;"
+							           y="- Feature('f_CCNwall_thickness') / 2;" 
+							           z="0" />						
+					</dock>
+					<dock index="2" type="CCN_struct_WC_wall_2_addons_image" amount="dynamic">
+            <translation x="-Feature('f_CCNwall_width') / 2;"
+                         y="Feature('f_CCNwall_thickness') / 2;" 
+                         z="0" />
+            <rotation x="0" y="0" z="180" /> 
+          </dock>
+          <dock index="3" type="CCN_struct_WC_wall_2_addons_image" amount="dynamic">           
+             <translation x="-Feature('f_CCNwall_width') / 2;"
+                         y="Feature('f_CCNwall_thickness') / 2 + 1;" 
+                         z="0" />           
+          </dock>
+          <dock index="4" type="CCN_struct_WC_wall_2_addons_image" amount="dynamic">
+            <translation x="-Feature('f_CCNwall_width') / 2;"
+                         y="-Feature('f_CCNwall_thickness') / 2 - 1 ;" 
+                         z="0" />
+            <rotation x="0" y="0" z="180" /> 
+          </dock>
+					<dock index="1"
+						type="CCN_struct_WC_wall2corner_ortho">
+						<translation x="Feature('f_CCNwall_width') / 2;"
+							y="0" z="250" />
+						<rotation x="0" y="0" z="180" />
+					</dock>
+					<dock index="2"
+						type="CCN_struct_WC_wall2corner_ortho">
+						<translation
+							x="-Feature('f_CCNwall_width') / 2;" y="0" z="250" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock index="1"
+						type="CCN_struct_WC_wall2corner_DOF">
+						<translation x="Feature('f_CCNwall_width') / 2;"
+							y="0" z="50" />
+						<rotation x="0" y="0" z="180" />
+					</dock>
+					<dock index="2"
+						type="CCN_struct_WC_wall2corner_DOF">
+						<translation
+							x="-Feature('f_CCNwall_width') / 2;" y="0" z="50" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock amount="dynamic" index="1"
+						type="CCN_wall2opening">
+						<translation x="0" y="0" z="0" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock amount="dynamic" index="1"
+						type="CCN_wall2door">
+						<translation x="0" y="0" z="0" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock index="1" type="CCN_wall2floor">
+						<translation x="0"
+							y="" z="0" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock index="2" type="CCN_wall2floor">
+						<translation x="0"
+							y="-Feature('f_CCNwall_thickness') / 2;" z="0" />
+						<rotation x="0" y="0" z="180" />
+					</dock>
+					<dock amount="dynamic" index="1"
+						type="wall2extern">
+						<translation x="0" y="0" z="0" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<component type="co_CCN_wall_struct" />
+				</component>
+				<component type="ct_CCNwall_corner">
+					<dock index="1"
+						type="CCN_struct_WC_corner2wall_ortho">
+						<translation
+							x="Feature('f_CCNcorner_width') / 2;" y="0" z="250" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock index="2"
+						type="CCN_struct_WC_corner2wall_ortho">
+						<translation x="0"
+							y="Feature('f_CCNcorner_thickness') / 2;" z="250" />
+						<rotation x="0" y="0" z="90" />
+					</dock>
+					<dock index="3"
+						type="CCN_struct_WC_corner2wall_ortho">
+						<translation
+							x="-Feature('f_CCNcorner_width') / 2;" y="0" z="250" />
+						<rotation x="0" y="0" z="180" />
+					</dock>
+					<dock index="4"
+						type="CCN_struct_WC_corner2wall_ortho">
+						<translation x="0"
+							y="-Feature('f_CCNcorner_thickness') / 2;" z="250" />
+						<rotation x="0" y="0" z="270" />
+					</dock>
+					<dock active="" amount="dynamic" index="1"
+						type="CCN_struct_WC_corner2wall_DOF">
+						<translation x="0" y="0" z=" 50" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<component type="co_CCN_corner_std" />
+					<component type="co_CCN_corner_column" />
+				</component>
+			</component>
+			<component type="ct_CCNvoid">
+				<component type="ct_CCNvoid_opening">
+					<dock index="1" type="CCN_opening2wall">
+						<translation x="0" y="0" z="0" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<component type="co_CCN_opening_std" />
+				</component>
+				<component type="ct_CCNvoid_door">
+					<dock index="1" type="CCN_door2wall">
+						<translation x="0" y="0" z="0" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<component type="co_CCN_door_std" />
+				</component>
+			</component>
+			<component type="ct_CCNflat">
+				<dock active="true; " index="1" type="CCN_floor2wall">
+					<translation x="0 " y="0" z="0" />
+					<rotation x="0" y="0" z="0" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 2);"
+					eval_active_expr="always" eval_transform_expr="always" index="2"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 2); "
+						y="call getFlatDockYPos(part, 2); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 2);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 3);"
+					eval_active_expr="always" eval_transform_expr="always" index="3"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 3); "
+						y="call getFlatDockYPos(part, 3); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 3);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 4);"
+					eval_active_expr="always" eval_transform_expr="always" index="4"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 4); "
+						y="call getFlatDockYPos(part, 4); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 4);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 5);"
+					eval_active_expr="always" eval_transform_expr="always" index="5"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 5); "
+						y="call getFlatDockYPos(part, 5); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 5);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 6);"
+					eval_active_expr="always" eval_transform_expr="always" index="6"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 6); "
+						y="call getFlatDockYPos(part, 6); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 6);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 7);"
+					eval_active_expr="always" eval_transform_expr="always" index="7"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 7); "
+						y="call getFlatDockYPos(part, 7); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 7);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 8);"
+					eval_active_expr="always" eval_transform_expr="always" index="8"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 8); "
+						y="call getFlatDockYPos(part, 8); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 8);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 9);"
+					eval_active_expr="always" eval_transform_expr="always" index="9"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 9); "
+						y="call getFlatDockYPos(part, 9); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 9);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 10);"
+					eval_active_expr="always" eval_transform_expr="always" index="10"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 10); "
+						y="call getFlatDockYPos(part, 10); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 10);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 11);"
+					eval_active_expr="always" eval_transform_expr="always" index="11"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 11); "
+						y="call getFlatDockYPos(part, 11); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 11);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 12);"
+					eval_active_expr="always" eval_transform_expr="always" index="12"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 12); "
+						y="call getFlatDockYPos(part, 12); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 12);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 13);"
+					eval_active_expr="always" eval_transform_expr="always" index="13"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 13); "
+						y="call getFlatDockYPos(part, 13); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 13);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 14);"
+					eval_active_expr="always" eval_transform_expr="always" index="14"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 14); "
+						y="call getFlatDockYPos(part, 14); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 14);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 15);"
+					eval_active_expr="always" eval_transform_expr="always" index="15"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 15); "
+						y="call getFlatDockYPos(part, 15); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 15);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 16);"
+					eval_active_expr="always" eval_transform_expr="always" index="16"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 16); "
+						y="call getFlatDockYPos(part, 16); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 16);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 17);"
+					eval_active_expr="always" eval_transform_expr="always" index="17"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 17); "
+						y="call getFlatDockYPos(part, 17); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 17);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 18);"
+					eval_active_expr="always" eval_transform_expr="always" index="18"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 18); "
+						y="call getFlatDockYPos(part, 18); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 18);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 19);"
+					eval_active_expr="always" eval_transform_expr="always" index="19"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 19); "
+						y="call getFlatDockYPos(part, 19); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 19);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 20);"
+					eval_active_expr="always" eval_transform_expr="always" index="20"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 20); "
+						y="call getFlatDockYPos(part, 20); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 20);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 21);"
+					eval_active_expr="always" eval_transform_expr="always" index="21"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 21); "
+						y="call getFlatDockYPos(part, 21); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 21);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 22);"
+					eval_active_expr="always" eval_transform_expr="always" index="22"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 22); "
+						y="call getFlatDockYPos(part, 22); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 22);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 23);"
+					eval_active_expr="always" eval_transform_expr="always" index="23"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 23); "
+						y="call getFlatDockYPos(part, 23); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 23);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 24);"
+					eval_active_expr="always" eval_transform_expr="always" index="24"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 24); "
+						y="call getFlatDockYPos(part, 24); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 24);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 25);"
+					eval_active_expr="always" eval_transform_expr="always" index="25"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 25); "
+						y="call getFlatDockYPos(part, 25); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 25);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 26);"
+					eval_active_expr="always" eval_transform_expr="always" index="26"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 26); "
+						y="call getFlatDockYPos(part, 26); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 26);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 27);"
+					eval_active_expr="always" eval_transform_expr="always" index="27"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 27); "
+						y="call getFlatDockYPos(part, 27); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 27);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 28);"
+					eval_active_expr="always" eval_transform_expr="always" index="28"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 28); "
+						y="call getFlatDockYPos(part, 28); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 28);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 29);"
+					eval_active_expr="always" eval_transform_expr="always" index="29"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 29); "
+						y="call getFlatDockYPos(part, 29); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 29);" />
+				</dock>
+				<dock active="call getFlatDockActive(part, 30);"
+					eval_active_expr="always" eval_transform_expr="always" index="30"
+					type="CCN_floor2wall">
+					<translation x="call getFlatDockXPos(part, 30); "
+						y="call getFlatDockYPos(part, 30); " z="0" />
+					<rotation x="0" y="0"
+						z="call getFlatDockZRot(part, 30);" />
+				</dock>
+				<component type="ct_CCNflat_floor">
+					<component type="co_CCN_flat_floor_std" />
+				</component>
+				<component type="ct_CCNflat_space">
+					<component type="co_CCN_flat_space_std" />
+				</component>
+			</component>
+			<component type="ct_environment">
+      <component type="ct_people">
+        <component type="co_men" comment="deprecated"/>
+        <component type="co_worker_1" />
+        <component type="co_woman_1" />
+        <component type="co_suit_man" />
+      </component>
+    </component>
+		</component>
+	</component>
+</componentsystem>

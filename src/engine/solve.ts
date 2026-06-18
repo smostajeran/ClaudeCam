@@ -4,7 +4,7 @@
 // Euler order XYZ (calibrated). Dock rotations may be VCML -> evaluated via the interpreter.
 import { readdirSync, readFileSync } from "node:fs";
 import { parseXmlFile, tagOf, attr, kids, byTag } from "../xml/parse.ts";
-import { loadDockFrames } from "./dockframes.ts";
+import { loadDockFrames, loadAllDockFrames } from "./dockframes.ts";
 import { loadScene, installPartFns } from "./scene.ts";
 import { Host } from "./partgraph.ts";
 import { loadAppcodes } from "../vcml/appcode.ts";
@@ -57,7 +57,7 @@ const byDockId = new Map<string, { p: GPart; type: string; index: number }>();
 for (const p of parts) for (const d of p.docks) byDockId.set(d.dockid, { p, type: d.type, index: d.index });
 
 // host (for VCML dock rotations) + dock frames
-const frames = loadDockFrames();
+const frames = loadAllDockFrames();
 const frameOf = (ptype: string, dtype: string, index: number) => (frames.get(ptype) ?? []).find((f) => f.dockType === dtype && f.index === index);
 const model = JSON.parse(readFileSync("out/model.json", "utf8"));
 const host = new Host(model.components, { scenario: "co" });
@@ -82,12 +82,20 @@ function frameMat(p: GPart, f: any): Mat4 {
 // adjacency: for each part, the dock edges to framed partners (both dock frames resolved).
 interface Edge { myF: any; them: GPart; theirF: any }
 const adj = new Map<string, Edge[]>(); let unframed = 0;
+const missFrame = new Map<string, number>();   // "componentType:dockType#index" with no dock frame
+const noPartner = new Map<string, number>();    // connecteddockid that resolves to no known dock
 for (const p of parts) {
   const es: Edge[] = [];
   for (const d of p.docks) {
-    const partner = byDockId.get(d.partner); if (!partner) continue;
+    const partner = byDockId.get(d.partner);
+    if (!partner) { noPartner.set(p.type, (noPartner.get(p.type) ?? 0) + 1); continue; }
     const myF = frameOf(p.type, d.type, d.index), theirF = frameOf(partner.p.type, partner.type, partner.index);
-    if (!myF || !theirF) { unframed++; continue; }
+    if (!myF || !theirF) {
+      unframed++;
+      if (!myF) missFrame.set(`${p.type}:${d.type}#${d.index}`, (missFrame.get(`${p.type}:${d.type}#${d.index}`) ?? 0) + 1);
+      if (!theirF) missFrame.set(`${partner.p.type}:${partner.type}#${partner.index}`, (missFrame.get(`${partner.p.type}:${partner.type}#${partner.index}`) ?? 0) + 1);
+      continue;
+    }
     es.push({ myF, them: partner.p, theirF });
   }
   adj.set(p.id, es);
@@ -117,7 +125,10 @@ const candidate = (p: GPart, e: Edge, world: Map<string, Mat4>) =>
   mul(mul(mul(world.get(e.them.id)!, frameMat(e.them, e.theirF)), mate(e.theirF.dockType, e.myF.dockType)), invRigid(frameMat(p, e.myF)));
 // structural frame (placed first/most-constrained); anchors to these are trusted far more than
 // add-on siblings, so a single correct structural attachment outvotes a drifted sub-assembly.
-const STRUCT = /^(kugel|rohr|blech|lochblech|kurzblech|hallerfuss|fuss|tablar\d|boden|abdeck|rueckwand|quertraverse|querstrebe)/;
+// The true structural skeleton is balls + tubes + panels. Feet (hallerfuss) attach to balls and are
+// placed FROM the skeleton as leaves — they must NOT be hop-0 seeds, or a foot with a minority
+// orientation (its mate varies per instance) would act as a high-trust anchor and drag tubes off.
+const STRUCT = /^(kugel|rohr|blech|lochblech|kurzblech|tablar\d|boden|abdeck|rueckwand|quertraverse|querstrebe)/;
 function score(p: GPart, W: Mat4, placed: Edge[], world: Map<string, Mat4>): number {
   let s = 0;
   for (const e of placed) {
@@ -229,9 +240,21 @@ for (const p of parts) {
 }
 
 console.log("=== PLACEMENT SOLVER vs P'X5 (dock-frame composition, M=identity, euler XYZ) ===");
-console.log(`  parts: ${parts.length}   placed by solver: ${world.size}   unreachable: ${parts.length - world.size}   unframed docks skipped: ${unframed}`);
+const unreached = parts.filter((p) => !world.has(p.id));
+console.log(`  parts: ${parts.length}   placed by solver: ${world.size}   unreachable: ${unreached.length}   unframed docks skipped: ${unframed}`);
 console.log(`  VCML dock rotations evaluated: ${vcmlOk} ok / ${vcmlFail} fail`);
-console.log(`  validated (excl. anchor): ${checked}`);
+// Honest score: a part the solver could not place counts as a MISS, not as excluded. Denominator = all parts (excl. anchor).
+const allN = parts.length - 1;
+const correctAll = posMatch; // posMatch is counted only over placed parts; unplaced are misses by construction
+console.log(`  >> PLACEMENT (all parts, <=${POS_TOL}cm): ${correctAll}/${allN} (${(100 * correctAll / allN).toFixed(1)}%)   [${unreached.length} unplaced count as misses]`);
+if (unreached.length) {
+  const byType = new Map<string, number>();
+  for (const p of unreached) byType.set(p.type, (byType.get(p.type) ?? 0) + 1);
+  console.log(`  UNPLACED part types (${unreached.length}): ${[...byType].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t}×${n}`).join(", ")}`);
+}
+if (missFrame.size) console.log(`  MISSING dock frames (top): ${[...missFrame].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, n]) => `${k}×${n}`).join(", ")}`);
+if (noPartner.size) console.log(`  unresolved partner docks: ${[...noPartner].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t}×${n}`).join(", ")}`);
+console.log(`  --- of parts the solver placed (${checked} excl. anchor): ---`);
 console.log(`  POSITION match (<=${POS_TOL}cm): ${posMatch}/${checked} (${(100 * posMatch / checked).toFixed(1)}%)   max posErr=${maxPos.toFixed(3)}cm`);
 console.log(`  ORIENTATION exact (<=${ANG_TOL}°): ${oriMatch}/${checked} (${(100 * oriMatch / checked).toFixed(1)}%)`);
 console.log(`  ORIENTATION incl. tube-symmetry (0/90/180/270°): ${oriSym}/${checked} (${(100 * oriSym / checked).toFixed(1)}%)`);
@@ -307,13 +330,18 @@ const resolveArtNo = (p: GPart): string | null => {
 };
 
 import("node:fs").then(({ writeFileSync }) => {
-  const out = parts.filter((p) => world.has(p.id)).map((p) => {
+  const out = parts.map((p) => {
+    const artNo = resolveArtNo(p); const art = artNo ? catalog.get(artNo) : null;
+    const meta = { ...(p.e ? { e: p.e } : {}), ...(art ? { artNo, name: art.en, price: art.price, weight: art.weight } : artNo ? { artNo } : {}) };
+    if (!world.has(p.id)) {
+      // Engine could not place this part (its dock has no frame in any package). Do NOT drop it —
+      // surface it flagged at its stored P'X5 position so it is visible as an unplaced part, not gone.
+      return { id: p.id, type: p.type, pos: p.pos.map((x) => +x.toFixed(4)), quat: matToQuat(trs(p.pos, p.rot, "XYZ")).map((x) => +x.toFixed(6)), placed: false, ...meta };
+    }
     const W = world.get(p.id)!;
     const pq = panelQuad(p, W);
-    const artNo = resolveArtNo(p); const art = artNo ? catalog.get(artNo) : null;
     return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)),
-      ...(p.e ? { e: p.e } : {}), ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}),
-      ...(art ? { artNo, name: art.en, price: art.price, weight: art.weight } : artNo ? { artNo } : {}) };
+      ...meta, ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}) };
   });
   // priced BOM rollup (parts that resolved to a catalog article)
   const bomMap = new Map<string, { artNo: string; name: string; qty: number; price: number; weight: number }>();

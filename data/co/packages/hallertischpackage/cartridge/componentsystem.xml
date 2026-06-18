@@ -1,0 +1,4769 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<componentsystem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://perspectix.com/pxml/stable/co/componentsystem.xsd">
+	<component type="ct_haller_table_component">
+		<dock index="1" type="part_2_qs_article"/>
+		<!--Addons-->
+		<component type="ct_addonspackage" include="../../addonspackage/cartridge/componentsystem.xml"/>
+		<component type="ct_primopackage" include="../../primopackage/cartridge/componentsystem.xml"/>
+		<!--Table Components-->
+		<component type="haller_table_component">
+			<component type="tischblatt">
+			  <component type="ct_tischblatt_classic">
+				<component type="tisch_75">
+					<attribute typeref="breite" value="75"/>
+					<component type="tisch_75_viereck">
+						<component type="tisch_75_rechteck">
+							<dock index="1" type="tischblatt75_2_blende" amount="5" active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" eval_active_expr="partfeaturechange"/>
+							<dock type="tisch2rosti" index="1" active="(call get_material_wood(Feature('Tischmaterial')) or call table_kelco()) and Number(PartAttr(part,'laenge')) ge 125;" 
+								eval_active_expr="partfeaturechange">
+									<translation x="0" y="35.5" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<component type="tischblatt_75_75">
+								<attribute typeref="laenge" value="75"/>
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+									<dof axis="x" type="trans">
+										<domain type="continuous" from="-30" to="30"/>
+									</dof>
+									<dof axis="y" type="trans">
+										<domain type="continuous" from="-30" to="30"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-37.5" y="-37.5" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-37.5" y="-37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="37.5" y="-37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="37.5" y="37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="4">
+									<translation x="-37.5" y="37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="1">
+									<translation x="37.5" y="0" z="0"/>
+									<rotation x="0" y="0" z="-90"/>
+								</dock>
+								<dock type="75length" index="2">
+									<translation x="0" y="37.5" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="3">
+									<translation x="-37.5" y="0" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="75length" index="4">
+									<translation x="0" y="-37.5" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="35.5" y="0" z="0"/>
+									<rotation x="0" y="0" z="-90"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="0" y="35.5" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="-35.5" y="0" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="blatt2zarge" index="4">
+									<translation x="0" y="-35.5" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2seite" index="1">
+									<translation x="0" y="-31.8" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="blatt2seite" index="2">
+									<translation x="0" y="31.8" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2seite" index="3">
+									<translation x="-31.8" y="0" z="0"/>
+									<rotation x="0" y="0" z="-90"/>
+								</dock>
+								<dock type="blatt2seite" index="4">
+									<translation x="31.8" y="0" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="tisch2rost" index="4">
+									<translation x="0" y="0" z="2.5"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+							</component>
+							<component type="tisch_50_std">
+								<component type="tischblatt_125_50">
+									<attribute typeref="laenge" value="125" />
+									<attribute typeref="breite" value="50" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+										<dof axis="x" type="trans">
+											<domain from="-50" to="50" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-30" to="30" type="continuous" />
+										</dof>
+									</dock>
+									<dock type="tisch2rosti" index="1" active="
+									
+									my active = call get_material_wood(Feature('Tischmaterial')) or call table_kelco();
+									if (active) {
+										my tisch_500 = ParentOfType(part, 'mainstructure', 'tischeinheit_125x50_74');
+										if (tisch_500) {
+											my winkel_list = ChildrenListOfType(tisch_500, 'eckwinkel_90');
+											my ok = true;
+											for (my w: winkel_list) {
+												ok =  ConnectedDockCount(w, 'winkel2gelenk') eq 0;
+												if (not ok) {
+													active = false;
+													break;
+												}
+											}
+										};
+										
+										active;
+									};
+									return active;
+									" eval_active_expr="anychange">
+										<translation x="0" y="23" z="0.22"/>
+										<rotation x="0" y="0" z="90"/>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-62.5" y="-PartAttr(part,'breite')/2;" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-62.5" y="-PartAttr(part,'breite')/2;" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="62.5" y="-PartAttr(part,'breite')/2;" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="62.5" y="PartAttr(part,'breite')/2;" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-62.5" y="PartAttr(part,'breite')/2;" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="32.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-32.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="blatt2anbtisch_r">
+										<translation x="32.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2anbtisch_r">
+										<translation x="-32.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="50length">
+										<translation x="62.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="125length">
+										<translation x="0" y="-37.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="50length">
+										<translation x="-62.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="125length">
+										<translation x="0" y="37.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="60.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="23" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-60.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-23" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="0" y="-31.8" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="0" y="31.8" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="55.80" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="-55.80" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+								</component>
+							</component>
+							<component type="tisch_75_std">
+								<component type="tischblatt_125_75">
+									<attribute typeref="laenge" value="125" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+										<dof axis="x" type="trans">
+											<domain from="-50" to="50" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-30" to="30" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-62.5" y="-37.5" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-62.5" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="62.5" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="62.5" y="37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-62.5" y="37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="32.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-32.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="blatt2anbtisch_r">
+										<translation x="32.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2anbtisch_r">
+										<translation x="-32.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="75length">
+										<translation x="62.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="125length">
+										<translation x="0" y="-37.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="75length">
+										<translation x="-62.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="125length">
+										<translation x="0" y="37.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="60.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="35.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-60.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-35.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="0" y="-31.8" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="0" y="31.8" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="55.80" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="-55.80" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="36" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-36" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_150_75">
+									<attribute typeref="laenge" value="150" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+										<dof axis="x" type="trans">
+											<domain from="-70" to="70" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-30" to="30" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-75" y="-37.5" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-75" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="75" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="75" y="37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-75" y="37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="45" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-45" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="blatt2anbtisch_r">
+										<translation x="45" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2anbtisch_r">
+										<translation x="-45" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="75length">
+										<translation x="75" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="150length">
+										<translation x="0" y="37.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="75length">
+										<translation x="-75" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="150length">
+										<translation x="0" y="-37.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="73" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="35.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-73" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-35.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="70.80" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="-70.80" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="0" y="31.80" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="0" y="-31.80" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="48" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-48" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_175_75">
+									<attribute typeref="laenge" value="175" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+										<dof axis="x" type="trans">
+											<domain from="-80" to="80" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-30" to="30" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-87.5" y="-37.5" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-87.5" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="87.5" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="87.5" y="37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-87.5" y="37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="57" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-57" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="blatt2anbtisch_r">
+										<translation x="57" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2anbtisch_r">
+										<translation x="-57" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="75length">
+										<translation x="87.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="175length">
+										<translation x="0" y="37.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="75length">
+										<translation x="-87.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="175length">
+										<translation x="0" y="-37.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="85.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="35.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-85.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-35.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="0" y="31.8" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="0" y="-31.8" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="81.80" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="-81.80" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_200_75">
+									<attribute typeref="laenge" value="200" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="180" />
+										<dof axis="x" type="trans">
+											<domain from="-90" to="90" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-35" to="35" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-100" y="-35" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-100" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="100" y="-37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="100" y="37.5" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-100" y="35" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="69.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-69.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_r">
+										<translation x="69.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_r">
+										<translation x="-69.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="75length">
+										<translation x="100" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="200length">
+										<translation x="0" y="37.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="75length">
+										<translation x="-100" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="200length">
+										<translation x="0" y="-37.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="98" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="35.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-98" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-35.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="94.30" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="-94.30" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="0" y="35.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="0" y="-35.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_225_75">
+										<attribute typeref="laenge" value="225" />
+										<attribute typeref="type" value="esstisch" />
+										<dock amount="10" index="1" type="tisch2addon">
+											<translation x="0" y="0" z="7.1" />
+											<rotation x="0" y="0" z="180" />
+											<dof axis="x" type="trans">
+												<domain from="-102.5" to="102.5" type="continuous" />
+											</dof>
+											<dof axis="y" type="trans">
+												<domain from="-35" to="35" type="continuous" />
+											</dof>
+										</dock>
+										<dock index="0" type="measuredock">
+											<translation x="-112.5" y="-35" z="7.1" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="measuredock">
+											<translation x="-112.5" y="-37.5" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="measuredock">
+											<translation x="112.5" y="-37.5" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="3" type="measuredock">
+											<translation x="112.5" y="37.5" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="4" type="measuredock">
+											<translation x="-112.5" y="35" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="blatt2anbtisch_l">
+											<translation x="69.5" y="37.5" z="-1.4" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="2" type="blatt2anbtisch_l">
+											<translation x="-69.5" y="-37.5" z="-1.4" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="1" type="blatt2anbtisch_r">
+											<translation x="69.5" y="-37.5" z="-1.4" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="2" type="blatt2anbtisch_r">
+											<translation x="-69.5" y="37.5" z="-1.4" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="1" type="75length">
+                    <translation x="112.5" y="0" z="0" />
+                    <rotation x="0" y="0" z="-90" />
+	                  </dock>
+	                  <dock index="2" type="225length">
+	                    <translation x="0" y="37.5" z="0" />
+	                    <rotation x="0" y="0" z="0" />
+	                  </dock>
+	                  <dock index="3" type="75length">
+	                    <translation x="-112.5" y="0" z="0" />
+	                    <rotation x="0" y="0" z="90" />
+	                  </dock>
+	                  <dock index="4" type="225length">
+	                    <translation x="0" y="-37.5" z="0" />
+	                    <rotation x="0" y="0" z="180" />
+	                  </dock>
+										<dock index="1" type="blatt2zarge">
+											<translation x="110.5" y="0" z="0" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="2" type="blatt2zarge">
+											<translation x="0" y="35.5" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="3" type="blatt2zarge">
+											<translation x="-110.5" y="0" z="0" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="4" type="blatt2zarge">
+											<translation x="0" y="-35.5" z="0" />
+											<rotation x="0" y="0" z="180" />
+										</dock>
+										<dock index="1" type="blatt2seite">
+											<translation x="94.30" y="0" z="0" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="2" type="blatt2seite">
+											<translation x="-94.30" y="0" z="0" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="3" type="blatt2seite">
+											<translation x="0" y="35.5" z="0" />
+											<rotation x="0" y="0" z="180" />
+										</dock>
+										<dock index="4" type="blatt2seite">
+											<translation x="0" y="-35.5" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="tisch2rost">
+											<translation x="0" y="0" z="2.5" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="2" type="tisch2rost">
+											<translation x="60" y="0" z="2.5" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="3" type="tisch2rost">
+											<translation x="-60" y="0" z="2.5" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+									</component>
+									<component type="tischblatt_250_75">
+										<attribute typeref="laenge" value="250" />
+										<attribute typeref="type" value="esstisch" />
+										<dock amount="10" index="1" type="tisch2addon">
+											<translation x="0" y="0" z="7.1" />
+											<rotation x="0" y="0" z="180" />
+											<dof axis="x" type="trans">
+												<domain from="-115" to="115" type="continuous" />
+											</dof>
+											<dof axis="y" type="trans">
+												<domain from="-35" to="35" type="continuous" />
+											</dof>
+										</dock>
+										<dock index="0" type="measuredock">
+											<translation x="-125" y="-35" z="7.1" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="measuredock">
+											<translation x="-125" y="-37.5" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="measuredock">
+											<translation x="125" y="-37.5" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="3" type="measuredock">
+											<translation x="125" y="37.5" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="4" type="measuredock">
+											<translation x="-125" y="35" z="7" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="blatt2anbtisch_l">
+											<translation x="69.5" y="37.5" z="-1.4" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="2" type="blatt2anbtisch_l">
+											<translation x="-69.5" y="-37.5" z="-1.4" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="1" type="blatt2anbtisch_r">
+											<translation x="69.5" y="-37.5" z="-1.4" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="2" type="blatt2anbtisch_r">
+											<translation x="-69.5" y="37.5" z="-1.4" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="1" type="75length">
+					                    	<translation x="125" y="0" z="0" />
+					                   		<rotation x="0" y="0" z="-90" />
+						                </dock>
+						                <dock index="2" type="250length">
+						                    <translation x="0" y="37.5" z="0" />
+						                    <rotation x="0" y="0" z="0" />
+						                </dock>
+						                  <dock index="3" type="75length">
+						                    <translation x="-125" y="0" z="0" />
+						                    <rotation x="0" y="0" z="90" />
+						                  </dock>
+						                  <dock index="4" type="250length">
+						                    <translation x="0" y="-37.5" z="0" />
+						                    <rotation x="0" y="0" z="180" />
+						                  </dock>
+										<dock index="1" type="blatt2zarge">
+											<translation x="123" y="0" z="0" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="2" type="blatt2zarge">
+											<translation x="0" y="35.5" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="3" type="blatt2zarge">
+											<translation x="-123" y="0" z="0" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="4" type="blatt2zarge">
+											<translation x="0" y="-35.5" z="0" />
+											<rotation x="0" y="0" z="180" />
+										</dock>
+										<dock index="1" type="blatt2seite">
+											<translation x="94.30" y="0" z="0" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="2" type="blatt2seite">
+											<translation x="-94.30" y="0" z="0" />
+											<rotation x="0" y="0" z="-90" />
+										</dock>
+										<dock index="3" type="blatt2seite">
+											<translation x="0" y="35.5" z="0" />
+											<rotation x="0" y="0" z="180" />
+										</dock>
+										<dock index="4" type="blatt2seite">
+											<translation x="0" y="-35.5" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="tisch2rost">
+											<translation x="0" y="0" z="2.5" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="2" type="tisch2rost">
+											<translation x="60" y="0" z="2.5" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+										<dock index="3" type="tisch2rost">
+											<translation x="-60" y="0" z="2.5" />
+											<rotation x="0" y="0" z="90" />
+										</dock>
+									</component>
+							</component>
+						</component>
+						<component type="tisch_75_trapez">
+							<component type="tischblatt_150_75_75_79">
+                <attribute typeref="laenge" value="150"/>						  
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+									<dof type="trans" axis="x">
+										<domain type="continuous" from="-55" to="55"/>
+									</dof>
+									<dof type="trans" axis="y">
+										<domain type="continuous" from="-35" to="35"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-75" y="-32.745" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-75" y="-32.745" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="75" y="-32.745" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="39.5" y="33.3" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="4">
+									<translation x="-39.5" y="33.3" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="1">
+									<translation x="56.756" y="0.862" z="0"/>
+									<rotation x="0" y="0" z="-60"/>
+								</dock>
+								<dock type="75length" index="2">
+									<translation x="-56.757" y="0.864" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="150length" index="4">
+									<translation x="0" y="-32.747" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="55" y="0" z="0"/>
+									<rotation x="0" y="0" z="300"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="-55" y="0" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="0" y="30.45" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="blatt2zarge" index="4">
+									<translation x="0" y="-30.45" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+							</component>
+							<component type="tischblatt_175_75_75_104">
+                <attribute typeref="laenge" value="175"/>
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+									<dof axis="x" type="trans">
+										<domain type="continuous" from="-65" to="65"/>
+									</dof>
+									<dof axis="y" type="trans">
+										<domain type="continuous" from="-45" to="45"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-87.5" y="-32.745" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-87.5" y="-32.745" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="87.5" y="-32.745" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="52" y="33.3" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="4">
+									<translation x="-52" y="33.3" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="1">
+									<translation x="69.478" y="1" z="0"/>
+									<rotation x="0" y="0" z="-60"/>
+								</dock>
+								<dock type="75length" index="2">
+									<translation x="-69.481" y="1" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="175length" index="3">
+									<translation x="0" y="-32.747" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="67.51" y="0" z="0"/>
+									<rotation x="0" y="0" z="300"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="-67.51" y="0" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="0" y="30.48" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="blatt2zarge" index="4">
+									<translation x="0" y="-30.48" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+							</component>
+						</component>
+						<component type="tisch_75_sondergroesse">
+							<attribute typeref="breite" value="75"/>
+							<dock index="1" type="tischblatt75_2_blende" amount="5" active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" eval_active_expr="partfeaturechange"/>
+							<dock type="tisch2rosti" index="1" active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" eval_active_expr="partfeaturechange">
+								<translation x="75" y="35.5" z="0"/>
+								<rotation x="0" y="0" z="90"/>
+							</dock>	
+							<dock type="tisch2rosti" index="2" active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" eval_active_expr="partfeaturechange">
+								<translation x="-75" y="35.5" z="0"/>
+								<rotation x="0" y="0" z="90"/>
+							</dock>
+							<component type="tischblatt_300_75">
+								<attribute typeref="laenge" value="300"/>
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="180"/>
+									<dof axis="x" type="trans">
+										<domain type="continuous" from="-140" to="140"/>
+									</dof>
+									<dof axis="y" type="trans">
+										<domain type="continuous" from="-35" to="35"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-150" y="-37.5" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-150" y="-37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="150" y="-37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="150" y="37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="4">
+									<translation x="-150" y="37.5" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="1">
+									<translation x="150" y="0" z="0"/>
+									<rotation x="0" y="0" z="-90"/>
+								</dock>
+								<dock type="300length" index="2">
+									<translation x="0" y="37.5" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="3">
+									<translation x="-150" y="0" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="300length" index="4">
+									<translation x="0" y="-37.5" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="148" y="0" z="0"/>
+									<rotation x="0" y="0" z="-90"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="0" y="35.5" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="-148" y="0" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="blatt2zarge" index="4">
+									<translation x="0" y="-35.5" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="tisch2rost" index="1">
+									<translation x="0" y="0" z="2.5"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="tisch2rost" index="2">
+									<translation x="100" y="0" z="2.5"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="tisch2rost" index="3">
+									<translation x="-100" y="0" z="2.5"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+							</component>
+						</component>
+					</component>
+					<component type="tisch_75_dreieck">
+						<component type="tisch_75_90dreieck">
+							<component type="tischblatt_75_75_106">
+                <attribute typeref="laenge" value="106"/>
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+									<dof axis="x" type="trans">
+										<domain type="continuous" from="-35" to="35"/>
+									</dof>
+									<dof axis="y" type="trans">
+										<domain type="continuous" from="-35" to="35"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-25" y="-25" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-25" y="-25" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="50" y="-24.9" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="-25" y="50" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="1">
+									<translation x="12.2" y="-25" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="75length" index="2">
+									<translation x="-25" y="12.5" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="106length" index="3">
+									<translation x="12.5" y="12.5" z="0"/>
+									<rotation x="0" y="0" z="-45"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="12.5" y="-23" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="-23" y="12.5" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="12.5" y="12.5" z="0"/>
+									<rotation x="0" y="0" z="-45"/>
+								</dock>
+							</component>
+						</component>
+						<component type="tisch_75_60dreieck">
+							<component type="tischblatt_75_75_75">
+                <attribute typeref="laenge" value="75"/>
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+									<dof axis="x" type="trans">
+										<domain type="continuous" from="-25" to="25"/>
+									</dof>
+									<dof axis="y" type="trans">
+										<domain type="continuous" from="-25" to="25"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-37.5" y="-32.744" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-37.5" y="-32.744" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="37.5" y="-32.7" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="-.1" y="32.2079" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="75length" index="1">
+									<translation x="-19.483" y="1.0" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="75length" index="2">
+									<translation x="19.483" y="1.0" z="0"/>
+									<rotation x="0" y="0" z="-60"/>
+								</dock>
+								<dock type="75length" index="3">
+									<translation x="0" y="-32.744" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="-17.8" y="0" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="17.8" y="0" z="0"/>
+									<rotation x="0" y="0" z="300"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="0" y="-30.8" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+							</component>
+						</component>
+					</component>
+				</component>
+				<component type="tisch_100">
+					<attribute typeref="breite" value="100"/>
+					<component type="tisch_100_viereck">
+						<component type="tisch_100_rechteck">
+							<dock active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" amount="5" eval_active_expr="partfeaturechange" index="1" type="tischblatt100_2_blende" />
+							<dock type="tisch2rosti" index="1" active="(call get_material_wood(Feature('Tischmaterial')) or call table_kelco()) and Number(PartAttr(part,'laenge')) ge 125;" 
+                eval_active_expr="partfeaturechange">
+								<translation x="0" y="48" z="0" />
+								<rotation x="0" y="0" z="90" />
+							</dock>
+							<component type="tischblatt_100_100">
+								<attribute typeref="laenge" value="100" />
+								<dock amount="10" index="1" type="tisch2addon">
+									<translation x="0" y="0" z="7.1" />
+									<rotation x="0" y="0" z="180" />
+									<dof axis="x" type="trans">
+										<domain from="-45" to="45" type="continuous" />
+									</dof>
+									<dof axis="y" type="trans">
+										<domain from="-45" to="45" type="continuous" />
+									</dof>
+								</dock>
+								<dock index="0" type="measuredock">
+									<translation x="-50" y="-50" z="7.1" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="measuredock">
+									<translation x="-50" y="-50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="2" type="measuredock">
+									<translation x="50" y="-50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="measuredock">
+									<translation x="50" y="50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="4" type="measuredock">
+									<translation x="-50" y="50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="100length">
+									<translation x="50" y="0" z="0" />
+									<rotation x="0" y="0" z="-90" />
+								</dock>
+								<dock index="2" type="100length">
+									<translation x="0" y="50" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="100length">
+									<translation x="-50" y="0" z="0" />
+									<rotation x="0" y="0" z="90" />
+								</dock>
+								<dock index="4" type="100length">
+									<translation x="0" y="-50" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock index="1" type="blatt2zarge">
+									<translation x="48" y="0" z="0" />
+									<rotation x="0" y="0" z="-90" />
+								</dock>
+								<dock index="2" type="blatt2zarge">
+									<translation x="0" y="48" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="blatt2zarge">
+									<translation x="-48" y="0" z="0" />
+									<rotation x="0" y="0" z="90" />
+								</dock>
+								<dock index="4" type="blatt2zarge">
+									<translation x="0" y="-48" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock index="1" type="blatt2seite">
+									<translation x="45" y="0" z="0" />
+									<rotation x="0" y="0" z="90" />
+								</dock>
+								<dock index="2" type="blatt2seite">
+									<translation x="-45" y="0" z="0" />
+									<rotation x="0" y="0" z="-90" />
+								</dock>
+								<dock index="3" type="blatt2seite">
+									<translation x="0" y="45" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock index="4" type="blatt2seite">
+									<translation x="0" y="-45" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="tisch2rost">
+									<translation x="0" y="0" z="2.5" />
+									<rotation x="0" y="0" z="90" />
+								</dock>
+							</component>
+							<component type="tisch_100_std">
+								<component type="tischblatt_150_100">
+									<attribute typeref="laenge" value="150" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="180" />
+										<dof axis="x" type="trans">
+											<domain from="-70" to="70" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-45" to="45" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-75" y="-50" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-75" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="75" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="75" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-75" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="100length">
+										<translation x="75" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="150length">
+										<translation x="0" y="50" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="3" type="100length">
+										<translation x="-75" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="150length">
+										<translation x="0" y="-50" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="73" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="48" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-73" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-48" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="70.80" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="-70.80" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="0" y="45" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="0" y="-45" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="48" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-48" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_175_100">
+									<attribute typeref="laenge" value="175" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="180" />
+										<dof axis="x" type="trans">
+											<domain from="-82.5" to="82.5" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-45" to="45" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-87.5" y="-50" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-87.5" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="87.5" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="87.5" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-87.5" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="57" y="50" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-57" y="-50" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_r">
+										<translation x="57" y="-50" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_r">
+										<translation x="-57" y="50" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="100length">
+										<translation x="87.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="175length">
+										<translation x="0" y="50" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="100length">
+										<translation x="-87.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="175length">
+										<translation x="0" y="-50" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="85.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="48" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-85.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-48" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="0" y="45" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="0" y="-45" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="81.8" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="-81.80" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_200_100">
+									<attribute typeref="laenge" value="200" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="180" />
+										<dof axis="x" type="trans">
+											<domain from="-90" to="90" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-45" to="45" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-100" y="-50" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-100" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="100" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="100" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-100" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="69.5" y="50" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-69.5" y="-50" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_r">
+										<translation x="69.5" y="-50" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_r">
+										<translation x="-69.5" y="50" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="100length">
+										<translation x="100" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="200length">
+										<translation x="0" y="50" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="100length">
+										<translation x="-100" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="200length">
+										<translation x="0" y="-50" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="98" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="48" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-98" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-48" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="94.30" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="-94.30" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="0" y="45" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="0" y="-45" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="70" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-70" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_225_100">
+									<attribute typeref="laenge" value="225" />
+									<attribute typeref="type" value="esstisch" />
+									<dock amount="10" index="1" type="tisch2addon">
+										<translation x="0" y="0" z="7.1" />
+										<rotation x="0" y="0" z="180" />
+										<dof axis="x" type="trans">
+											<domain from="-110" to="110" type="continuous" />
+										</dof>
+										<dof axis="y" type="trans">
+											<domain from="-45" to="45" type="continuous" />
+										</dof>
+									</dock>
+									<dock index="0" type="measuredock">
+										<translation x="-112.5" y="-50" z="7.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="measuredock">
+										<translation x="-112.5" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="measuredock">
+										<translation x="112.5" y="-50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="measuredock">
+										<translation x="112.5" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="4" type="measuredock">
+										<translation x="-112.5" y="50" z="7" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_l">
+										<translation x="69.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_l">
+										<translation x="-69.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="1" type="blatt2anbtisch_r">
+										<translation x="69.5" y="-37.5" z="-1.4" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2anbtisch_r">
+										<translation x="-69.5" y="37.5" z="-1.4" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="1" type="100length">
+                   <translation x="112.5" y="0" z="0" />
+                   <rotation x="0" y="0" z="-90" />
+                  </dock>
+                  <dock index="2" type="225length">
+                    <translation x="0" y="50" z="0" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="3" type="100length">
+                    <translation x="-112.5" y="0" z="0" />
+                    <rotation x="0" y="0" z="90" />
+                  </dock>
+                  <dock index="4" type="250length">
+                    <translation x="0" y="-50" z="0" />
+                    <rotation x="0" y="0" z="180" />
+                  </dock>
+									<dock index="1" type="blatt2zarge">
+										<translation x="110.5" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="2" type="blatt2zarge">
+										<translation x="0" y="48" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="blatt2zarge">
+										<translation x="-110.5" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="4" type="blatt2zarge">
+										<translation x="0" y="-48" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="1" type="blatt2seite">
+										<translation x="94.30" y="0" z="0" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="blatt2seite">
+										<translation x="-94.30" y="0" z="0" />
+										<rotation x="0" y="0" z="-90" />
+									</dock>
+									<dock index="3" type="blatt2seite">
+										<translation x="0" y="35.5" z="0" />
+										<rotation x="0" y="0" z="180" />
+									</dock>
+									<dock index="4" type="blatt2seite">
+										<translation x="0" y="-35.5" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="tisch2rost">
+										<translation x="0" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="2" type="tisch2rost">
+										<translation x="60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+									<dock index="3" type="tisch2rost">
+										<translation x="-60" y="0" z="2.5" />
+										<rotation x="0" y="0" z="90" />
+									</dock>
+								</component>
+								<component type="tischblatt_250_100">
+                    <attribute typeref="laenge" value="250" />
+                    <attribute typeref="type" value="esstisch" />
+                    <dock amount="10" index="1" type="tisch2addon">
+                      <translation x="0" y="0" z="7.1" />
+                      <rotation x="0" y="0" z="180" />
+                      <dof axis="x" type="trans">
+                        <domain from="-120" to="120" type="continuous" />
+                      </dof>
+                      <dof axis="y" type="trans">
+                        <domain from="-45" to="45" type="continuous" />
+                      </dof>
+                    </dock>
+                    <dock index="0" type="measuredock">
+                      <translation x="-125" y="-50" z="7.1" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="1" type="measuredock">
+                      <translation x="-125" y="-50" z="7" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="2" type="measuredock">
+                      <translation x="125" y="-50" z="7" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="3" type="measuredock">
+                      <translation x="125" y="50" z="7" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="4" type="measuredock">
+                      <translation x="-125" y="50" z="7" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="1" type="blatt2anbtisch_l">
+                      <translation x="69.5" y="37.5" z="-1.4" />
+                      <rotation x="0" y="0" z="-90" />
+                    </dock>
+                    <dock index="2" type="blatt2anbtisch_l">
+                      <translation x="-69.5" y="-37.5" z="-1.4" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                    <dock index="1" type="blatt2anbtisch_r">
+                      <translation x="69.5" y="-37.5" z="-1.4" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                    <dock index="2" type="blatt2anbtisch_r">
+                      <translation x="-69.5" y="37.5" z="-1.4" />
+                      <rotation x="0" y="0" z="-90" />
+                    </dock>
+                    <dock index="1" type="100length">
+                    <translation x="125" y="0" z="0" />
+                    <rotation x="0" y="0" z="-90" />
+                    </dock>
+                    <dock index="2" type="250length">
+                      <translation x="0" y="50" z="0" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="3" type="100length">
+                      <translation x="-125" y="0" z="0" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                    <dock index="4" type="250length">
+                      <translation x="0" y="-50" z="0" />
+                      <rotation x="0" y="0" z="180" />
+                    </dock>
+                    <dock index="1" type="blatt2zarge">
+                      <translation x="123" y="0" z="0" />
+                      <rotation x="0" y="0" z="-90" />
+                    </dock>
+                    <dock index="2" type="blatt2zarge">
+                      <translation x="0" y="48" z="0" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="3" type="blatt2zarge">
+                      <translation x="-123" y="0" z="0" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                    <dock index="4" type="blatt2zarge">
+                      <translation x="0" y="-48" z="0" />
+                      <rotation x="0" y="0" z="180" />
+                    </dock>
+                    <dock index="1" type="blatt2seite">
+                      <translation x="94.30" y="0" z="0" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                    <dock index="2" type="blatt2seite">
+                      <translation x="-94.30" y="0" z="0" />
+                      <rotation x="0" y="0" z="-90" />
+                    </dock>
+                    <dock index="3" type="blatt2seite">
+                      <translation x="0" y="35.5" z="0" />
+                      <rotation x="0" y="0" z="180" />
+                    </dock>
+                    <dock index="4" type="blatt2seite">
+                      <translation x="0" y="-35.5" z="0" />
+                      <rotation x="0" y="0" z="0" />
+                    </dock>
+                    <dock index="1" type="tisch2rost">
+                      <translation x="0" y="0" z="2.5" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                    <dock index="2" type="tisch2rost">
+                      <translation x="60" y="0" z="2.5" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                    <dock index="3" type="tisch2rost">
+                      <translation x="-60" y="0" z="2.5" />
+                      <rotation x="0" y="0" z="90" />
+                    </dock>
+                  </component>
+							</component>
+						</component>
+						<component type="tisch_100_trapez">
+							<component type="tischblatt_175_100_100_79">
+							<attribute typeref="laenge" value="175"/>
+								<dock amount="10" index="1" type="tisch2addon">
+									<translation x="0" y="0" z="7.1" />
+									<rotation x="0" y="0" z="180" />
+									<dof axis="x" type="trans">
+										<domain from="-80" to="80" type="continuous" />
+									</dof>
+									<dof axis="y" type="trans">
+										<domain from="-40" to="40" type="continuous" />
+									</dof>
+								</dock>
+								<dock index="0" type="measuredock">
+									<translation x="-87.5" y="-43.57" z="7.1" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="measuredock">
+									<translation x="-87.5" y="-43.57" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="2" type="measuredock">
+									<translation x="87.5" y="-43.57" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="measuredock">
+									<translation x="39.5" y="44.2" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="4" type="measuredock">
+									<translation x="-39.5" y="44.2" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="100length">
+									<translation x="63.003" y="0.918" z="0" />
+									<rotation x="0" y="0" z="-60" />
+								</dock>
+								<dock index="2" type="100length">
+									<translation x="-63.003" y="0.918" z="0" />
+									<rotation x="0" y="0" z="60" />
+								</dock>
+								<dock index="4" type="175length">
+									<translation x="0" y="-43.248" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock index="1" type="blatt2zarge">
+									<translation x="61.5" y="0" z="0" />
+									<rotation x="0" y="0" z="300" />
+								</dock>
+								<dock index="2" type="blatt2zarge">
+									<translation x="-61.5" y="0" z="0" />
+									<rotation x="0" y="0" z="60" />
+								</dock>
+								<dock index="3" type="blatt2zarge">
+									<translation x="0" y="41.5" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="4" type="blatt2zarge">
+									<translation x="0" y="-41.5" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+							</component>
+							<component type="tischblatt_200_100_100_104">
+							  <attribute typeref="laenge" value="200"/>
+								<dock amount="10" index="1" type="tisch2addon">
+									<translation x="0" y="0" z="7.1" />
+									<rotation x="0" y="0" z="180" />
+									<dof axis="x" type="trans">
+										<domain from="-90" to="90" type="continuous" />
+									</dof>
+									<dof axis="y" type="trans">
+										<domain from="-45" to="45" type="continuous" />
+									</dof>
+								</dock>
+								<dock index="0" type="measuredock">
+									<translation x="-100" y="-43.57" z="7.1" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="measuredock">
+									<translation x="-100" y="-43.57" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="2" type="measuredock">
+									<translation x="100" y="-43.57" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="measuredock">
+									<translation x="52" y="44.2" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="4" type="measuredock">
+									<translation x="-52" y="44.2" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="100length">
+									<translation x="75.732" y="1" z="0" />
+									<rotation x="0" y="0" z="-60" />
+								</dock>
+								<dock index="2" type="100length">
+									<translation x="-75.732" y="1" z="0" />
+									<rotation x="0" y="0" z="60" />
+								</dock>
+								<dock index="4" type="200length">
+									<translation x="0" y="-43.248" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock index="1" type="blatt2zarge">
+									<translation x="73.6" y="0" z="0" />
+									<rotation x="0" y="0" z="300" />
+								</dock>
+								<dock index="2" type="blatt2zarge">
+									<translation x="-73.6" y="0" z="0" />
+									<rotation x="0" y="0" z="60" />
+								</dock>
+								<dock index="3" type="blatt2zarge">
+									<translation x="0" y="41.7" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="4" type="blatt2zarge">
+									<translation x="0" y="-41.7" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+							</component>
+						</component>
+						<component type="tisch_100_sondergroesse">
+							<dock active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" amount="5" eval_active_expr="partfeaturechange" index="1" type="tischblatt100_2_blende" />
+							<dock active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" eval_active_expr="partfeaturechange" index="1" type="tisch2rosti">
+								<translation x="75" y="48" z="0" />
+								<rotation x="0" y="0" z="90" />
+							</dock>
+							<dock active="call get_material_wood(Feature('Tischmaterial')) or call table_kelco();" eval_active_expr="partfeaturechange" index="2" type="tisch2rosti">
+								<translation x="-75" y="48" z="0" />
+								<rotation x="0" y="0" z="90" />
+							</dock> 
+							<component type="tischblatt_300_100">
+								<attribute typeref="laenge" value="300" />
+								<dock amount="10" index="1" type="tisch2addon">
+									<translation x="0" y="0" z="7.1" />
+									<rotation x="0" y="0" z="180" />
+									<dof axis="x" type="trans">
+										<domain from="-90" to="90" type="continuous" />
+									</dof>
+									<dof axis="y" type="trans">
+										<domain from="-45" to="45" type="continuous" />
+									</dof>
+								</dock>
+								<dock index="0" type="measuredock">
+									<translation x="-150" y="-50" z="7.1" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="measuredock">
+									<translation x="-150" y="-50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="2" type="measuredock">
+									<translation x="150" y="-50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="measuredock">
+									<translation x="150" y="50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="4" type="measuredock">
+									<translation x="-150" y="50" z="7" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="1" type="100length">
+									<translation x="150" y="0" z="0" />
+									<rotation x="0" y="0" z="-90" />
+								</dock>
+								<dock index="2" type="300length">
+									<translation x="0" y="50" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="100length">
+									<translation x="-150" y="0" z="0" />
+									<rotation x="0" y="0" z="90" />
+								</dock>
+								<dock index="4" type="300length">
+									<translation x="0" y="-50" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock index="1" type="blatt2zarge">
+									<translation x="148" y="0" z="0" />
+									<rotation x="0" y="0" z="-90" />
+								</dock>
+								<dock index="2" type="blatt2zarge">
+									<translation x="0" y="48" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="blatt2zarge">
+									<translation x="-148" y="0" z="0" />
+									<rotation x="0" y="0" z="90" />
+								</dock>
+								<dock index="4" type="blatt2zarge">
+									<translation x="0" y="-48" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock index="1" type="tisch2rost">
+									<translation x="0" y="0" z="2.5" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="2" type="tisch2rost">
+									<translation x="100" y="0" z="2.5" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock index="3" type="tisch2rost">
+									<translation x="-100" y="0" z="2.5" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+							</component>
+						</component>
+					</component>
+					<component type="tisch_100_dreieck">
+						<component type="tisch_100_90dreieck">
+							<component type="tischblatt_100_100_141_5">
+                <attribute typeref="laenge" value="141.5"/>
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="-90"/>
+									<dof axis="x" type="trans">
+										<domain type="continuous" from="-45" to="45"/>
+									</dof>
+									<dof axis="y" type="trans">
+										<domain type="continuous" from="-45" to="45"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-33.741" y="33.751" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-33.741" y="33.751" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="-33.741" y="-66.249" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="66.259" y="33.8" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="100length" index="1">
+									<translation x="-33.741" y="-16.553" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="100length" index="2">
+									<translation x="16.559" y="33.751" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="141length" index="3">
+									<translation x="17.68" y="-17.68" z="0"/>
+									<rotation x="0" y="0" z="225"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="-31.8" y="-16.3" z="0"/>
+									<rotation x="0" y="0" z="90"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="16.3" y="31.8" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="16.3" y="-16.3" z="0"/>
+									<rotation x="0" y="0" z="225"/>
+								</dock>
+							</component>
+						</component>
+						<component type="tisch_100_60dreieck">
+							<component type="tischblatt_100_100_100">
+                <attribute typeref="laenge" value="100"/>
+								<dock type="tisch2addon" index="1" amount="10">
+									<translation x="0" y="0" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+									<dof axis="x" type="trans">
+										<domain type="continuous" from="-45" to="45"/>
+									</dof>
+									<dof axis="y" type="trans">
+										<domain type="continuous" from="-45" to="45"/>
+									</dof>
+								</dock>
+								<dock type="measuredock" index="0">
+									<translation x="-50" y="-39.693" z="7.1"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="1">
+									<translation x="-50" y="-39.693" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="2">
+									<translation x="50" y="-39.693" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="measuredock" index="3">
+									<translation x="0" y="46.9095" z="7"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+								<dock type="100length" index="1">
+									<translation x="-25.732" y="4.608" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="100length" index="2">
+									<translation x="25.732" y="4.608" z="0"/>
+									<rotation x="0" y="0" z="-60"/>
+								</dock>
+								<dock type="100length" index="3">
+									<translation x="0" y="-39.693" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+								<dock type="blatt2zarge" index="1">
+									<translation x="-23.9" y="3.6" z="0"/>
+									<rotation x="0" y="0" z="60"/>
+								</dock>
+								<dock type="blatt2zarge" index="2">
+									<translation x="23.9" y="3.6" z="0"/>
+									<rotation x="0" y="0" z="300"/>
+								</dock>
+								<dock type="blatt2zarge" index="3">
+									<translation x="0" y="-38" z="0"/>
+									<rotation x="0" y="0" z="180"/>
+								</dock>
+							</component>
+						</component>
+					</component>
+				</component>
+				</component>
+				<component type="ct_tisch_i">
+					<dock type="measuredock" index="0" eval_transform_expr="once">
+						<translation x="PartAttr(part,'laenge')/2;" y="-PartAttr(part,'breite')/2;" z="7.0"/>
+					</dock>
+					<dock type="measuredock" index="1" eval_transform_expr="once">
+						<translation x="-PartAttr(part,'laenge')/2;" y="-PartAttr(part,'breite')/2;" z="10.2"/>
+					</dock>
+					<dock type="measuredock" index="2" eval_transform_expr="once">
+						<translation x="PartAttr(part,'laenge')/2;" y="-PartAttr(part,'breite')/2;" z="10.2"/>
+					</dock>
+					<dock type="measuredock" index="3" eval_transform_expr="once">
+						<translation x="PartAttr(part,'laenge')/2;" y="PartAttr(part,'breite')/2;" z="10.2"/>
+					</dock>
+					<dock type="measuredock" index="4" eval_transform_expr="once">
+						<translation x="-PartAttr(part,'laenge')/2;" y="PartAttr(part,'breite')/2;" z="10.2"/>
+					</dock>
+					<dock type="tischblatt_2_kabelwanne" index="1" eval_transform_expr="once">
+            <translation  x="0" y="PartAttr(part,'breite')/2;" z="7.1" />
+          </dock>
+					<component type="ct_tisch_i_75">
+					  <dock type="75length" index="1" eval_transform_expr="once" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+               <translation x="PartAttr(part,'laenge')/2;" y="0" z="0"/>
+               <rotation x="0" y="0" z="-90"/>
+             </dock>
+             <dock type="75length" index="2" eval_transform_expr="once" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+               <translation x="-PartAttr(part,'laenge')/2;" y="0" z="0"/>
+               <rotation x="0" y="0" z="90"/>
+             </dock>
+<!-- Neuteile 2013 Tisch 125x75 -->
+            <component type="ct_tisch_i_75_std">
+
+							<component type="tischblatt_a_125_75">
+								<attribute typeref="breite" value="75"/>
+								<attribute typeref="laenge" value="125"/>
+	              <dock type="tisch2addon" index="1" amount="10">
+						<translation x="0" y="0" z="7.1"/>
+						<rotation x="0" y="0" z="0"/>
+						<dof axis="x" type="trans">
+							<domain type="continuous" from="-50" to="50"/>
+						</dof>
+						<dof axis="y" type="trans">
+							<domain type="continuous" from="-30" to="30"/>
+						</dof>
+				  </dock>              
+							</component>
+							<component type="tischblatt_a_150_75">
+								<attribute typeref="breite" value="75"/>
+								<attribute typeref="laenge" value="150"/>
+	              <dock type="tisch2addon" index="1" amount="10">
+						<translation x="0" y="0" z="7.1"/>
+						<rotation x="0" y="0" z="0"/>
+						<dof axis="x" type="trans">
+							<domain type="continuous" from="-68" to="68"/>
+						</dof>
+						<dof axis="y" type="trans">
+							<domain type="continuous" from="-30" to="30"/>
+						</dof>
+				  </dock>              
+							</component>
+							<component type="tischblatt_a_175_75">
+								<attribute typeref="breite" value="75"/>
+								<attribute typeref="laenge" value="175"/>
+	              <dock type="tisch2addon" index="1" amount="10">
+						<translation x="0" y="0" z="7.1"/>
+						<rotation x="0" y="0" z="0"/>
+						<dof axis="x" type="trans">
+							<domain type="continuous" from="-78" to="78"/>
+						</dof>
+						<dof axis="y" type="trans">
+							<domain type="continuous" from="-30" to="30"/>
+						</dof>
+				  </dock>                            
+							</component>
+							<component type="tischblatt_a_200_75">
+								<attribute typeref="breite" value="75" />
+								<attribute typeref="laenge" value="200" />
+								<dock amount="10" index="1" type="tisch2addon">
+									<translation x="0" y="0" z="7.1" />
+									<rotation x="0" y="0" z="0" />
+									<dof axis="x" type="trans">
+										<domain from="-92" to="92" type="continuous" />
+									</dof>
+									<dof axis="y" type="trans">
+										<domain from="-30" to="30" type="continuous" />
+									</dof>
+								</dock>
+							</component>
+
+
+							<component type="tischblatt_i_125_75">
+								<attribute typeref="breite" value="75"/>
+								<attribute typeref="laenge" value="125"/>
+								<dock amount="5" index="1" type="tischblatt75_2_blende" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once"/>
+								<dock type="125length" index="1" active="Feature('f_tischmodell') eq 'standard';">
+	                <translation x="0" y="PartAttr(part,'breite')/2;" z="0"/>
+	                <rotation x="0" y="0" z="0"/>
+	              </dock>
+	              <dock type="125length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+	                <translation x="0" y="-PartAttr(part,'breite')/2;" z="0"/>
+	                <rotation x="0" y="0" z="180"/>
+	              </dock>
+	              <dock type="tisch2addon" index="1" amount="10">
+						<translation x="0" y="0" z="7.1"/>
+						<rotation x="0" y="0" z="0"/>
+						<dof axis="x" type="trans">
+							<domain type="continuous" from="-50" to="50"/>
+						</dof>
+						<dof axis="y" type="trans">
+							<domain type="continuous" from="-30" to="30"/>
+						</dof>
+				  </dock>              
+							</component>
+							<component type="tischblatt_i_150_75">
+								<attribute typeref="breite" value="75"/>
+								<attribute typeref="laenge" value="150"/>
+								<dock amount="5" index="1" type="tischblatt75_2_blende" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once"/>
+								<dock type="150length" index="1" active="Feature('f_tischmodell') eq 'standard';">
+	                <translation x="0" y="PartAttr(part,'breite')/2;" z="0"/>
+	                <rotation x="0" y="0" z="0"/>
+	              </dock>
+	              <dock type="150length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+	                <translation x="0" y="-PartAttr(part,'breite')/2;" z="0"/>
+	                <rotation x="0" y="0" z="180"/>
+	              </dock>
+	              <dock type="tisch2addon" index="1" amount="10">
+						<translation x="0" y="0" z="7.1"/>
+						<rotation x="0" y="0" z="0"/>
+						<dof axis="x" type="trans">
+							<domain type="continuous" from="-68" to="68"/>
+						</dof>
+						<dof axis="y" type="trans">
+							<domain type="continuous" from="-30" to="30"/>
+						</dof>
+				  </dock>              
+							</component>
+							<component type="tischblatt_i_175_75">
+								<attribute typeref="breite" value="75"/>
+								<attribute typeref="laenge" value="175"/>
+								<dock amount="5" index="1" type="tischblatt75_2_blende" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once" />
+								<dock type="175length" index="1" active="Feature('f_tischmodell') eq 'standard';">
+	                <translation x="0" y="PartAttr(part,'breite')/2;" z="0"/>
+	                <rotation x="0" y="0" z="0"/>
+	              </dock>
+	              <dock type="175length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+	                <translation x="0" y="-PartAttr(part,'breite')/2;" z="0"/>
+	                <rotation x="0" y="0" z="180"/>
+	              </dock>
+	              <dock type="tisch2addon" index="1" amount="10">
+						<translation x="0" y="0" z="7.1"/>
+						<rotation x="0" y="0" z="0"/>
+						<dof axis="x" type="trans">
+							<domain type="continuous" from="-78" to="78"/>
+						</dof>
+						<dof axis="y" type="trans">
+							<domain type="continuous" from="-30" to="30"/>
+						</dof>
+				  </dock>                            
+							</component>
+							<component type="tischblatt_i_200_75">
+								<attribute typeref="breite" value="75" />
+								<attribute typeref="laenge" value="200" />
+								<dock amount="5" index="1" type="tischblatt75_2_blende" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once" />
+								<dock active="Feature('f_tischmodell') eq 'standard';" index="1" type="200length" eval_active_expr="once">
+									<translation x="0" y="PartAttr(part,'breite')/2;" z="0" />
+									<rotation x="0" y="0" z="0" />
+								</dock>
+								<dock active="Feature('f_tischmodell') eq 'standard';" index="2" type="200length" eval_active_expr="once">
+									<translation x="0" y="-PartAttr(part,'breite')/2;" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock amount="10" index="1" type="tisch2addon">
+									<translation x="0" y="0" z="7.1" />
+									<rotation x="0" y="0" z="0" />
+									<dof axis="x" type="trans">
+										<domain from="-92" to="92" type="continuous" />
+									</dof>
+									<dof axis="y" type="trans">
+										<domain from="-30" to="30" type="continuous" />
+									</dof>
+								</dock>
+							</component>
+						</component>
+						<component type="tischblatt_i_300_75">
+							<attribute typeref="breite" value="75"/>
+							<attribute typeref="laenge" value="300"/>
+							<dock type="300length" index="1" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+                <translation x="0" y="PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+              <dock type="300length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+                <translation x="0" y="-PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="180"/>
+              </dock>
+              <dock type="tisch2addon" index="1" amount="10">
+					<translation x="0" y="0" z="7.1"/>
+					<rotation x="0" y="0" z="0"/>
+					<dof axis="x" type="trans">
+						<domain type="continuous" from="-142" to="142"/>
+					</dof>
+					<dof axis="y" type="trans">
+						<domain type="continuous" from="-30" to="30"/>
+					</dof>
+			    </dock>                            
+					</component>
+					
+					</component>
+					<component type="ct_tisch_i_100">
+					  <dock type="100length" index="1" eval_transform_expr="once" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+               <translation x="PartAttr(part,'laenge')/2;" y="0" z="0"/>
+               <rotation x="0" y="0" z="-90"/>
+             </dock>
+             <dock type="100length" index="2" eval_transform_expr="once" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+               <translation x="-PartAttr(part,'laenge')/2;" y="0" z="0"/>
+               <rotation x="0" y="0" z="90"/>
+             </dock>
+            <component type="ct_tisch_i_100_std">
+
+<component type="tischblatt_a_150_100">
+	<attribute typeref="breite" value="100" />
+	<attribute typeref="laenge" value="150" />
+	<dock amount="10" index="1" type="tisch2addon">
+		<translation x="0" y="0" z="7.1" />
+		<rotation x="0" y="0" z="0" />
+		<dof axis="x" type="trans">
+			<domain from="-68" to="68" type="continuous" />
+		</dof>
+		<dof axis="y" type="trans">
+			<domain from="-52" to="52" type="continuous" />
+		</dof>
+	</dock>
+</component><component type="tischblatt_a_175_100">
+	<attribute typeref="breite" value="100" />
+	<attribute typeref="laenge" value="175" />
+	<dock amount="10" index="1" type="tisch2addon">
+		<translation x="0" y="0" z="7.1" />
+		<rotation x="0" y="0" z="0" />
+		<dof axis="x" type="trans">
+			<domain from="-78" to="78" type="continuous" />
+		</dof>
+		<dof axis="y" type="trans">
+			<domain from="-52" to="52" type="continuous" />
+		</dof>
+	</dock>
+</component><component type="tischblatt_a_200_100">
+	<attribute typeref="breite" value="100" />
+	<attribute typeref="laenge" value="200" />
+	<dock amount="10" index="1" type="tisch2addon">
+		<translation x="0" y="0" z="7.1" />
+		<rotation x="0" y="0" z="0" />
+		<dof axis="x" type="trans">
+			<domain from="-92" to="92" type="continuous" />
+		</dof>
+		<dof axis="y" type="trans">
+			<domain from="-52" to="52" type="continuous" />
+		</dof>
+	</dock>
+</component>
+
+						<component type="tischblatt_i_150_100">
+							<attribute typeref="breite" value="100"/>
+							<attribute typeref="laenge" value="150"/>
+							<dock amount="5" index="1" type="tischblatt100_2_blende" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once" />
+							<dock type="150length" index="1" active="Feature('f_tischmodell') eq 'standard';">
+                <translation x="0" y="PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+              <dock type="150length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+                <translation x="0" y="-PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="180"/>
+              </dock>
+              <dock type="tisch2addon" index="1" amount="10">
+					<translation x="0" y="0" z="7.1"/>
+					<rotation x="0" y="0" z="0"/>
+					<dof axis="x" type="trans">
+						<domain type="continuous" from="-68" to="68"/>
+					</dof>
+					<dof axis="y" type="trans">
+						<domain type="continuous" from="-52" to="52"/>
+					</dof>
+			  </dock>              
+						</component>
+						<component type="tischblatt_i_175_100">
+							<attribute typeref="breite" value="100"/>
+							<attribute typeref="laenge" value="175"/>
+							<dock amount="5" index="1" type="tischblatt100_2_blende" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once" />
+							<dock type="175length" index="1" active="Feature('f_tischmodell') eq 'standard';">
+                <translation x="0" y="PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+              <dock type="175length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+                <translation x="0" y="-PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="180"/>
+              </dock>
+              <dock type="tisch2addon" index="1" amount="10">
+					<translation x="0" y="0" z="7.1"/>
+					<rotation x="0" y="0" z="0"/>
+					<dof axis="x" type="trans">
+						<domain type="continuous" from="-78" to="78"/>
+					</dof>
+					<dof axis="y" type="trans">
+						<domain type="continuous" from="-52" to="52"/>
+					</dof>
+			  </dock>                            
+						</component>
+						<component type="tischblatt_i_200_100">
+							<attribute typeref="breite" value="100"/>
+							<attribute typeref="laenge" value="200"/>
+							<dock amount="5" index="1" type="tischblatt100_2_blende" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once" />
+							<dock type="200length" index="1" active="Feature('f_tischmodell') eq 'standard';">
+                <translation x="0" y="PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+              <dock type="200length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+                <translation x="0" y="-PartAttr(part,'breite')/2;" z="0"/>
+                <rotation x="0" y="0" z="180"/>
+              </dock>
+              <dock type="tisch2addon" index="1" amount="10">
+								<translation x="0" y="0" z="7.1"/>
+								<rotation x="0" y="0" z="0"/>
+								<dof axis="x" type="trans">
+									<domain type="continuous" from="-92" to="92"/>
+								</dof>
+								<dof axis="y" type="trans">
+									<domain type="continuous" from="-52" to="52"/>
+								</dof>
+						  </dock>                            
+						</component>
+						</component>
+						<component type="tischblatt_i_300_100">
+						<attribute typeref="breite" value="100" />
+						<attribute typeref="laenge" value="300" />
+						<dock type="300length" index="1" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+							<translation x="0" y="PartAttr(part,'breite')/2;" z="0" />
+							<rotation x="0" y="0" z="0" />
+						</dock>
+						<dock type="300length" index="2" active="Feature('f_tischmodell') eq 'standard';" eval_active_expr="once">
+							<translation x="0" y="-PartAttr(part,'breite')/2;" z="0" />
+							<rotation x="0" y="0" z="180" />
+						</dock>
+						<dock type="tisch2addon" index="1" amount="10">
+							<translation x="0" y="0" z="7.1" />
+							<rotation x="0" y="0" z="0" />
+							<dof axis="x" type="trans">
+								<domain type="continuous" from="-142" to="142" />
+							</dof>
+							<dof axis="y" type="trans">
+								<domain type="continuous" from="-30" to="30" />
+							</dof>
+						</dock>
+					</component>
+					</component>
+				</component>
+			</component>
+			<component type="tischbein">
+				<component type="tischbein_37">
+					<dock type="bein2winkel" index="1">
+						<translation x="0" y="0" z="29.9"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+<!-- 	kein Aufbaurohr mehr fuer Bildschirm-Schwenkarm	2020-03			
+					<dock type="halter2rohr" index="1" active="false;">
+						<translation x="0" y="0" z="37"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock> -->
+				</component>
+				<component type="tischbein_70">
+					<dock type="rohr2ebene" index="1">
+						<translation x="0" y="0" z="72"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+<!-- 					<dock type="halter2rohr" index="1">
+						<translation x="0" y="0" z="72"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock> -->
+					<dock type="bein2winkel" index="1">
+						<translation x="0" y="0" z="64.9"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="bein2kanal" index="1">
+						<translation x="0" y="0" z="2.5"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="bein2cpu_ring" index="1">
+						<translation x="0" y="0" z="10"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="tischbein_74">
+					<dock type="rohr2ebene" index="1">
+						<translation x="0" y="0" z="74"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+<!-- 					<dock type="halter2rohr" index="1" active="Feature('f_tischmodell') eq 'standard' or Feature('f_tischmodell') eq 'basis';" eval_active_expr="once">
+						<translation x="0" y="0" z="74"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock> -->
+					<dock type="bein2winkel" index="1">
+						<translation x="0" y="0" z="66.9"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="bein2kanal" index="1">
+						<translation x="0" y="0" z="2.5"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="bein2cpu_ring" index="1">
+						<translation x="0" y="0" z="10"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="tischbein_vario">
+					<component type="tischbein_vario_74">
+						<attribute typeref="max" value="860"/>
+						<attribute typeref="min" value="680"/>
+						<dock type="rohr2ebene" index="1">
+							<translation x="0" y="0" z="74 + Feature('f_variogroesse') - 6.0;"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="bein2winkel" index="1">
+							<translation x="0" y="0" z="66.9 + Feature('f_variogroesse') - 6.0;"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="bein2kanal" index="1">
+							<translation x="0" y="0" z="2.5 + Feature('f_variogroesse');"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="bein2cpu_ring" index="1">
+							<translation x="0" y="0" z="10 + Feature('f_variogroesse');"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+			</component>
+			<component type="eckwinkel">
+				<component type="eckwinkel_45">
+					<dock type="winkel2zarge" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="-112.5"/>
+					</dock>
+					<dock type="winkel2zarge" index="2">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="22.5"/>
+					</dock>
+					<dock type="winkel2bein" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="eckwinkel_60">
+					<dock type="winkel2zarge" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="180"/>
+					</dock>
+					<dock type="winkel2zarge" index="2">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="300"/>
+					</dock>
+					<dock type="winkel2bein" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="ct_eckwinkel_90">
+				<component type="eckwinkel_90">
+					<dock type="winkel2zarge" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="winkel2zarge" index="2">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="-90"/>
+					</dock>
+					<dock type="winkel2bein" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="winkel2gelenk" index="1" active="
+					my tisch_500 = ParentOfType(part, 'mainstructure', 'tischeinheit_125x50_74');
+					if (tisch_500) {
+						my tischblatt = ChildOfType(tisch_500, 'tisch_50_std');
+						if (tischblatt) {
+							return ConnectedDockCount(tischblatt, 'tisch2rosti') eq 0;
+						};
+					};
+					
+					return true;
+					" >
+						<translation x="-2.3" y="-2.3" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				</component>
+				<component type="eckwinkel_120">
+					<dock type="winkel2zarge" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="345"/>
+					</dock>
+					<dock type="winkel2zarge" index="2">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="285"/>
+					</dock>
+					<dock type="winkel2bein" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+			</component>
+			<component type="tischzarge">
+				<component type="mittelzarge">
+					<component type="mittelzarge_125">
+					  <attribute typeref="laenge" value="125"/>
+						<dock type="mittelzarge2zarge" index="1">
+							<translation x="60.5" y="0" z="0"/>
+							<rotation x="0" y="0" z="-90"/>
+						</dock>
+						<dock type="mittelzarge2zarge" index="2">
+							<translation x="-60.5" y="0" z="0"/>
+							<rotation x="0" y="0" z="90"/>
+						</dock>
+						<dock type="zarge2blende" index="2">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="mittelzarge_150">
+					  <attribute typeref="laenge" value="150"/>
+						<dock type="mittelzarge2zarge" index="1">
+							<translation x="73" y="0" z="0"/>
+							<rotation x="0" y="0" z="-90"/>
+						</dock>
+						<dock type="mittelzarge2zarge" index="2">
+							<translation x="-73" y="0" z="0"/>
+							<rotation x="0" y="0" z="90"/>
+						</dock>
+						<dock type="zarge2blende" index="2">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="mittelzarge_175">
+					  <attribute typeref="laenge" value="175"/>
+						<dock type="mittelzarge2zarge" index="1">
+							<translation x="85.48" y="0" z="0"/>
+							<rotation x="0" y="0" z="-90"/>
+						</dock>
+						<dock type="mittelzarge2zarge" index="2">
+							<translation x="-85.48" y="0" z="0"/>
+							<rotation x="0" y="0" z="90"/>
+						</dock>
+						<dock type="zarge2blende" index="2">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="mittelzarge_200">
+					  <attribute typeref="laenge" value="200"/>
+						<dock type="mittelzarge2zarge" index="1">
+							<translation x="98" y="0" z="0"/>
+							<rotation x="0" y="0" z="-90"/>
+						</dock>
+						<dock type="mittelzarge2zarge" index="2">
+							<translation x="-98" y="0" z="0"/>
+							<rotation x="0" y="0" z="90"/>
+						</dock>
+						<dock type="zarge2blende" index="2">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+				<component type="tischzarge_sonst">
+					<component type="versteifungszarge">
+						<component type="versteifungszarge_300">
+						  <attribute typeref="laenge" value="300"/>
+							<dock type="versteifungszarge2zarge" index="1">
+								<translation x="148" y="0" z="0"/>
+								<rotation x="0" y="0" z="-90"/>
+							</dock>
+							<dock type="versteifungszarge2zarge" index="2">
+								<translation x="-148" y="0" z="0"/>
+								<rotation x="0" y="0" z="90"/>
+							</dock>
+						</component>
+					</component>
+					
+					<component type="ct_tischzarge_rechtecktisch">
+						<component type="ct_tischzarge_i_all">
+							<component type="tischzarge_i_300" comment="like zarge_i_150 but double the docks">
+								<attribute typeref="laenge" value="300" />
+								<dock eval_transform_expr="partfeaturechange" index="1" type="tisch_2_gelenk">
+									<translation x="-PartAttr(part,'laenge')/2 + 4.2;" y="-Feature('f_breite') + 6.0;" z="0" />
+									<rotation x="0" y="0" z="180" />
+								</dock>
+								<dock eval_transform_expr="partfeaturechange" index="2" type="tisch_2_gelenk">
+									<translation x="PartAttr(part,'laenge')/2 - 4.2;" y="-Feature('f_breite') + 6.0;" z="0" />
+									<rotation x="0" y="0" z="-90" />
+								</dock>
+								<dock index="1" type="tisch_2_buegel">
+                    <translation x="0" y="-3.5" z="2.6" />
+               </dock>
+							</component>
+							<component type="ct_tischzarge_dummy">
+								<component comment="2x fuer 300er Tisch-Befestigungen, veraltet" type="ct_tischzarge_i_150" />
+								<component comment="2x fuer 300er Tisch-Befestigungen" type="tischzarge_i_150_dummy">
+									<attribute typeref="laenge" value="150" />
+									<dock active="not Bool(DockGetConnectedDock(Dock(part, 'adaptionspunkt_2_zubehoer', '1'))) and 
+	                              not Bool(DockGetConnectedDock(Dock(part, 'adaptionspunkt_2_zubehoer', '2'))) and
+	                              Feature('f_tischmodell') ne 'access';" amount="2" index="1" type="tisch_2_buegel">
+										<translation x="0" y="-3.5" z="2.6" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock eval_transform_expr="partfeaturechange" 
+										active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';"
+										index="1" type="adaptionspunkt_2_zubehoer"
+									>
+										<translation x="31.5" y="-3.45" z="2.6" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock eval_transform_expr="partfeaturechange" 
+										active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';"
+										index="2" type="adaptionspunkt_2_zubehoer"
+									>
+										<translation x="-31.5" y="-3.45" z="2.6" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock eval_transform_expr="partfeaturechange"  
+									  active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';" 
+										index="3" type="adaptionspunkt_2_zubehoer"
+									>
+										<translation x="37.5" y="-3.45" z="2.6" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock eval_transform_expr="partfeaturechange" 
+									  active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';" 
+										index="4" type="adaptionspunkt_2_zubehoer"
+									>
+										<translation x="-37.5" y="-3.45" z="2.6" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="Feature('f_tischmodell') eq 'standard';" index="1" type="itisch2rost" eval_active_expr="once">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+								</component>
+							</component>
+							<component type="ct_tischzarge_i" comment="2013 aufgrund selectioncheck amount auf 1 und active expression angepasst">
+									<dock index="1" type="tisch_2_buegel" 
+									      active="not Bool(DockGetConnectedDock(Dock(part, 'adaptionspunkt_2_zubehoer', '3'))) and 
+									              not Bool(DockGetConnectedDock(Dock(part, 'adaptionspunkt_2_zubehoer', '4'))) and
+									              Feature('f_tischmodell') ne 'access';">
+										<translation x="0" y="-3.5" z="2.6" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="tisch_2_buegel" 
+									      active="not Bool(DockGetConnectedDock(Dock(part, 'adaptionspunkt_2_zubehoer', '1'))) and 
+									              not Bool(DockGetConnectedDock(Dock(part, 'adaptionspunkt_2_zubehoer', '2'))) and
+									              Feature('f_tischmodell') ne 'access';" >
+										<translation x="0" y="-3.5" z="2.6" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="Feature('f_tischmodell') eq 'standard';" index="1" type="itisch2rost" eval_active_expr="once">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>							
+	                <dock index="2" type="zarge2blende">
+	                  <translation x="0" y="0" z="-4.1" />
+	                  <rotation x="0" y="0" z="0" />
+	                </dock>
+	                <dock eval_transform_expr="partfeaturechange" index="1" type="tisch_2_gelenk">
+	                  <translation x="-PartAttr(part,'laenge')/2 + 4.2;" y="-Feature('f_breite') + 6.0;" z="0" />
+	                  <rotation x="0" y="0" z="180" />
+	                </dock>
+	                <dock eval_transform_expr="partfeaturechange" index="2" type="tisch_2_gelenk">
+	                  <translation x="PartAttr(part,'laenge')/2 - 4.2;" y="-Feature('f_breite') + 6.0;" z="0" />
+	                  <rotation x="0" y="0" z="-90" />
+	                </dock>
+								<component type="tischzarge_i_125">
+                    <attribute typeref="laenge" value="125" />
+                    <dock index="1" type="adaptionspunkt_2_zubehoer"
+                     active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="31.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="2" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="-31.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="3" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';" >
+                    <translation x="37.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="4" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';"  >
+                    <translation x="-37.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                 </component>
+								<component type="tischzarge_i_150">
+									<attribute typeref="laenge" value="150" />
+									<dock index="1" type="adaptionspunkt_2_zubehoer"
+                     active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="31.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="2" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="-31.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="3" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';" >
+                    <translation x="37.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="4" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';"  >
+                    <translation x="-37.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+								</component>
+								<component type="tischzarge_i_175">
+									<attribute typeref="laenge" value="175" />
+									<dock index="1" type="adaptionspunkt_2_zubehoer"
+                     active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="44" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="2" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="-44" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="3" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';" >
+                    <translation x="50" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="4" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';"  >
+                    <translation x="-50" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+									</component>
+								<component type="tischzarge_i_200">
+									<attribute typeref="laenge" value="200" />
+									<dock index="1" type="adaptionspunkt_2_zubehoer"
+                     active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="56.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="2" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '2');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';">
+                    <translation x="-56.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="3" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';" >
+                    <translation x="62.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+                  <dock index="4" type="adaptionspunkt_2_zubehoer"
+                    active="my dock = Dock(part, 'tisch_2_buegel', '1');not Bool(DockGetConnectedDock(dock)) and Feature('f_tischmodell') ne 'access';"  >
+                    <translation x="-62.5" y="-3.45" z="2.6" />
+                    <rotation x="0" y="0" z="0" />
+                  </dock>
+								</component>
+							</component>
+						</component>
+						<component type="ct_tischzarge_classic">
+							<dock index="0" type="zarge2kette" assemblydepended="true" active="Bool(ParentOfType(part, 'mainstructure', 'tisch_einheit_classic'));">
+								<translation x="0" z="1.5"/>
+								<rotation x="0" y="0" z="90"/>
+							</dock>		
+						<component type="ct_tischzarge_rechtecktisch_noVario">
+							<dock index="1" type="tisch_2_primoblende" active="call zargeValidForTischblende(part);">
+								<translation x="0" y="-0.3" z="0.6" />
+							</dock>
+							<component type="ct_tischzarge_225">
+								<attribute typeref="laenge" value="225" />
+								<component type="tischzarge_225">
+									<dock index="1" type="zarge2tischblende75">
+										<translation x="-62.5" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende75">
+										<translation x="62.5" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende100">
+										<translation x="-50" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende100">
+										<translation x="50" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende150">
+										<translation x="-25.0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende150">
+										<translation x="25.0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende175">
+										<translation x="-12.5" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende175">
+										<translation x="12.5" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende200">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2aufsatz">
+										<translation x="110.5" y="0" z="35.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="Feature('variotisch') == 'false';" index="2" type="zarge2aufsatz">
+										<translation x="-110.5" y="0" z="35.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2blatt">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2winkel">
+										<translation x="110.5" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2winkel">
+										<translation x="-110.5" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock amount="10" index="1" type="zarge2hilfe">
+										<increment>
+											<translation x="20" y="0" z="0" />
+										</increment>
+										<translation x="-90" y="0" z="0" />
+									</dock>
+									<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="my rot = PartRot();
+													my rotz = rot['z'];
+													rotz eq -180 ? 180:0;" />
+										<dof axis="x" type="trans">
+											<domain from="-93.5" to="93" type="continuous" />
+										</dof>
+									</dock>
+								</component>
+							</component>
+							<component type="ct_tischzarge_250">
+								<attribute typeref="laenge" value="250" />
+								<component type="tischzarge_250">
+									<dock index="1" type="zarge2tischblende75">
+										<translation x="-62.5" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende75">
+										<translation x="62.5" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende100">
+										<translation x="-50" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende100">
+										<translation x="50" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende150">
+										<translation x="-25.0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende150">
+										<translation x="25.0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende175">
+										<translation x="-12.5" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende175">
+										<translation x="12.5" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende200">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2aufsatz">
+										<translation x="123" y="0" z="35.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="Feature('variotisch') == 'false';" index="2" type="zarge2aufsatz">
+										<translation x="-123" y="0" z="35.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2blatt">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2winkel">
+										<translation x="123" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2winkel">
+										<translation x="-123" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock amount="10" index="1" type="zarge2hilfe">
+										<increment>
+											<translation x="20" y="0" z="0" />
+										</increment>
+										<translation x="-90" y="0" z="0" />
+									</dock>
+									<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="my rot = PartRot();
+													my rotz = rot['z'];
+													rotz eq -180 ? 180:0;" />
+										<dof axis="x" type="trans">
+											<domain from="-93.5" to="93" type="continuous" />
+										</dof>
+									</dock>
+								</component>
+							</component>
+							
+							<component type="ct_tischzarge_300">
+							  <attribute typeref="laenge" value="300" />
+								<component type="tischzarge_300">
+									<dock index="1" type="tisch_2_primoblende" 
+                      active="my name = GetTypeName(Parent('mainstructure')); 
+                              my go1 = not StringContains(name,'_i_');
+                              my go2 = not DockGetConnectedDock(Dock('zarge2kanal',1));
+                              my go3 = not DockGetConnectedDock(Dock('zarge2kanal',2));
+                              my go4 = call zargeValidForTischblende(part);
+                              go1 and go2 and go3 and go4;">
+                    <translation x="0" y="-0.3" z="0.6" />
+                </dock>         
+                <dock index="1" type="zarge2kanal"
+                      active="my go1 = not DockGetConnectedPart(Dock('zarge2blende'));
+                              my go2 = not DockGetConnectedDock(Dock('tisch_2_primoblende'));
+                              my go3 = Feature(part,'f_tischmodell') eq 'basis';  
+                              my go4 = call notExistTischblende(part);
+                              go1 and go2 and go3 and go4;">
+                  <translation x="-75" y="0" z="0" />
+                </dock>
+                <dock index="2" type="zarge2kanal"
+                      active="my go1 = not DockGetConnectedPart(Dock('zarge2blende'));
+                              my go2 = not DockGetConnectedDock(Dock('tisch_2_primoblende'));
+                              my go3 = Feature(part,'f_tischmodell') eq 'basis';  
+                              my go4 = call notExistTischblende(part);
+                              go1 and go2 and go3 and go4;">
+                  <translation x="75" y="0" z="0" />
+                </dock>
+									<dock index="1" type="zarge2tischblende75">
+										<translation x="-112.5" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende75">
+										<translation x="-37.5" y="0" z="0" />
+									</dock>
+									<dock index="3" type="zarge2tischblende75">
+										<translation x="37.5" y="0" z="0" />
+									</dock>
+									<dock index="4" type="zarge2tischblende75">
+										<translation x="112.5" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende100">
+										<translation x="-100" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende100">
+										<translation x="0" y="0" z="0" />
+									</dock>
+									<dock index="3" type="zarge2tischblende100">
+										<translation x="100" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende150">
+										<translation x="-75.0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende150">
+										<translation x="75.0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende175">
+										<translation x="-62.5" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende175">
+										<translation x="62.5" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2tischblende200">
+										<translation x="-50" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2tischblende200">
+										<translation x="50" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2blatt">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="1" type="zarge2winkel">
+										<translation x="148" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock index="2" type="zarge2winkel">
+										<translation x="-148" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock amount="15" index="1" type="zarge2hilfe">
+										<increment>
+											<translation x="20" y="0" z="0" />
+										</increment>
+										<translation x="-140" y="0" z="0" />
+									</dock>
+									<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="my rot = PartRot();
+                    my rotz = rot['z'];
+                    rotz eq -180 ? 180:0;" />
+										<dof axis="x" type="trans">
+											<domain from="-143" to="143" type="continuous" />
+										</dof>
+									</dock>
+								</component>
+							</component>
+						</component>
+						<component type="ct_tischzarge_rechtecktisch_vario">
+						  <dock index="2" type="zarge2kanal" active="Feature(part,'f_tischmodell') eq 'basis';" eval_active_expr="once">
+                <translation x="0" y="0" z="0" />
+                <rotation x="0" y="0" z="0" />
+              </dock>
+              <dock index="1" type="tisch_2_primoblende" active="Feature(part,'f_tischmodell') eq 'basis' and call zargeValidForTischblende(part);" >
+                <translation x="0" y="-0.3" z="0.6" />
+              </dock>
+							<component type="tischzarge_breite_vario">
+								<dock type="zargen_2_konsole4" index="1"
+								      active="
+								      my A = not EndsWith(Feature(part,'f_materialSubKategorie'),'glas');
+								      my B = not (Feature('f_tischmodell') eq 'advanced');
+								      my C = not (Feature('f_tischmodell') eq 'access');
+								      A and B and C;
+								      ">
+									<translation x="0" y="-5.6" z="-4.95" />
+									<rotation x="0" y="0" z="90" />
+								</dock>
+								<component type="ct_tischzarge_50">
+									<attribute typeref="breite" value="50" />
+									<attribute typeref="laenge" value="50" />
+									<dock active="
+										my zargenD = Dock('zarge2winkel',1);
+										my winkel = DockGetConnectedPart(zargenD);
+										my winkelD = Dock(winkel,'winkel2zarge',2);
+										my zargeLong = DockGetConnectedPart(winkelD); 
+										my laenge = PartAttr(zargeLong, 'laenge');
+(Feature(part,'f_tischmodell') eq 'standard' and Feature(part,'f_laenge') eq '125');" eval_active_expr="always" index="1"
+										type="zarge2mittelzarge"
+									>
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<component type="tischzarge_50">
+										<dock index="1" type="tisch_2_primoblende" active="false;" >
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2kanal" active="false;" >
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2blatt" >
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2winkel">
+											<translation x="23" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2winkel">
+											<translation x="-23" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock amount="4" index="1" type="zarge2hilfe">
+											<increment>
+												<translation x="20" y="0" z="0" />
+											</increment>
+											<translation x="-30" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2versteifungszarge">
+											<translation x="-6" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2versteifungszarge">
+											<translation x="29.95" y="0" z="0" />
+										</dock>
+										<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="my rot = PartRot();
+																								my rotz = rot['z'];
+																								rotz eq -90 ? 180:0;" />
+											<dof axis="x" type="trans">
+												<domain from="-31" to="31" type="continuous" />
+											</dof>
+										</dock>
+									</component>
+								</component>
+								<component type="ct_tischzarge_75">
+									<attribute typeref="breite" value="75" />
+									<attribute typeref="laenge" value="75" />
+									<dock index="2" type="zarge2blende">
+										<translation x="0" y="0" z="-4.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="
+my zargenD = Dock('zarge2winkel',1);
+my winkel = DockGetConnectedPart(zargenD);
+my winkelD = Dock(winkel,'winkel2zarge',2);
+my zargeLong = DockGetConnectedPart(winkelD); 
+my laenge = PartAttr(zargeLong, 'laenge');
+					
+(Feature(part,'f_tischmodell') eq 'standard' and Feature(part,'f_laenge') lt '300') or (Feature(part,'f_tischmodell') eq 'basis' and laenge lt '225');" eval_active_expr="always" index="1"
+										type="zarge2mittelzarge"
+									>
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<component type="tischzarge_75">
+										<dock index="1" type="zarge2tischblende75">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2blatt">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2winkel">
+											<translation x="35.5" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2winkel">
+											<translation x="-35.5" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock amount="4" index="1" type="zarge2hilfe">
+											<increment>
+												<translation x="20" y="0" z="0" />
+											</increment>
+											<translation x="-30" y="0" z="0" />
+										</dock>
+										<!-- <dock index="1" type="zarge2mittelzarge">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock> -->
+										<dock index="1" type="zarge2versteifungszarge">
+											<translation x="-6" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2versteifungszarge">
+											<translation x="29.95" y="0" z="0" />
+										</dock>
+										<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="my rot = PartRot();
+																								my rotz = rot['z'];
+																								rotz eq -90 ? 180:0;" />
+											<dof axis="x" type="trans">
+												<domain from="-31" to="31" type="continuous" />
+											</dof>
+										</dock>
+									</component>
+								</component>
+								<component type="ct_tischzarge_100">
+									<attribute typeref="breite" value="100" />
+									<attribute typeref="laenge" value="100" />
+									<dock index="2" type="zarge2blende">
+										<translation x="0" y="0" z="-4.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<dock active="
+my zargenD = Dock('zarge2winkel',1);
+my winkel = DockGetConnectedPart(zargenD);
+my winkelD = Dock(winkel,'winkel2zarge',2);
+my zargeLong = DockGetConnectedPart(winkelD); 
+my laenge = PartAttr(zargeLong, 'laenge');
+					
+(Feature(part,'f_tischmodell') eq 'standard' and Feature(part,'f_laenge') lt '300') or (Feature(part,'f_tischmodell') eq 'basis' and laenge lt '225');" eval_active_expr="always" index="1"
+										type="zarge2mittelzarge"
+									>
+										<translation x="0" y="0" z="0" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<component type="tischzarge_100">
+										<dock index="1" type="zarge2tischblende75">
+											<translation x="-12.5" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2tischblende75">
+											<translation x="12.5" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2tischblende100">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2blatt">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2winkel">
+											<translation x="48" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2winkel">
+											<translation x="-48" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock amount="5" index="1" type="zarge2hilfe">
+											<increment>
+												<translation x="20" y="0" z="0" />
+											</increment>
+											<translation x="-40" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2versteifungszarge">
+											<translation x="42.45" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2versteifungszarge">
+											<translation x="-19" y="0" z="0" />
+										</dock>
+										<dock eval_transform_expr="always" index="1" type="tischzarge2cputraeger_rohr">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" 
+											          z="my rot = PartRot();
+																	 my rotz = rot['z'];
+																	 rotz eq -90 OR rotz eq 0 ? 180:0;" />
+											<dof axis="x" type="trans">
+												<domain from="-43.5" to="43.5" type="continuous" />
+											</dof>
+										</dock>
+									</component>
+								</component>
+							</component>
+							<component type="tischzarge_vario">
+							  <dock index="1" type="tisch_2_primoblende" 
+                      active="my name = GetTypeName(Parent('mainstructure')); 
+                              my go1 = not StringContains(name,'_i_');
+                              my go2 = not DockGetConnectedDock(Dock('zarge2kanal'));
+                              my go3 = call zargeValidForTischblende(part);
+                              go1 and go2 and go3;">
+                    <translation x="0" y="-0.3" z="0.6" />
+                </dock>         
+                <dock index="2" type="zarge2kanal"
+                      active="my go1 = not DockGetConnectedPart(Dock('zarge2blende'));
+                              my go2 = not DockGetConnectedDock(Dock('tisch_2_primoblende'));
+                              my go3 = Feature(part,'f_tischmodell') eq 'basis';
+                              my go4 = call notExistTischblende(part);
+                              go1 and go2 and go3 and go4;">
+                  <translation x="0" y="0" z="0" />
+                  <rotation x="0" y="0" z="0" />
+                </dock>
+								<component type="ct_tischzarge_125">
+									<attribute typeref="laenge" value="125" />
+									<dock index="2" type="zarge2blende">
+										<translation x="0" y="0" z="-4.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<component type="tischzarge_125">
+										<dock index="1" type="zarge2tischblende75">
+											<translation x="-25" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2tischblende75">
+											<translation x="25" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2tischblende100">
+											<translation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2tischblende100">
+											<translation x="-12.5" y="0" z="0" />
+										</dock>
+										<dock index="3" type="zarge2tischblende100">
+											<translation x="12.5" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2blatt">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2winkel">
+											<translation x="60.5" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2winkel">
+											<translation x="-60.5" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2blende">
+											<translation x="0" y="0" z="-4.1" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock amount="6" index="1" type="zarge2hilfe">
+											<increment>
+												<translation x="20" y="0" z="0" />
+											</increment>
+											<translation x="-50" y="0" z="0" />
+										</dock>
+										<dock type="tischzarge2cputraeger_rohr" eval_transform_expr="once" index="1" >
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="my rot = PartRot();
+															my rotz = rot['z'];
+															rotz eq -180 ? 180:0;" />
+											<dof axis="x" type="trans">
+												<domain from="-56" to="56" type="continuous" />
+											</dof>
+										</dock>
+									</component>
+								</component>
+									<component type="ct_tischzarge_150">
+										<attribute typeref="laenge" value="150" />
+										<dock index="2" type="zarge2blende">
+											<translation x="0" y="0" z="-4.1" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<component type="tischzarge_150">
+											<dock index="1" type="zarge2tischblende75">
+												<translation x="-37.5" y="0" z="0" />
+											</dock>
+											<dock index="2" type="zarge2tischblende75">
+												<translation x="37.5" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2tischblende100">
+												<translation x="-25.25" y="0" z="0" />
+											</dock>
+											<dock index="2" type="zarge2tischblende100">
+												<translation x="25.25" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2tischblende150">
+												<translation x="0" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2aufsatz">
+												<translation x="73" y="0" z="35.1" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock active="Feature('variotisch') == 'false';" index="2" type="zarge2aufsatz">
+												<translation x="-73" y="0" z="35.1" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2blatt">
+												<translation x="0" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2winkel">
+												<translation x="73" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock index="2" type="zarge2winkel">
+												<translation x="-73" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock amount="7" index="1" type="zarge2hilfe">
+												<increment>
+													<translation x="20" y="0" z="0" />
+												</increment>
+												<translation x="-60" y="0" z="0" />
+											</dock>
+											<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2multi">
+												<translation x="0" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+												<translation x="0" y="0" z="0" />
+												<rotation x="0" y="0" z="my rot = PartRot();
+my rotz = rot['z'];
+rotz eq -180 ? 180:0;" />
+												<dof axis="x" type="trans">
+													<domain from="-68.5" to="68.5" type="continuous" />
+												</dof>
+											</dock>
+										</component>
+									</component>
+									<component type="ct_tischzarge_175">
+										<attribute typeref="laenge" value="175" />
+										<dock index="2" type="zarge2blende">
+											<translation x="0" y="0" z="-4.1" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<component type="tischzarge_175">
+											<dock index="1" type="zarge2tischblende75">
+												<translation x="-50.25" y="0" z="0" />
+											</dock>
+											<dock index="2" type="zarge2tischblende75">
+												<translation x="50.25" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2tischblende100">
+												<translation x="-37.75" y="0" z="0" />
+											</dock>
+											<dock index="2" type="zarge2tischblende100">
+												<translation x="37.75" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2tischblende150">
+												<translation x="-12.5" y="0" z="0" />
+											</dock>
+											<dock index="2" type="zarge2tischblende150">
+												<translation x="12.5" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2tischblende175">
+												<translation x="0" y="0" z="0" />
+											</dock>
+											<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2aufsatz">
+												<translation x="85.48" y="0" z="35.1" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock active="Feature('variotisch') == 'false';" index="2" type="zarge2aufsatz">
+												<translation x="-85.48" y="0" z="35.1" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2blatt">
+												<translation x="0" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock index="1" type="zarge2winkel">
+												<translation x="85.48" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock index="2" type="zarge2winkel">
+												<translation x="-85.48" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock amount="9" index="1" type="zarge2hilfe">
+												<increment>
+													<translation x="20" y="0" z="0" />
+												</increment>
+												<translation x="-80" y="0" z="0" />
+											</dock>
+											<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2multi">
+												<translation x="0" y="0" z="0" />
+												<rotation x="0" y="0" z="0" />
+											</dock>
+											<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+												<translation x="0" y="0" z="0" />
+												<rotation x="0" y="0" z="my rot = PartRot();
+															my rotz = rot['z'];
+															rotz eq -180 ? 180:0;" />
+												<dof axis="x" type="trans">
+													<domain from="-81" to="81" type="continuous" />
+												</dof>
+											</dock>
+										</component>
+								</component>
+								<component type="ct_tischzarge_200">
+									<attribute typeref="laenge" value="200" />
+									<dock index="2" type="zarge2blende">
+										<translation x="0" y="0" z="-4.1" />
+										<rotation x="0" y="0" z="0" />
+									</dock>
+									<component type="tischzarge_200">
+										<dock index="1" type="zarge2tischblende75">
+											<translation x="-62.5" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2tischblende75">
+											<translation x="62.5" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2tischblende100">
+											<translation x="-50" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2tischblende100">
+											<translation x="50" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2tischblende150">
+											<translation x="-25.0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2tischblende150">
+											<translation x="25.0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2tischblende175">
+											<translation x="-12.5" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2tischblende175">
+											<translation x="12.5" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2tischblende200">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2aufsatz">
+											<translation x="98" y="0" z="35.1" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock active="Feature('variotisch') == 'false';" index="2" type="zarge2aufsatz">
+											<translation x="-98" y="0" z="35.1" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2blatt">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="1" type="zarge2winkel">
+											<translation x="98" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock index="2" type="zarge2winkel">
+											<translation x="-98" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock amount="10" index="1" type="zarge2hilfe">
+											<increment>
+												<translation x="20" y="0" z="0" />
+											</increment>
+											<translation x="-90" y="0" z="0" />
+										</dock>
+										<dock active="Feature('variotisch') == 'false';" index="1" type="zarge2multi">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="0" />
+										</dock>
+										<dock eval_transform_expr="once" index="1" type="tischzarge2cputraeger_rohr">
+											<translation x="0" y="0" z="0" />
+											<rotation x="0" y="0" z="my rot = PartRot();
+													my rotz = rot['z'];
+													rotz eq -180 ? 180:0;" />
+											<dof axis="x" type="trans">
+												<domain from="-93.5" to="93" type="continuous" />
+											</dof>
+										</dock>
+									</component>
+								</component>
+							</component>
+							</component>
+						</component>
+					</component>
+				</component>
+				<component type="tischzarge_trapez">
+					<component type="tischzarge_79">
+					  <attribute typeref="laenge" value="79" />
+						<dock type="zarge2blatt" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="1">
+							<translation x="37.5" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="2">
+							<translation x="-37.5" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2kanal" index="2">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="2">
+							<translation x="-20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="3">
+							<translation x="20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="tischzarge_104">
+					  <attribute typeref="laenge" value="104" />
+						<dock type="zarge2blatt" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="1">
+							<translation x="50" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="2">
+							<translation x="-50" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="2">
+							<translation x="20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="3">
+							<translation x="40" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="4">
+							<translation x="-20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="5">
+							<translation x="-40" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+				<component type="tischzarge_dreieck">
+					<component type="tischzarge_106">
+					  <attribute typeref="laenge" value="106" />
+						<dock type="zarge2blatt" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="1">
+							<translation x="50.205" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="2">
+							<translation x="-50.205" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2blende" index="2">
+							<translation x="0" y="0" z="-4.1"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="2">
+							<translation x="20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="3">
+							<translation x="40" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="4">
+							<translation x="-20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="5">
+							<translation x="-40" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="tischzarge_141_5">
+					  <attribute typeref="laenge" value="141.5" />
+						<dock type="zarge2blatt" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="1">
+							<translation x="67.88" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2winkel" index="2">
+							<translation x="-67.88" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2blende" index="2">
+							<translation x="0" y="0" z="-4.1"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="2">
+							<translation x="20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="3">
+							<translation x="40" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="4">
+							<translation x="-20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="zarge2hilfe" index="5">
+							<translation x="-40" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+			</component>
+			<component type="kugel_stift_winkeltisch"/>
+			<component type="kugel_stift"/>
+			<component type="gewindehilfsrohr"/>
+			<component type="beschlag"/>
+			<component type="tischzubehoer">
+				<component type="aufsatz_tisch">
+					<component type="aufsatz">
+						<dock type="aufsatz2zarge" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="aufsatz2ebene" index="2">
+							<translation x="0" y="0" z="-28"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+				</component>
+				<component type="ct_zubehoer_tischblatt_e">
+            <component type="co_einschiebefach"/>
+          </component>
+				<component type="multiebene">
+					<component type="multiebene_basis">
+						<component type="multiebene_basis_m">
+							<component type="multiebene1500">
+								<component type="multiebene1500_300_m">
+									<dock type="ebene2dzapfen" index="1">
+										<translation x="-73" y="0" z="7"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2dzapfen" index="2">
+										<translation x="73" y="0" z="7"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="1">
+										<translation x="-73" y="0" z="-13"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="2">
+										<translation x="73" y="0" z="-13"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="multi2zarge" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="multi2tischblatt_multi" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<collisionbox groupid="10" posx="-84.146004" posy="-15.000000" posz="-18.000000" sizex="168.290009" sizey="30.000401" sizez="20.0"/>
+								</component>
+							</component>
+							<component type="multiebene1750">
+								<component type="multiebene1750_300_m">
+									<dock type="ebene2dzapfen" index="1">
+										<translation x="-85.5" y="0" z="7"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2dzapfen" index="2">
+										<translation x="85.5" y="0" z="7"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="1">
+										<translation x="-85.5" y="0" z="-13"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="2">
+										<translation x="85.5" y="0" z="-13"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="multi2zarge" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="multi2tischblatt_multi" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<collisionbox groupid="10" posx="-86.849998" posy="-19.659000" posz="-18.000000" sizex="173.699997" sizey="39.318001" sizez="20.000000"/>
+								</component>
+							</component>
+							<component type="multiebene2000">
+								<component type="multiebene2000_300_m">
+									<dock type="ebene2dzapfen" index="1">
+										<translation x="-98" y="0" z="7"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2dzapfen" index="2">
+										<translation x="98" y="0" z="7"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="1">
+										<translation x="-98" y="0" z="-13"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="2">
+										<translation x="98" y="0" z="-13"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="multi2zarge" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="multi2tischblatt_multi" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<collisionbox groupid="10" posx="-99.349998" posy="-19.659000" posz="-18.000000" sizex="198.699997" sizey="39.318001" sizez="20.349998"/>
+								</component>
+							</component>
+						</component>
+						<component type="multiebene_basis_o">
+							<component type="multiebene1500_o">
+								<component type="multiebene1500_300_o">
+									<dock type="ebene2dzapfen" index="1">
+										<translation x="-73" y="0" z="7"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2dzapfen" index="2">
+										<translation x="73" y="0" z="7"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="1">
+										<translation x="-73" y="0" z="-13"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="2">
+										<translation x="73" y="0" z="-13"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="multi2zarge" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="multi2tischblatt_multi" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<collisionbox groupid="10" posx="-84.146004" posy="-15.000000" posz="-18.000000" sizex="168.290009" sizey="30.000401" sizez="20.0"/>
+								</component>
+							</component>
+							<component type="multiebene1750_o">
+								<component type="multiebene1750_300_o">
+									<dock type="ebene2dzapfen" index="1">
+										<translation x="-85.5" y="0" z="7"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2dzapfen" index="2">
+										<translation x="85.5" y="0" z="7"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="1">
+										<translation x="-85.5" y="0" z="-13"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="2">
+										<translation x="85.5" y="0" z="-13"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="multi2zarge" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="multi2tischblatt_multi" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<collisionbox groupid="10" posx="-86.849998" posy="-19.659000" posz="-18.000000" sizex="173.699997" sizey="39.318001" sizez="20.000000"/>
+								</component>
+							</component>
+							<component type="multiebene2000_o">
+								<component type="multiebene2000_300_o">
+									<dock type="ebene2dzapfen" index="1">
+										<translation x="-98" y="0" z="7"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2dzapfen" index="2">
+										<translation x="98" y="0" z="7"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="1">
+										<translation x="-98" y="0" z="-13"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="ebene2aufsatz" index="2">
+										<translation x="98" y="0" z="-13"/>
+										<rotation x="0" y="0" z="-90"/>
+									</dock>
+									<dock type="multi2zarge" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<dock type="multi2tischblatt_multi" index="1">
+										<translation x="0" y="0" z="-20"/>
+										<rotation x="0" y="0" z="0"/>
+									</dock>
+									<collisionbox groupid="10" posx="-99.349998" posy="-19.659000" posz="-18.000000" sizex="198.699997" sizey="39.318001" sizez="20.349998"/>
+								</component>
+							</component>
+						</component>
+					</component>
+					<component type="tischblatt_multiebene">
+						<dock type="tischblatt_multi2multi" index="1">
+							<translation x="0" y="0" z="-20"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<component type="tischblatt_multiebene_1500_300">
+							<dock type="tisch2addon" index="1" amount="10">
+								<translation x="0" y="0" z="7.1"/>
+								<rotation x="0" y="0" z="0"/>
+								<dof axis="x" type="trans">
+									<domain type="continuous" from="-65" to="65"/>
+								</dof>
+								<dof axis="y" type="trans">
+									<domain type="continuous" from="-10" to="10"/>
+								</dof>
+							</dock>
+							<collisionbox groupid="10" posx="-71.646004" posy="-15.000000" posz="5.022720" sizex="143.290009" sizey="30.000000" sizez="2.100279"/>
+						</component>
+						<component type="tischblatt_multiebene_1750_300">
+							<dock type="tisch2addon" index="1" amount="10">
+								<translation x="0" y="0" z="7.1"/>
+								<rotation x="0" y="0" z="0"/>
+								<dof axis="x" type="trans">
+									<domain type="continuous" from="-80" to="80"/>
+								</dof>
+								<dof axis="y" type="trans">
+									<domain type="continuous" from="-10" to="10"/>
+								</dof>
+							</dock>
+							<collisionbox groupid="10" posx="-84.146004" posy="-15.000000" posz="5.000000" sizex="168.290009" sizey="30.000401" sizez="2.100130"/>
+						</component>
+						<component type="tischblatt_multiebene_2000_300">
+							<dock type="tisch2addon" index="1" amount="10">
+								<translation x="0" y="0" z="7.1"/>
+								<rotation x="0" y="0" z="0"/>
+								<dof axis="x" type="trans">
+									<domain type="continuous" from="-92" to="92"/>
+								</dof>
+								<dof axis="y" type="trans">
+									<domain type="continuous" from="-10" to="10"/>
+								</dof>
+							</dock>
+							<collisionbox groupid="10" posx="-96.646004" posy="-15.000000" posz="5.049999" sizex="193.290009" sizey="30.000000" sizez="2.107001"/>
+						</component>
+					</component>
+				</component>
+				<component type="schwenkarm">
+					<component type="matgelenk">
+						<component type="matschgelenk_l">
+							<dock type="gelenk2schale_l" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="90"/>
+							</dock>
+							<dock type="gelenk2winkel" index="1">
+								<translation x="-1.95" y="0" z="2.15"/>
+								<rotation x="0" y="0" z="180"/>
+							</dock>
+						</component>
+						<component type="matschgelenk_r">
+							<dock type="gelenk2schale_r" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="90"/>
+							</dock>
+							<dock type="gelenk2winkel" index="1">
+								<translation x="-1.95" y="0" z="2.15"/>
+								<rotation x="0" y="0" z="90"/>
+							</dock>
+						</component>
+					</component>
+					<component type="matschale">
+						<component type="matschale_r">
+							<dock type="matsch2schalentyp_tisch" index="1">
+								<translation x="-14" y="-18.38" z="-0.9"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="schale_r2gelenk" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="matschale_l">
+							<dock type="matsch2schalentyp_tisch" index="1">
+								<translation x="14" y="-18.38" z="-0.9"/>
+								<rotation x="0" y="0" z="180"/>
+							</dock>
+							<dock type="schale_l2gelenk" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+					<component type="matschale_typ">
+						<component type="schalentyp_mat">
+							<dock type="schalentyp_tisch2matsch" index="4">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="schalentyp_tel">
+							<attribute typeref="deprecated" value="31.12.07"/>
+							<dock type="schalentyp_tisch2matsch" index="4">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+				</component>
+				<component type="stuetzenkabelkanal">
+					<dock type="stuetze2kanal" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="ct_kabelwanne_i">
+				   <dock type="kabelwanne_2_tischblatt" index="1" eval_transform_expr="always" assemblydepended="true">           
+               <translation x="0.0" y="12.8"          
+                 z="my height = 4.7;
+                    my hub = 1.0;
+                    my val = - Number(GetDOFValue());
+                    if (val lt hub){height = height + 2*val;}else{height = height + 2 * hub;};
+                    height;"
+              /> 
+            </dock>
+            					
+					<dock type="75length" index="1" eval_transform_expr="partfeaturechange"
+					      active="Feature('f_tischmodell') ne 'standard' and Feature('f_breite') eq 75;">
+						<translation x="PartAttr(part,'laenge')/2;" y="-Feature(part,'f_breite')/2+12.9;" z="-2.4" />
+						<rotation x="0" y="0" z="-90" />
+					</dock>
+					<dock type="75length" index="2" eval_transform_expr="partfeaturechange"
+					      active="Feature('f_tischmodell') ne 'standard' and Feature('f_breite') eq 75;">
+						<translation x="-PartAttr(part,'laenge')/2;" y="-Feature(part,'f_breite')/2+12.9;" z="-2.4" />
+						<rotation x="0" y="0" z="90" />
+					</dock>					
+					<dock type="100length" index="1" eval_transform_expr="partfeaturechange" 
+					      active="Feature('f_tischmodell') ne 'standard' and Feature('f_breite') eq 100;">
+						<translation x="PartAttr(part,'laenge')/2;" y="-Feature(part,'f_breite')/2+12.9;" z="-2.4" />
+						<rotation x="0" y="0" z="-90" />
+					</dock>
+					<dock type="100length" index="2" eval_transform_expr="partfeaturechange" 
+					      active="Feature('f_tischmodell') ne 'standard' and Feature('f_breite') eq 100;">
+						<translation x="-PartAttr(part,'laenge')/2;" y="-Feature(part,'f_breite')/2+12.9;" z="-2.4" />
+						<rotation x="0" y="0" z="90" />
+					</dock>
+					<dock type="kabelwanne_2_frontblende" index="1">
+            <translation x="0" y="-11" z="-4" />
+            <rotation x="0" y="0" z="0" />
+          </dock>					
+          <collisionbox groupid="kabelwanne" posz="-5" posy="-9" posx="-PartAttr(part,'laenge')/2 + 10;" sizez="8" sizey="18" sizex="PartAttr(part,'laenge') -20;"/>
+			    <collisionbox groupid="tischblende_befestigung" posz="-5" posy="-9" posx="-PartAttr(part,'laenge')/2 + 10;" sizez="20" sizey="18" sizex="PartAttr(part,'laenge') -20;" />
+
+      <!-- Neuteile 2013 Tisch adv fix 125x75 -->
+			<component type="kabelwanne_i_125">
+					<attribute typeref="laenge" value="125"/>
+ 					<dock type="125length" index="1" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="0" y="12.9" z="-2.4" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock type="125length" index="2" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="" y="my breite = Feature('f_breite');
+my ypos = 0;
+if (breite eq 75) {
+	ypos = -62.25;
+} else { 
+	ypos = -87.2;
+};ypos;" z="-2.4" />
+						<rotation x="0" y="0" z="180" />
+					</dock>					
+			</component>
+			<component type="kabelwanne_i_150">
+					<attribute typeref="laenge" value="150"/>
+ 					<dock type="150length" index="1" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="0" y="12.9" z="-3" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock type="150length" index="2" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="" y="my breite = Feature('f_breite');
+my ypos = 0;
+if (breite eq 75) {
+	ypos = -62.25;
+} else { 
+	ypos = -87.2;
+};ypos;" z="-2.4" />
+						<rotation x="0" y="0" z="180" />
+					</dock>					
+			</component>
+	        <component type="kabelwanne_i_175">
+	        <attribute typeref="laenge" value="175"/>
+ 					<dock type="175length" index="1" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="0" y="12.9" z="-2.4" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+ 					<dock type="175length" index="2" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="0" y="my breite = Feature('f_breite');
+my ypos = 0;
+if (breite eq 75) {
+	ypos = -62.25;
+} else { 
+	ypos = -87.2;
+};ypos;" z="-2.4" />
+						<rotation x="0" y="0" z="180" />
+					</dock> 					        
+	        </component>
+          <component type="kabelwanne_i_200">
+          <attribute typeref="laenge" value="200"/>
+  					<dock type="200length" index="1" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="0" y="12.9" z="-2.4" />
+						<rotation x="0" y="0" z="0" />
+					</dock>
+					<dock type="200length" index="2" active="Feature('f_tischmodell') ne 'standard';" eval_active_expr="once">
+						<translation x="0" y="my breite = Feature('f_breite');
+my ypos = 0;
+if (breite eq 75) {
+	ypos = -62.25;
+} else { 
+	ypos = -87.2;
+};ypos;" z="-2.4" />
+						<rotation x="0" y="0" z="180" />
+					</dock>					
+          
+          </component>
+        </component>
+				<component type="fussstuetze"/>
+				<component type="tisch_halteklammer"/>
+				<component type="konzept_halter"/>
+				<component type="tischblende">
+					<component type="frontblende_tisch">
+						<component type="seitenblende_75">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+            <component type="seitenblende_100">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+            <component type="frontblende_106">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+            <component type="frontblende_125">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+            <component type="frontblende_142">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+            <component type="frontblende_150">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+            <component type="frontblende_175">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+            <component type="frontblende_200">
+              <dock type="blende2zarge" index="1">
+                <translation x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+            </component>
+						<component type="frontblende_k_tisch">
+							<component type="frontblende_k_150">
+								<dock type="blende2ergo" index="1">
+									<translation x="0" y="0" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+							</component>
+							<component type="frontblende_k_175">
+								<dock type="blende2ergo" index="1">
+									<translation x="0" y="0" z="0"/>
+									<rotation x="0" y="0" z="0"/>
+								</dock>
+							</component>
+						</component>
+					</component>
+					<component type="frontblende_zv_tisch">
+						<component type="frontblende_z_125">
+							<dock type="blende2zarge" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="frontblende_z_150">
+							<dock type="blende2zarge" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="frontblende_z_175">
+							<dock type="blende2zarge" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="frontblende_z_200">
+							<dock type="blende2zarge" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+				</component>
+				<component type="ct_frontblende_kabelkanal">  
+             <dock type="frontblende_2_kabelwanne" index="1">
+               <translation x="0" y="0" z="0"/>
+               <rotation x="0" y="0" z="0"/>
+             </dock>         
+           <component type="frontblende_kabelkanal_125">
+            <attribute typeref="laenge" value="125"/>
+           </component>      
+           <component type="frontblende_kabelkanal_150">
+            <attribute typeref="laenge" value="150"/>
+           </component>
+           <component type="frontblende_kabelkanal_175">
+            <attribute typeref="laenge" value="175"/>
+           </component>
+           <component type="frontblende_kabelkanal_200">
+            <attribute typeref="laenge" value="200"/>
+           </component>
+         </component>
+				<component type="ct_tischblende_quer">
+					<component type="tischblende_quer_befestigung">
+						<dock type="befestigung2blende" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+					</component>
+					<component type="tischblende_quer">
+						<dock type="blende2tischblatt" index="1">
+							<translation x="0" y="25.4" z="0"/>
+							<rotation x="90" y="0" z="90"/>
+						</dock>
+						<dock type="blende2befestigung" index="1" eval_transform_expr="partfeaturechange">
+							<translation x="PartAttr(part,'laenge')/2;" y="18.15" z="0"/>
+						</dock>
+						<dock type="blende2befestigung" index="2" eval_transform_expr="partfeaturechange">
+							<translation x="-PartAttr(part,'laenge')/2;" y="18.15" z="0"/>
+							<rotation x="0" y="180" z="0"/>
+						</dock>
+						<collisionbox groupid="tischblende_befestigung" posx="-PartAttr(part,'laenge')/2;" posy="-17" posz="-5" sizex="PartAttr(part,'laenge');" sizey="34" sizez="10"/>
+						<collisionbox groupid="tischblende" posx="-PartAttr(part,'laenge')/2;" posy="-17" posz="-5" sizex="PartAttr(part,'laenge');" sizey="34" sizez="10"/>
+						<component type="tischblende_quer_750">
+							<attribute typeref="laenge" value="75"/>
+						</component>
+						<component type="tischblende_quer_1000">
+							<attribute typeref="laenge" value="100"/>
+						</component>
+					</component>
+				</component>
+				
+				<component type="kabelzubehoer">
+					<dock index="0" type="kabelwanne2kette">
+						<translation x="PartAttr(part, 'laenge')/2-5.6;" z="-2"/>
+						<rotation z="180"/>
+					</dock>
+					<dock index="1" type="kabelwanne2kette">
+						<translation x="-(PartAttr(part, 'laenge')/2-5.6);" z="-2"/>
+						<rotation z="0"/>
+					</dock>
+				  <component type="ct_kabelrost_i">
+             <dock type="rost2itisch" index="1">
+                <translation x="0" y="13" z="2.25"/>
+                <rotation x="0" y="0" z="0"/>
+              </dock>
+			  <dock type="rosti2tisch" index="1">
+				<translation x="0" y="13" z="2.25"/>
+                <rotation x="0" y="0" z="90"/>
+			  </dock>                            
+              <collisionbox groupid="kabelwanne" posz="0" posy="-11" posx="-PartAttr(part,'laenge')/2 + 2;" sizez="2" sizey="22" sizex="PartAttr(part,'laenge') - 4;"/>
+<!-- Neuteile 2013 Tisch 125x75 -->	
+              <component type="kabelrost_125">
+               <attribute typeref="laenge" value="125"/>
+               </component>
+              <component type="kabelrost_150">
+               <attribute typeref="laenge" value="150"/>
+               </component>
+              <component type="kabelrost_175">
+              <attribute typeref="laenge" value="175"/>
+              </component>
+              <component type="kabelrost_200">
+              <attribute typeref="laenge" value="200"/>
+              </component>
+            </component>
+					<component type="kabelrost">
+						<component type="kabelrost_100">
+							<dock type="rost2tisch" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="kabelrost_75">
+							<dock type="rost2tisch" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+				</component>
+				<component type="kabelkanal_distanzhalter"/>
+				<component type="querprofil">
+					<dock type="mappe2platte" index="1">
+						<translation x="0" y="0" z="0"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+					<dock type="platte2profiloben" index="1">
+						<translation x="0" y="0" z="11.5"/>
+						<rotation x="0" y="0" z="0"/>
+					</dock>
+				</component>
+				<component type="ct_befestigungsteil_mit_zubehoer">
+					<component type="aufnahme_befestigungsteil" />
+					<component type="befestigungsteil_std_einsatz" />
+					<component type="befestigungsteil_std_zapfen" />
+					<component type="ct_befestigungsteil">
+						<dock index="1" type="kabelwanne2kette">
+							<translation x="0" y="-2.5" z="-3" />
+							<rotation x="0" y="0" z="0" />
+						</dock>
+						<component type="ct_befestigungsteil_standard">
+							<component type="befestigungsteil_std_kpl">
+								<collisionbox groupid="tischblende_befestigung" posz="0" posy="-3" posx="-5"
+									sizez="7" sizey="6" sizex="10" />
+							</component>			
+						</component>
+						<component type="ct_befestigungsteil_advanced">
+							<component type="befestigungsteil_adv_kpl" />
+						</component>
+					</component>
+				</component>
+			<component type="ct_cpu_halter_set">
+				<component type="co_cpu_halter" >
+					<dock index="1" type="cpu_halter_2_konsole3"/>
+					<dock index="1" type="cpu_halter_2_konsole4"/>
+					<dock index="1" type="cpu_halter_2_winkel"/>
+					</component>
+				<component type="ct_cpu_halter_winkel">
+				<component type="co_cpu_halter_konsole_set4">				
+					<dock index="1" type="konsole4_2_cpu_halter">
+					<translation x="-10.3" y="-2.15" z="-10.5"/>
+					</dock>
+					<dock index="1" type="konsole4_2_zargen"/>
+					<collisionbox groupid="cpu" posx="-10.000000" posy="-4.500000" posz="-10.150000" sizex="20.000000" sizey="9.000000" sizez="20.300000"/>					
+				</component>
+				<component type="co_cpu_halter_konsole_set3">
+					<dock index="1" type="konsole3_2_cpu_halter">
+						<translation x="-10.95" y="-2.15" z="-10.4"/>
+					</dock>
+					<dock index="1" type="konsole3_2_fuehrung"></dock>
+				</component>
+				<component type="co_cpu_halter_stuetzwinkel">
+					<dock index="1" type="winkel_2_cpu_halter">
+						<translation x="7.39" y="2.15" z="-16.25"/>
+						<rotation x="0" y="0" z="180" />
+					</dock>
+				</component>
+				</component>
+			</component>
+			<component type="ct_fuehrung_advanced">
+			<collisionbox groupid="cpu" posx="-4" posy="-PartAttr(part,'breite')/2 + 2;" posz="-2.5" sizex="8" sizey="PartAttr(part,'breite') - 4;" sizez="5.0"/>
+			  <component type="ct_fuehrung_advanced_unten">
+				<component type="co_fuehrung_adv_75_L">
+				  <attribute typeref="breite" value="75"/>
+					<dock index="1" type="fuehrung_2_konsole3">
+						<translation x="-1.3" y="0.2" z="-7.65" />
+						<rotation x="0" y="0" z="180" />
+						<dof type="trans" axis="y"><domain type="step" from="-6.6" to="19.8" stepwidth="6.6"/></dof>
+					</dock>
+				</component>
+				<component type="co_fuehrung_adv_75_R">
+				  <attribute typeref="breite" value="75"/>
+					<dock index="1" type="fuehrung_2_konsole3">
+						<translation x="1.3" y="0.2" z="-7.65" />
+						<rotation x="0" y="0" z="0" />
+						<dof type="trans" axis="y"><domain type="step" from="-19.8" to="6.6" stepwidth="6.6"/></dof>
+					</dock>
+				</component>
+				<component type="co_fuehrung_adv_100_L" >
+				  <attribute typeref="breite" value="100"/>
+					<dock index="1" type="fuehrung_2_konsole3">
+						<translation x="-1.3" y="0.9" z="-7.65" />
+						<rotation x="0" y="0" z="180" />
+						<dof type="trans" axis="y"><domain type="step" from="6.6" to="33" stepwidth="6.6"/></dof>
+					</dock>
+				</component>
+				<component type="co_fuehrung_adv_100_R" >
+				  <attribute typeref="breite" value="100"/>
+					<dock index="1" type="fuehrung_2_konsole3">
+						<translation x="1.3" y="0.9" z="-7.65" />
+						<rotation x="0" y="0" z="0" />
+						<dof type="trans" axis="y"><domain type="step" from="-33" to="-6.6" stepwidth="6.6"/></dof>
+					</dock>
+				</component>
+				</component>
+				<component type="ct_fuehrung_advanced_oben">
+					<component type="co_fuehrung_adv_75_oL"/>
+	        <component type="co_fuehrung_adv_75_oR"/>
+	        <component type="co_fuehrung_adv_100_oL"/>
+	        <component type="co_fuehrung_adv_100_oR"/>
+				</component>
+			</component>
+			</component>
+			<component type="ct_no_more_in_active_use">
+				<attribute typeref="deprecated" value="31.12.07"/>
+				<component type="kabelcontainer">
+					<component type="kabelplatte">
+						<component type="platte_75">
+							<dock type="platte2ebene" index="1">
+								<translation x="0" y="-33.65" z="1.066"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="platte2seite" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="180" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="platte_100">
+							<dock type="platte2ebene" index="1">
+								<translation x="0" y="-33.65" z="1.066"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="platte2seite" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="180" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="platte_150">
+							<dock type="platte2ebene" index="1">
+								<translation x="0" y="-33.65" z="1.066"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="platte2seite" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="180" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+					<component type="kabelebene">
+						<component type="ebene_75">
+							<dock type="ebene2platte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="ebene_100">
+							<dock type="ebene2platte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="ebene_150">
+							<dock type="ebene2platte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+					<component type="seite">
+						<component type="kabelkontainerseite_150">
+							<dock type="seite2platte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="seite2blatt" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="180" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="kabelkontainerseite_100">
+							<dock type="seite2platte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="seite2blatt" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="180" y="0" z="0"/>
+							</dock>
+						</component>
+						<component type="kabelkontainerseite_75">
+							<dock type="seite2platte" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="0" y="0" z="0"/>
+							</dock>
+							<dock type="seite2blatt" index="1">
+								<translation x="0" y="0" z="0"/>
+								<rotation x="180" y="0" z="0"/>
+							</dock>
+						</component>
+					</component>
+				</component>
+				<component type="ergokabelkanal">
+					<component type="ergokabelkanal750">
+						<dock type="kanal2stuetze" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="2">
+							<translation x="-32.2" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="3">
+							<translation x="32.2" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2zarge" index="1">
+							<translation x="0" y="-5" z="2"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-33.917000" posy="-3.785000" posz="-0.087000" sizex="68.055000" sizey="8.311000" sizez="15.0"/>
+					</component>
+					<component type="ergokabelkanal1250">
+						<dock type="kanal2stuetze" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="2">
+							<translation x="-57.38" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="3">
+							<translation x="57.38" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2zarge" index="1">
+							<translation x="0" y="-5" z="2"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-59.077000" posy="-3.785000" posz="-0.087000" sizex="118.360001" sizey="8.311000" sizez="15.0"/>
+					</component>
+					<component type="ergokabelkanal1500">
+						<dock type="kanal2stuetze" index="1">
+							<translation x="20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="2">
+							<translation x="-20" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="3">
+							<translation x="69.85" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="4">
+							<translation x="-69.85" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2zarge" index="1">
+							<translation x="0" y="-5" z="2"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="ergo2blende" index="1">
+							<translation x="0" y="-5" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-71.567001" posy="-3.785000" posz="-0.087000" sizex="143.355011" sizey="8.311000" sizez="15.0"/>
+					</component>
+					<component type="ergokabelkanal1750">
+						<dock type="kanal2stuetze" index="1">
+							<translation x="32.40" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="2">
+							<translation x="-32.45" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="3">
+							<translation x="82.35" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="4">
+							<translation x="-82.35" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2zarge" index="1">
+							<translation x="0" y="-5" z="2"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="ergo2blende" index="1">
+							<translation x="0" y="-5" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-84.067001" posy="-3.785000" posz="-0.087000" sizex="168.355011" sizey="8.311000" sizez="15.0"/>
+					</component>
+					<component type="ergokabelkanal2000">
+						<dock type="kanal2stuetze" index="1">
+							<translation x="0" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="2">
+							<translation x="44.89" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="3">
+							<translation x="-44.89" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="4">
+							<translation x="94.84" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2stuetze" index="5">
+							<translation x="-94.84" y="0" z="0"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<dock type="kanal2zarge" index="1">
+							<translation x="0" y="-5" z="2"/>
+							<rotation x="0" y="0" z="0"/>
+						</dock>
+						<collisionbox groupid="10" posx="-96.566902" posy="-3.785170" posz="-0.086792" sizex="193.354401" sizey="8.311020" sizez="15.0"/>
+					</component>
+				</component>
+				<component type="zwinge"/>
+			</component>
+		</component>
+	</component>
+</componentsystem>
