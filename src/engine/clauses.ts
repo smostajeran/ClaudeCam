@@ -6,6 +6,7 @@ import { loadScene } from "./scene.ts";
 import type { ScenePart } from "./scene.ts";
 import { loadConflictCatalog } from "./conflicts_catalog.ts";
 import type { ConflictDef, Severity } from "./conflicts_catalog.ts";
+import { evalConflictsVCML, loadConflictExpressions } from "./conflicts_eval.ts";
 
 interface Vol { id: string; type: string; parts: ScenePart[]; features: Map<string, unknown> }
 interface Bind { volume?: Vol; part?: ScenePart; byId: Record<string, Vol> }
@@ -102,31 +103,38 @@ const needsPrintZone = (t: string) => /PrintZone/i.test(t); // print-zone/scene 
 const evaluable = conflictTypes.filter((t) => clauseByType.has(t) && !needsPrintZone(t));
 const skipped = conflictTypes.filter((t) => clauseByType.has(t) && needsPrintZone(t));
 
-const firedTypes: string[] = [];
-for (const t of evaluable) { try { if (evalClause(t, { byId: {} })) firedTypes.push(t); } catch { /* unsupported clause node -> skip */ } }
+// PRIMARY detector: execute each VCML conflictexpression against the live scene — this is what
+// actually fires the expression-coded conflicts. Structural clause-trees stay as a fallback for the
+// (few) clause-only kinds that have no VCML expression.
+const vcml = evalConflictsVCML(cfg);
+const vcmlTypes = new Set(loadConflictExpressions().map((c) => c.type));
+const firedKeys = new Set<string>();
+const fired: ConflictDef[] = [];
+const addFired = (type: string) => {
+  if (firedKeys.has(type)) return; firedKeys.add(type);
+  fired.push((defByType.get(type) ?? [])[0] ?? { type, severity: 0, level: "info" as Severity, category: "Installation", name: type, problem: "", solution: "", multi: false, hasExpression: false });
+};
+for (const c of vcml.fired) addFired(c.type);
+for (const t of evaluable) { if (vcmlTypes.has(t)) continue; try { if (evalClause(t, { byId: {} })) addFired(t); } catch { /* unsupported clause node -> skip */ } }
 
-// Resolve fired types to their classified, English conflict objects (a type may have >1 representation).
-const fired = firedTypes.flatMap((t) => defByType.get(t) ?? [{ type: t, severity: 0, level: "info" as Severity, category: "Installation", name: t, problem: "", solution: "", multi: false, hasExpression: false }]);
 const counts: Record<Severity, number> = { severe: 0, warning: 0, info: 0 };
 for (const f of fired) counts[f.level]++;
+const vcmlRan = vcml.total - vcml.errors.length;
+const topBlockers = Object.entries(vcml.missingFns).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([f, n]) => ({ fn: f, blocks: n }));
 
 // Structured output for the UI error panel (grouped by severity, mirroring P'X5's conflict list).
-// Detection status — HONEST: the structural clause-evaluator walks condition-trees only. Most real
-// conflicts encode their logic as VCML partexpression/conflictexpression, which is NOT executed here,
-// so live detection is partial. (Proof: a fully-disconnected scene still fires nothing.) The catalog/
-// classification below is complete and correct; wiring the VCML interpreter is what makes detection real.
 const report = {
-  scene: scene.length, volumes: volumes.length,
-  catalogSize: catalog.length,
-  detection: "structural-only", structuralClauses: evaluable.length, vcmlPending: catalog.filter((c) => c.hasExpression).length,
+  scene: scene.length, volumes: volumes.length, catalogSize: catalog.length,
+  detection: "vcml+structural",
+  vcmlExpressions: vcml.total, vcmlRan, vcmlErrored: vcml.errors.length, topBlockers,
   counts, fired, catalog,
 };
 import("node:fs").then(({ writeFileSync }) => writeFileSync("out/conflicts.json", JSON.stringify(report)));
 
-console.log("=== ERROR HANDLER — conflict taxonomy (P'X5 conflictrepresentation) ===");
+console.log("=== ERROR HANDLER — conflicts (VCML expressions executed vs P'X5 taxonomy) ===");
 console.log(`  scene parts: ${scene.length}   volumes(clusters): ${volumes.length}`);
 console.log(`  CATALOG: ${catalog.length} conflict kinds — ${catalog.filter((c) => c.level === "severe").length} severe / ${catalog.filter((c) => c.level === "warning").length} warning / ${catalog.filter((c) => c.level === "info").length} info`);
-console.log(`  DETECTION: structural clause-trees only (${evaluable.length} clauses). ${catalog.filter((c) => c.hasExpression).length} kinds carry VCML logic NOT yet executed -> live detection is partial.`);
-console.log(`  fired on this scene: ${fired.length}  (severe ${counts.severe} / warning ${counts.warning} / info ${counts.info})`);
+console.log(`  VCML detection: ${vcmlRan}/${vcml.total} expressions executed (${vcml.errors.length} blocked by unwired functions: ${topBlockers.slice(0, 6).map((b) => b.fn).join(", ") || "none"})`);
+console.log(`  FIRED on this scene: ${fired.length}  (severe ${counts.severe} / warning ${counts.warning} / info ${counts.info})`);
 for (const f of fired) console.log(`     [${f.level.toUpperCase()}] (${f.category}) ${f.name}${f.problem ? " — " + f.problem.slice(0, 70) : ""}`);
-console.log(`  wrote out/conflicts.json (catalog + classification + any fired)`);
+console.log(`  wrote out/conflicts.json`);

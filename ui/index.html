@@ -329,7 +329,7 @@ $("#conflictsBtn").onclick = async () => {
     html += `<div style="font-size:12px;color:#aab2c2;margin-bottom:8px">On this configuration: <b style="color:${firedCount?'#ffa733':'#7fd8a0'}">${firedCount} conflict${firedCount===1?'':'s'} detected</b> (severe ${c.severe} / warning ${c.warning} / info ${c.info}).</div>`;
     if(firedCount) html += fired.map(f=>conflictRow(f,true)).join("");
     // honest detection note
-    html += `<div style="font-size:11px;color:#8893a6;background:rgba(255,255,255,0.04);border-radius:5px;padding:7px 9px;margin:8px 0">Live detection currently covers ${r.structuralClauses||0} structural rules. ${r.vcmlPending||0} conflict kinds carry VCML logic not yet executed, so detection is partial — the full catalogue of kinds the system recognises is listed below.</div>`;
+    html += `<div style="font-size:11px;color:#8893a6;background:rgba(255,255,255,0.04);border-radius:5px;padding:7px 9px;margin:8px 0">Live detection executed <b style="color:#aab2c2">${r.vcmlRan||0}/${r.vcmlExpressions||0}</b> VCML conflict rules${r.vcmlErrored?` · ${r.vcmlErrored} still blocked by unwired interpreter functions${r.topBlockers&&r.topBlockers.length?" ("+r.topBlockers.slice(0,5).map(b=>b.fn).join(", ")+")":""}`:""}. Full catalogue of recognised kinds below.</div>`;
     // full catalog by severity
     html += `<div style="font-weight:700;color:#e7ebf3;margin:12px 0 4px;font-size:13px">All conflict kinds (${cat.length})</div>`;
     for(const lvl of ["severe","warning","info"]){

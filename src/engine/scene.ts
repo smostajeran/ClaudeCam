@@ -100,7 +100,7 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
     PropertyActive: () => true, // TODO: real property active-condition resolution
     NamedNode: () => null,      // TODO: project-root named nodes (n/a for a single prototype)
     RelativePartPos: (a: any[]) => { const p = a[0]?.pos, q = a[1]?.pos; return p && q ? { x: p.x - q.x, y: p.y - q.y, z: p.z - q.z } : { x: 0, y: 0, z: 0 }; },
-    ConnectedDockCount: (a: any[]) => (a[0]?.docks ?? []).filter((d: any) => d.connectedPart).length,
+    ConnectedDockCount: (a: any[]) => (a[0]?.docks ?? []).filter((d: any) => d.connectedPart && (a[1] == null || d.type === String(a[1]))).length,
     ChildOfTypeDeep: (a: any[]) => { const v = volOf(a[0]); return v ? v.parts.find((p: ScenePart) => isSub(p.type, String(a[1]))) ?? null : null; },
     ChildCountDeep: (a: any[]) => { const v = volOf(a[0]); return v ? v.parts.filter((p: ScenePart) => isSub(p.type, String(a[1]))).length : 0; },
     RegisteredPart: () => null,                                   // TODO: part registry

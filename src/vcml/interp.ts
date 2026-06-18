@@ -134,8 +134,12 @@ export const BUILTINS: Record<string, Builtin> = {
     ? { pos: { x: +a[0], y: +a[1], z: +a[2] }, rot: { x: +a[3], y: +a[4], z: +a[5] } }
     : { pos: a[0], rot: a[1] }),
   AccumulateTransformation: (a) => ({ base: a[0], delta: a[1] }), // TODO: real matrix compose
+  // Perspectix FilterList REMOVES elements for which the predicate is true (keeps where false): the
+  // predicate is an exclusion condition. Confirmed by conflict expressions like
+  // FilterList(blech, 'b', `not(0<dockcount<4)`) whose intended result is the partially-connected
+  // (conflicting) panels, and softpanel filters keeping the 2-magnet tubes via `not(count eq 2)`.
   FilterList: (a, h) => (Array.isArray(a[0])
-    ? a[0].filter((el) => truthy(evalVCML(String(a[2]), h, { [String(a[1])]: el })))
+    ? a[0].filter((el) => !truthy(evalVCML(String(a[2]), h, { [String(a[1])]: el })))
     : []),
   EnvValue: (a, h) => (h.env.has(String(a[0])) ? h.env.get(String(a[0])) : a[1] ?? null),
   Scenario: (_a, h) => h.env.get("scenario") ?? "co",
