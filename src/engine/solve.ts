@@ -152,9 +152,34 @@ const mate = (myType: string, theirType: string): Mat4 => {
   return mateByPair.get(key) ?? ident();
 };
 
-// candidate world transform for `p` implied by an edge to an already-placed partner: W_p = W_them * Fb * mate(them->me) * inv(Fa).
-const candidate = (p: GPart, e: Edge, world: Map<string, Mat4>) =>
-  mul(mul(mul(world.get(e.them.id)!, frameMat(e.them, e.theirF)), mate(e.theirF.dockType, e.myF.dockType)), invRigid(frameMat(p, e.myF)));
+// Symmetric dock-pairs (tube/panel roll, connector) snap together in more than one orientation, so a
+// single mate cannot place them — the medoid picks one flip and the other instances drift. Cluster
+// each pair's observed relative transforms into its distinct orientation VARIANTS; placement then tries
+// each and lets loop-closure (agreement with ALL neighbours) pick the right flip. Conservative: a 2nd
+// variant needs a clear, well-supported split (>45deg from the first, >=20% of samples) so noise can't
+// invent spurious flips that would mask real drift from the repair.
+const mateVariantsByPair = new Map<string, Mat4[]>();
+for (const [key, Ms] of mateGroups) {
+  const clusters: Mat4[][] = [];
+  for (const M of Ms) {
+    const q = matToQuat(M), t = getTranslation(M);
+    const cl = clusters.find((c) => quatAngleDeg(q, matToQuat(c[0])) < 45 && dist(t, getTranslation(c[0])) < 5);
+    if (cl) cl.push(M); else clusters.push([M]);
+  }
+  const strong = clusters.filter((c) => c.length >= Math.max(3, Ms.length * 0.2));
+  mateVariantsByPair.set(key, (strong.length ? strong : clusters).map(medoidOf));
+}
+const mateVariants = (myType: string, theirType: string): Mat4[] => {
+  if (storedMates) { const s = storedMates.get(`${myType}->${theirType}`); if (s) return [s]; }
+  return mateVariantsByPair.get(`${myType}->${theirType}`) ?? [mate(myType, theirType)];
+};
+
+// candidate world transform(s) for `p` implied by an edge to an already-placed partner:
+//   W_p = W_them * Fb * mate(them->me) * inv(Fa)   — one per orientation variant of the dock-pair.
+const candidatesFor = (p: GPart, e: Edge, world: Map<string, Mat4>): Mat4[] =>
+  mateVariants(e.theirF.dockType, e.myF.dockType).map((m) =>
+    mul(mul(mul(world.get(e.them.id)!, frameMat(e.them, e.theirF)), m), invRigid(frameMat(p, e.myF))));
+const candidate = (p: GPart, e: Edge, world: Map<string, Mat4>) => candidatesFor(p, e, world)[0];
 // structural frame (placed first/most-constrained); anchors to these are trusted far more than
 // add-on siblings, so a single correct structural attachment outvotes a drifted sub-assembly.
 // The true structural skeleton is balls + tubes + panels. Feet (hallerfuss) attach to balls and are
@@ -165,9 +190,14 @@ function score(p: GPart, W: Mat4, placed: Edge[], world: Map<string, Mat4>): num
   let s = 0;
   for (const e of placed) {
     const w = STRUCT.test(e.them.type) ? 100 : 1;
-    const mine = mul(mul(W, frameMat(p, e.myF)), mate(e.myF.dockType, e.theirF.dockType));
     const theirs = mul(world.get(e.them.id)!, frameMat(e.them, e.theirF));
-    s += w * (dist(getTranslation(mine), getTranslation(theirs)) + quatAngleDeg(matToQuat(mine), matToQuat(theirs)) / 90); // 90° ~ 1cm
+    let best = Infinity; // an edge is satisfied if ANY orientation variant of the dock-pair matches
+    for (const m of mateVariants(e.myF.dockType, e.theirF.dockType)) {
+      const mine = mul(mul(W, frameMat(p, e.myF)), m);
+      const r = dist(getTranslation(mine), getTranslation(theirs)) + quatAngleDeg(matToQuat(mine), matToQuat(theirs)) / 90; // 90° ~ 1cm
+      if (r < best) best = r;
+    }
+    s += w * best;
   }
   return s;
 }
@@ -202,11 +232,12 @@ for (let pass = 0; pass < 20; pass++) {
     if (p === anchor || !world.has(p.id)) continue;
     const ph = hop.get(p.id) ?? 99;
     const placed = adj.get(p.id)!.filter((e) => world.has(e.them.id));
-    const parents = placed.filter((e) => (hop.get(e.them.id) ?? 99) < ph);
-    const use = parents.length ? parents : placed;
-    if (!use.length) continue;
-    let best = world.get(p.id)!, bestS = score(p, best, use, world);
-    for (const e of use) { const c = candidate(p, e, world); const s = score(p, c, use, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
+    if (!placed.length) continue;
+    // Score against ALL placed neighbours (STRUCT-weighted, so a real structural anchor still
+    // outvotes a drifted sub-assembly), and generate candidates from ALL of them — so a boundary part
+    // can snap to a CORRECT neighbour even when its hop-parent sits in a drifted block.
+    let best = world.get(p.id)!, bestS = score(p, best, placed, world);
+    for (const e of placed) for (const c of candidatesFor(p, e, world)) { const s = score(p, c, placed, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
     if (best !== world.get(p.id)) { world.set(p.id, best); changed++; }
   }
   if (!changed) break;
@@ -220,7 +251,7 @@ for (let pass = 0; pass < 20; pass++) {
 // edges -> no-op); on a drifted scene it slides the offset block back into place.
 {
   const RTOL = 0.5;
-  const eviol = (p: GPart, e: Edge) => dist(getTranslation(world.get(p.id)!), getTranslation(candidate(p, e, world)));
+  const eviol = (p: GPart, e: Edge) => { const cur = getTranslation(world.get(p.id)!); let best = Infinity; for (const c of candidatesFor(p, e, world)) best = Math.min(best, dist(cur, getTranslation(c))); return best; };
   const totalViol = () => { let s = 0; for (const p of parts) { if (!world.has(p.id)) continue; for (const e of adj.get(p.id)!) if (world.has(e.them.id)) s += eviol(p, e); } return s; };
   const clusterFrom = (seed: GPart, blk: GPart) => {
     const seen = new Set<string>([seed.id]); const st = [seed];
@@ -230,12 +261,20 @@ for (let pass = 0; pass < 20; pass++) {
   const tryMove = (X: GPart, e: Edge): boolean => {
     const cluster = clusterFrom(X, e.them);
     if (cluster.has(anchor.id)) return false;
-    const T = mul(candidate(X, e, world), invRigid(world.get(X.id)!));
     const snap = new Map<string, Mat4>(); for (const id of cluster) snap.set(id, world.get(id)!);
     const base = totalViol();
-    for (const id of cluster) world.set(id, mul(T, world.get(id)!));
-    if (totalViol() < base - 0.5) return true;
-    for (const [id, m] of snap) world.set(id, m);
+    // try each orientation variant of the worst edge: a drifted BRANCH is often both shifted AND
+    // flipped, so the right re-seat is a full rigid transform (rotation+translation) from the correct
+    // variant. Pick the variant whose transform reduces total violation the most.
+    let bestT: Mat4 | null = null, bestV = base - 0.5;
+    for (const cand of candidatesFor(X, e, world)) {
+      const T = mul(cand, invRigid(snap.get(X.id)!));
+      for (const id of cluster) world.set(id, mul(T, snap.get(id)!));
+      const v = totalViol();
+      if (v < bestV) { bestV = v; bestT = T; }
+      for (const [id, m] of snap) world.set(id, m);
+    }
+    if (bestT) { for (const id of cluster) world.set(id, mul(bestT, snap.get(id)!)); return true; }
     return false;
   };
   const black = new Set<string>();
