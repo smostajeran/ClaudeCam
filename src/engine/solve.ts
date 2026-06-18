@@ -109,13 +109,18 @@ for (const p of parts) {
 // tube (90deg apart), each with its own complete frame. Keying by type alone conflated those sides and
 // the medoid picked one, leaving the rest 90/180deg off (the false "symmetric ambiguity"). Keyed by the
 // full node, each mate is a single constant transform: worldDockA * M = worldDockB.
-const mkey = (a: any, b: any) => `${a.dockType}#${a.index}->${b.dockType}#${b.index}`;
+// Key by the full node: component TYPE + dock type#index, on both sides. The frame is a property of
+// the component (e.g. the parameterized threaded tube gewrohr350_250_100 carries UNIT-vector dock
+// offsets, not real cm, unlike a normal rohr350), so the same dock type on different components has a
+// different frame and therefore a different mate. Keying by component too keeps those from being
+// averaged together, and lets each component's learned mate absorb its own frame convention.
+const mkey = (aT: string, a: any, bT: string, b: any) => `${aT}:${a.dockType}#${a.index}->${bT}:${b.dockType}#${b.index}`;
 const mateByPair = new Map<string, Mat4>();
 const mateGroups = new Map<string, Mat4[]>();
 for (const p of parts) for (const e of adj.get(p.id)!) {
   const Wa = mul(trs(p.pos, p.rot, "XYZ"), frameMat(p, e.myF));
   const Wb = mul(trs(e.them.pos, e.them.rot, "XYZ"), frameMat(e.them, e.theirF));
-  const key = mkey(e.myF, e.theirF);
+  const key = mkey(p.type, e.myF, e.them.type, e.theirF);
   (mateGroups.get(key) ?? mateGroups.set(key, []).get(key)!).push(mul(invRigid(Wa), Wb));
 }
 const medoidOf = (Ms: Mat4[]) => { let best = Ms[0], bestD = Infinity; for (const A of Ms) { const qa = matToQuat(A), ta = getTranslation(A); let d = 0; for (const B of Ms) d += quatAngleDeg(qa, matToQuat(B)) + dist(ta, getTranslation(B)); if (d < bestD) { bestD = d; best = A; } } return best; };
@@ -149,8 +154,8 @@ if (process.env.USE_STORED_MATES) {
   catch { storedMates = new Map(); }
 }
 const mateFellBack = new Set<string>();
-const mate = (fa: any, fb: any): Mat4 => {
-  const key = mkey(fa, fb);
+const mate = (aT: string, fa: any, bT: string, fb: any): Mat4 => {
+  const key = mkey(aT, fa, bT, fb);
   if (storedMates) { const s = storedMates.get(key); if (s) return s; mateFellBack.add(key); } // table miss: would fail in a true interactive config
   return mateByPair.get(key) ?? ident();
 };
@@ -172,16 +177,16 @@ for (const [key, Ms] of mateGroups) {
   const strong = clusters.filter((c) => c.length >= Math.max(3, Ms.length * 0.2));
   mateVariantsByPair.set(key, (strong.length ? strong : clusters).map(medoidOf));
 }
-const mateVariants = (fa: any, fb: any): Mat4[] => {
-  const key = mkey(fa, fb);
+const mateVariants = (aT: string, fa: any, bT: string, fb: any): Mat4[] => {
+  const key = mkey(aT, fa, bT, fb);
   if (storedMates) { const s = storedMates.get(key); if (s) return [s]; }
-  return mateVariantsByPair.get(key) ?? [mate(fa, fb)];
+  return mateVariantsByPair.get(key) ?? [mate(aT, fa, bT, fb)];
 };
 
 // candidate world transform(s) for `p` implied by an edge to an already-placed partner:
 //   W_p = W_them * Fb * mate(them->me) * inv(Fa)   — one per orientation variant of the dock node-pair.
 const candidatesFor = (p: GPart, e: Edge, world: Map<string, Mat4>): Mat4[] =>
-  mateVariants(e.theirF, e.myF).map((m) =>
+  mateVariants(e.them.type, e.theirF, p.type, e.myF).map((m) =>
     mul(mul(mul(world.get(e.them.id)!, frameMat(e.them, e.theirF)), m), invRigid(frameMat(p, e.myF))));
 const candidate = (p: GPart, e: Edge, world: Map<string, Mat4>) => candidatesFor(p, e, world)[0];
 // structural frame (placed first/most-constrained); anchors to these are trusted far more than
@@ -196,7 +201,7 @@ function score(p: GPart, W: Mat4, placed: Edge[], world: Map<string, Mat4>): num
     const w = STRUCT.test(e.them.type) ? 100 : 1;
     const theirs = mul(world.get(e.them.id)!, frameMat(e.them, e.theirF));
     let best = Infinity; // an edge is satisfied if ANY orientation variant of the dock-pair matches
-    for (const m of mateVariants(e.myF, e.theirF)) {
+    for (const m of mateVariants(p.type, e.myF, e.them.type, e.theirF)) {
       const mine = mul(mul(W, frameMat(p, e.myF)), m);
       const r = dist(getTranslation(mine), getTranslation(theirs)) + quatAngleDeg(matToQuat(mine), matToQuat(theirs)) / 90; // 90° ~ 1cm
       if (r < best) best = r;
@@ -215,7 +220,7 @@ while (q.length) {
   const p = q.shift()!;
   for (const e of adj.get(p.id)!) if (!world.has(e.them.id)) {
     // partner from placed p: W_them = W_p * Fa * mate(me->them) * inv(Fb)
-    world.set(e.them.id, mul(mul(mul(world.get(p.id)!, frameMat(p, e.myF)), mate(e.myF, e.theirF)), invRigid(frameMat(e.them, e.theirF))));
+    world.set(e.them.id, mul(mul(mul(world.get(p.id)!, frameMat(p, e.myF)), mate(p.type, e.myF, e.them.type, e.theirF)), invRigid(frameMat(e.them, e.theirF))));
     q.push(e.them);
   }
 }
