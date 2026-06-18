@@ -302,7 +302,7 @@ function panelQuad(p: GPart, W: Mat4): { quad: number[][]; kind: string } | null
 const catalog = loadCatalog("database.xml");
 const compArtNo = loadComponentArtNo(`${SNX}/cartridge/componentsystem.xml`);
 const resolveArtNo = (p: GPart): string | null => {
-  const a = compArtNo.get(p.type) ?? p.artnr;
+  const a = p.artnr || compArtNo.get(p.type); // instance's saved f_artnr wins (e.g. 10742 holed tube vs 10741 plain)
   return a && /^\d[\d.]*$/.test(a) ? a : null; // literal numbers only (skip VCML exprs for now)
 };
 
