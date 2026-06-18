@@ -334,6 +334,14 @@ function draw(){
       const C=p.quad.map(c=>project(c));
       if(C.every(Boolean)) prims.push({depth:P.depth,kind:"quad",C,glass:p.panelKind==="glass"});
     }
+    // tubes: draw as a real-length rod along their axis (local Y), so size is visible and a
+    // misplaced tube reads as "right size, wrong place" rather than looking like a smaller tube.
+    if(/^(rohr|trapezrohr|fraesrohr|gewhilfsrohr|kurzrohr|normalrohr|schlitzrohr)/.test(p.type)){
+      const dm=p.type.match(/(\d{2,4})/); const h=dm?+dm[1]/20:17.5;
+      const e1=qrot(p.quat,[0,-h,0]), e2=qrot(p.quat,[0,h,0]);
+      const A=project([p.pos[0]+e1[0],p.pos[1]+e1[1],p.pos[2]+e1[2]]), B=project([p.pos[0]+e2[0],p.pos[1]+e2[1],p.pos[2]+e2[2]]);
+      if(A&&B) prims.push({depth:(A.depth+B.depth)/2,kind:"rod",A,B,e:p.e});
+    }
     screenParts.push({id:p.id,sx:P.x,sy:P.y,type:p.type,e:p.e});
     const eOn=$("#optE").checked && p.e;
     prims.push({depth:P.depth,kind:"dot",P,color:eOn?eColor[p.e]:famColor(p.type),r:eOn?4:(/^kugel/.test(p.type)?3.2:isFitting(p.type)?2.6:2),type:p.type,id:p.id,e:p.e});
@@ -344,6 +352,7 @@ function draw(){
   for(const o of prims){
     if(o.kind==="line"){ ctx.strokeStyle=o.color||"rgba(120,130,150,0.28)"; ctx.lineWidth=o.w||1; ctx.beginPath(); ctx.moveTo(o.A.x,o.A.y); ctx.lineTo(o.B.x,o.B.y); ctx.stroke(); }
     else if(o.kind==="quad"){ ctx.fillStyle=o.glass?"rgba(79,208,224,0.16)":"rgba(150,160,175,0.13)"; ctx.strokeStyle=o.glass?"rgba(79,208,224,0.75)":"rgba(150,160,175,0.5)"; ctx.beginPath(); ctx.moveTo(o.C[0].x,o.C[0].y); for(let i=1;i<4;i++)ctx.lineTo(o.C[i].x,o.C[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    else if(o.kind==="rod"){ ctx.strokeStyle = ($("#optE").checked&&o.e==="live")?"rgba(255,170,90,0.95)":($("#optE").checked&&o.e)?"rgba(120,200,150,0.9)":"rgba(170,184,208,0.85)"; ctx.lineWidth=2.6; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(o.A.x,o.A.y); ctx.lineTo(o.B.x,o.B.y); ctx.stroke(); ctx.lineCap="butt"; }
     else { const hi=isHi(o.type), sel=o.id===picked; ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,sel?o.r+2:o.r,0,7); ctx.fill();
       if(sel){ ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+5,0,7); ctx.stroke(); }
       else if(hi){ ctx.strokeStyle="#ffd166"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.P.x,o.P.y,o.r+4,0,7); ctx.stroke(); }
