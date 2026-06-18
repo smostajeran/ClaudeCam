@@ -11,7 +11,7 @@ import { loadAppcodes } from "../vcml/appcode.ts";
 import { evalVCML } from "../vcml/interp.ts";
 import { APPCODES_DIR, SNX } from "../import/paths.ts";
 import { loadCatalog, loadComponentArtNo } from "./catalog.ts";
-import { trs, mul, invRigid, euler, ident, applyPoint, getTranslation, matToQuat, quatAngleDeg, dist } from "./geom.ts";
+import { trs, mul, invRigid, euler, ident, applyPoint, getTranslation, matToQuat, quatAngleDeg, dist, alignRigid } from "./geom.ts";
 import type { Mat4, Vec3 } from "./geom.ts";
 
 function findFile(dir: string, name: string): string | null {
@@ -294,6 +294,60 @@ for (let pass = 0; pass < 20; pass++) {
     const rev = adj.get(worst.e.them.id)!.find((x) => x.them === worst!.p);
     if (tryMove(worst.p, worst.e) || (rev && tryMove(worst.e.them, rev))) continue;
     black.add(worst.k);
+  }
+}
+
+// ---- Global block alignment + grid snap (for multi-unit configs joined by slotted tubes, e.g. P3) ----
+// Two units sharing a column of slotted tubes form separate rigid BLOCKS; the greedy repair can't move
+// a whole unit across the dense, roll-ambiguous seam. (1) Group parts into rigid blocks (connected via
+// STRICT-satisfied edges — same position AND orientation, so a roll-flipped seam reads as a boundary).
+// (2) Snap each non-anchor block onto the placed structure with the best rigid transform over ALL its
+// seam edges (Horn least-squares) — un-rotates the unit. (3) Grid-snap: USM parts lie on a regular
+// axis-aligned lattice, so quantize coordinates to grid lines clustered from the anchor block, pinning
+// each unit to the shared grid the way P'X5 does (the slotted-tube seam leaves a DOF the mates alone
+// don't fix). Guarded by total violation so it never regresses a good solve.
+{
+  const RTOL = 0.5;
+  const ev = (p: GPart, e: Edge) => { const cur = getTranslation(world.get(p.id)!); let b = Infinity; for (const c of candidatesFor(p, e, world)) b = Math.min(b, dist(cur, getTranslation(c))); return b; };
+  const evStrict = (p: GPart, e: Edge) => { const W = world.get(p.id)!, cur = getTranslation(W); let b = Infinity; for (const c of candidatesFor(p, e, world)) b = Math.min(b, dist(cur, getTranslation(c)) + quatAngleDeg(matToQuat(W), matToQuat(c)) / 90); return b; };
+  const totalViol = () => { let s = 0; for (const p of parts) { if (!world.has(p.id)) continue; for (const e of adj.get(p.id)!) if (world.has(e.them.id)) s += ev(p, e); } return s; };
+  const parent = new Map<string, string>();
+  const find = (x: string): string => { let r = x; while (parent.get(r) !== r) r = parent.get(r)!; while (parent.get(x) !== r) { const n = parent.get(x)!; parent.set(x, r); x = n; } return r; };
+  for (const p of parts) if (world.has(p.id)) parent.set(p.id, p.id);
+  for (const p of parts) { if (!world.has(p.id)) continue; for (const e of adj.get(p.id)!) if (world.has(e.them.id) && evStrict(p, e) < RTOL) { const a = find(p.id), b = find(e.them.id); if (a !== b) parent.set(a, b); } }
+  const myPt = (p: GPart, e: Edge): Vec3 => getTranslation(mul(world.get(p.id)!, frameMat(p, e.myF)));
+  const themPt = (e: Edge): Vec3 => getTranslation(mul(world.get(e.them.id)!, frameMat(e.them, e.theirF)));
+  // (1)+(2) align each non-anchor block onto the placed structure
+  const fixed = new Set<string>([find(anchor.id)]);
+  for (let pass = 0; pass < 30; pass++) {
+    const seam = new Map<string, { src: Vec3[]; dst: Vec3[] }>();
+    for (const p of parts) { if (!world.has(p.id) || fixed.has(find(p.id))) continue;
+      for (const e of adj.get(p.id)!) { if (!world.has(e.them.id) || !fixed.has(find(e.them.id))) continue;
+        const bp = find(p.id), s = seam.get(bp) ?? { src: [], dst: [] }; s.src.push(myPt(p, e)); s.dst.push(themPt(e)); seam.set(bp, s); } }
+    if (!seam.size) break;
+    let best: string | null = null; for (const [b, s] of seam) if (!best || s.src.length > seam.get(best)!.src.length) best = b;
+    const s = seam.get(best!)!;
+    const T = s.src.length >= 3 ? alignRigid(s.src, s.dst) : (() => { const o = ident(); o[3] = s.dst[0][0] - s.src[0][0]; o[7] = s.dst[0][1] - s.src[0][1]; o[11] = s.dst[0][2] - s.src[0][2]; return o; })();
+    const members = parts.filter((p) => world.has(p.id) && find(p.id) === best);
+    const snap = new Map(members.map((p) => [p.id, world.get(p.id)!])); const base = totalViol();
+    for (const p of members) world.set(p.id, mul(T, snap.get(p.id)!));
+    if (totalViol() > base - 0.5) for (const [id, m] of snap) world.set(id, m);
+    fixed.add(best!);
+  }
+  // (3) grid snap: build per-axis grid lines from the anchor block, quantize every part to them
+  if (fixed.size > 1 || true) {
+    const anchorBlock = parts.filter((p) => world.has(p.id) && find(p.id) === find(anchor.id));
+    const lines = (vals: number[], tol: number): number[] => { const s = [...vals].sort((a, b) => a - b); const L: number[] = []; let g: number[] = []; for (const v of s) { if (g.length && v - g[g.length - 1] > tol) { L.push(g.reduce((a, x) => a + x, 0) / g.length); g = []; } g.push(v); } if (g.length) L.push(g.reduce((a, x) => a + x, 0) / g.length); return L; };
+    const ax = lines(anchorBlock.map((p) => getTranslation(world.get(p.id)!)[0]), 5);
+    const ay = lines(anchorBlock.map((p) => getTranslation(world.get(p.id)!)[1]), 5);
+    const az = lines(anchorBlock.map((p) => getTranslation(world.get(p.id)!)[2]), 5);
+    const nearest = (v: number, L: number[], tol: number) => { let b = v, bd = tol; for (const x of L) { const d = Math.abs(v - x); if (d < bd) { bd = d; b = x; } } return b; };
+    const base = totalViol();
+    const anchorRoot = find(anchor.id);
+    const before = new Map(parts.filter((p) => world.has(p.id)).map((p) => [p.id, world.get(p.id)!]));
+    // snap only the non-anchor blocks — the anchor block is already exact, so leave it untouched
+    for (const p of parts) { if (!world.has(p.id) || find(p.id) === anchorRoot) continue; const W = world.get(p.id)!.slice(); const t = getTranslation(W); W[3] = nearest(t[0], ax, 20); W[7] = nearest(t[1], ay, 20); W[11] = nearest(t[2], az, 20); world.set(p.id, W); }
+    if (totalViol() > base + 0.5) for (const [id, m] of before) world.set(id, m); // grid snap made it worse -> revert
   }
 }
 
