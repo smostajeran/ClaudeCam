@@ -6,6 +6,9 @@
 // Lattice: balls at every (column-boundary x, depth-plane y, row-boundary z); width tubes along X,
 // height tubes along Z (vertical), depth tubes along Y (front<->back). One depth tube per node = the
 // two planes USM uses. Default closed-box cell = 5 panels (back/top/bottom/left/right, no front).
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 const SQRT1_2 = Math.SQRT1_2;
 
 export const WIDTH_VOCAB = [175, 250, 350, 395, 500, 750];
@@ -68,6 +71,52 @@ export function buildFrame(p: PathP): BuildResult {
     quad(`blech${h}_${depth}`, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]]); // right
   }
   return { parts, issues };
+}
+
+// ---- grid-aware suggestions: what the user can add/remove given the current grid ----
+const HEIGHT_VOCAB = WIDTH_VOCAB; // USM uses the same tube SKUs vertically as horizontally
+const CONTENT: Record<string, { name: string; re: RegExp }> = {
+  panel:   { name: "Closed panel", re: /^(blech|kurzblech|lochblech)/ },
+  shelf:   { name: "Shelf",        re: /^tablar/ },
+  pullout: { name: "Pull-out shelf", re: /^ausziehtablar/ },
+  drawer:  { name: "Drawer",       re: /^(schublade|azschublade)/ },
+  door:    { name: "Door",         re: /^(tuerelement|klapptuer|einschubtuer)/ },
+  glass:   { name: "Glass",        re: /^(glasblech|glastuer)/ },
+};
+let _inv: Record<string, number[][]> | null = null;
+function contentInventory(): Record<string, number[][]> {
+  if (_inv) return _inv;
+  _inv = {}; for (const f in CONTENT) _inv[f] = [];
+  try {
+    const model = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "out", "model.json"), "utf8"));
+    for (const c of model.components) for (const f in CONTENT) {
+      if (CONTENT[f].re.test(c.type)) { const m = c.type.match(/(\d{2,4})[_x](\d{2,4})/); if (m) _inv[f].push([+m[1], +m[2]]); }
+    }
+  } catch { /* model not loaded -> empty inventory, only open/closed offered */ }
+  return _inv;
+}
+
+/** Given a Path P grid, the edits the configurator can offer (Path P degrees of freedom + per-cell content that fits). */
+export function gridOptions(p: PathP): any {
+  const cols = p.columnWidths?.length ? p.columnWidths : [750];
+  const rows = p.rowHeights?.length ? p.rowHeights : [350];
+  const depth = p.depth || 350;
+  const inv = contentInventory();
+  const cellContent = (W: number, H: number, D: number) => {
+    const dims = [W, H, D]; const out = [{ id: "open", name: "Open" }, { id: "closed", name: "Closed box" }];
+    for (const f in CONTENT) if (inv[f].some(([a, b]) => dims.includes(a) && dims.includes(b))) out.push({ id: f, name: CONTENT[f].name });
+    return out;
+  };
+  const cellAt = (i: number, j: number) => p.cells?.find((c) => c.col === i && c.row === j)?.type ?? "closed";
+  return {
+    structure: {
+      columns: { current: cols, addWidths: WIDTH_VOCAB, removableIndices: cols.length > 1 ? cols.map((_, i) => i) : [] },
+      rows: { current: rows, addHeights: HEIGHT_VOCAB, removableIndices: rows.length > 1 ? rows.map((_, j) => j) : [] },
+      depth: { current: depth, options: DEPTH_DOMAIN },
+      base: { current: p.baseSupport ?? "feet", options: ["feet", "casters", "plinth"] },
+    },
+    cells: cols.flatMap((w, i) => rows.map((h, j) => ({ col: i, row: j, width: w, height: h, current: cellAt(i, j), available: cellContent(w, h, depth) }))),
+  };
 }
 
 if (process.argv[1]?.endsWith("build_frame.ts")) {
