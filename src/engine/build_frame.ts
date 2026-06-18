@@ -14,11 +14,13 @@ const SQRT1_2 = Math.SQRT1_2;
 export const WIDTH_VOCAB = [175, 250, 350, 395, 500, 750];
 export const DEPTH_DOMAIN = [250, 350, 500];
 
+export type CellContent = "open" | "closed" | "panel" | "shelf" | "pullout" | "drawer" | "door" | "glass";
+
 export interface PathP {
   columnWidths: number[];   // mm, per column (left->right)
   rowHeights: number[];     // mm, per row (bottom->top)
   depth: number;            // mm
-  cells?: { col: number; row: number; type?: "closed" | "open" }[];
+  cells?: { col: number; row: number; type?: CellContent }[];
   baseSupport?: "feet" | "casters" | "plinth";
   globalFinishId?: string;
 }
@@ -62,17 +64,31 @@ export function buildFrame(p: PathP): BuildResult {
   // top/bottom stay +Z, sides->±X (RotY ±90). Both the quad corners AND the quat encode orientation,
   // so renderers that use either path draw the panel in the correct plane.
   const Q_BACK: Q = [-SQRT1_2, 0, 0, SQRT1_2], Q_FLAT: Q = [0, 0, 0, 1], Q_LEFT: Q = [0, SQRT1_2, 0, SQRT1_2], Q_RIGHT: Q = [0, -SQRT1_2, 0, SQRT1_2];
-  const cellType = (c: number, r: number) => p.cells?.find((x) => x.col === c && x.row === r)?.type ?? "closed";
+  const cellType = (c: number, r: number): CellContent => p.cells?.find((x) => x.col === c && x.row === r)?.type ?? "closed";
   const quad = (type: string, q: Q, corners: V3[]) => parts.push({ id: id(), type, pos: [(corners[0][0] + corners[2][0]) / 2, (corners[0][1] + corners[2][1]) / 2, (corners[0][2] + corners[2][2]) / 2], quat: q, quad: corners });
   for (let i = 0; i < nC; i++) for (let j = 0; j < nR; j++) {
-    if (cellType(i, j) === "open") continue;
+    const t = cellType(i, j);
+    if (t === "open") continue;
     const x0 = xs[i], x1 = xs[i + 1], z0 = zs[j], z1 = zs[j + 1], y0 = ys[0], y1 = ys[1];
-    const w = cols[i], h = rows[j];
-    quad(`blech${h}_${w}`, Q_BACK, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]]);     // back   (h x w)
-    quad(`blech${depth}_${w}`, Q_FLAT, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]); // top    (depth x w)
-    quad(`blech${depth}_${w}`, Q_FLAT, [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]]); // bottom (depth x w)
-    quad(`blech${depth}_${h}`, Q_LEFT, [[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]]); // left   (depth x h)
-    quad(`blech${depth}_${h}`, Q_RIGHT, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]]); // right  (depth x h)
+    const w = cols[i], h = rows[j], zm = (z0 + z1) / 2;
+    const back: V3[] = [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]];
+    const front: V3[] = [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]];
+    const horiz = (z: number): V3[] => [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]];
+    switch (t) {
+      case "closed": // full metal box: back/top/bottom/left/right
+        quad(`blech${h}_${w}`, Q_BACK, back);
+        quad(`blech${depth}_${w}`, Q_FLAT, horiz(z1));
+        quad(`blech${depth}_${w}`, Q_FLAT, horiz(z0));
+        quad(`blech${depth}_${h}`, Q_LEFT, [[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]]);
+        quad(`blech${depth}_${h}`, Q_RIGHT, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]]);
+        break;
+      case "panel": quad(`blech${h}_${w}`, Q_BACK, back); break;                       // single back panel
+      case "shelf": quad(`tablar${w}_${depth}`, Q_FLAT, horiz(z0)); break;              // horizontal shelf
+      case "pullout": quad(`ausziehtablar${w}_${depth}`, Q_FLAT, horiz(zm)); break;     // pull-out tray
+      case "drawer": quad(`schublade${h}_${w}`, Q_BACK, front); quad(`tablar${w}_${depth}`, Q_FLAT, horiz(z0)); break; // front + tray
+      case "door": quad(`tuerelement${h}_${w}`, Q_BACK, front); break;                 // door on front opening
+      case "glass": quad(`glasblech${h}_${w}`, Q_BACK, front); break;                  // glass on front opening
+    }
   }
   return { parts, issues };
 }
