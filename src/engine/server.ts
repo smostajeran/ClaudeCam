@@ -8,6 +8,7 @@
 //   POST /api/reset         -> clear the overlay
 //   POST /api/run           -> {script:'validate'|'conflicts'} runs the engine validator, returns stdout
 //   POST /api/configure     -> customer payload: placement+conflicts+BOM, IP-safe (one52 ids/EN/RealityKit)
+//   POST /api/build         -> Path P (widths/heights/depth/cells) -> derived frame geometry+BOM+validation
 //
 // The overlay is non-destructive: the decoded source model is never mutated. Run: node src/engine/server.ts
 import { createServer } from "node:http";
@@ -17,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { placementToRK } from "./export_ios.ts";
 import { customerPayload } from "./customer_api.ts";
+import { buildFrame } from "./build_frame.ts";
 import { extractConfigPx5 } from "./pxpz.ts";
 import { bootstrap } from "./bootstrap.ts";
 
@@ -151,6 +153,16 @@ const server = createServer(async (req, res) => {
       const pf = join(ROOT, "out", "placement.json");
       if (r.status !== 0 || !existsSync(pf)) return send(res, 500, JSON.stringify({ error: "solver failed", log: (r.stdout ?? "") + (r.stderr ?? "") }));
       return send(res, 200, JSON.stringify(placementToRK(JSON.parse(readFileSync(pf, "utf8")))));
+    }
+
+    // Configurator core: Path P (columnWidths/rowHeights/depth/cells/...) -> derived frame geometry +
+    // quantity BOM + dimension validation, IP-safe. No auth (the dimensions editor calls this live).
+    if (req.method === "POST" && url === "/api/build") {
+      const p = await readBody(req);
+      const { parts, issues } = buildFrame(p);
+      const counts = { severe: issues.filter((i: any) => i.level === "severe").length, warning: issues.filter((i: any) => i.level === "warning").length, info: 0 };
+      const fired = issues.map((it: any, k: number) => ({ type: "dim_" + k, level: it.level, category: "Dimensions", name: it.title, problem: it.detail, solution: "", parts: [] }));
+      return send(res, 200, JSON.stringify(customerPayload({ parts }, { counts, fired, affordances: [] })));
     }
 
     // Customer app: ONE IP-safe payload = placement + conflicts + BOM (one52 ids/EN labels/RealityKit
