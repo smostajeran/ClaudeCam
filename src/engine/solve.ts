@@ -2,7 +2,7 @@
 // anchored at one part's saved transform, then validate against P'X5's saved pos/rot.
 //   W_child = W_parent * Frame(dockA) * inv(Frame(dockB))     (mate convention M = identity)
 // Euler order XYZ (calibrated). Dock rotations may be VCML -> evaluated via the interpreter.
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { parseXmlFile, tagOf, attr, kids, byTag } from "../xml/parse.ts";
 import { loadDockFrames, loadAllDockFrames } from "./dockframes.ts";
 import { loadScene, installPartFns } from "./scene.ts";
@@ -108,21 +108,49 @@ for (const p of parts) {
 // is a fixed property of the dock TYPES (how they snap together), so one representative (the medoid,
 // robust to symmetric-pair outliers) defines it: worldDockA * M = worldDockB.
 const mateByPair = new Map<string, Mat4>();
-{
-  const groups = new Map<string, Mat4[]>();
-  for (const p of parts) for (const e of adj.get(p.id)!) {
-    const Wa = mul(trs(p.pos, p.rot, "XYZ"), frameMat(p, e.myF));
-    const Wb = mul(trs(e.them.pos, e.them.rot, "XYZ"), frameMat(e.them, e.theirF));
-    const key = `${e.myF.dockType}->${e.theirF.dockType}`;
-    (groups.get(key) ?? groups.set(key, []).get(key)!).push(mul(invRigid(Wa), Wb));
-  }
-  for (const [key, Ms] of groups) {
-    let best = Ms[0], bestD = Infinity;
-    for (const A of Ms) { const qa = matToQuat(A), ta = getTranslation(A); let d = 0; for (const B of Ms) d += quatAngleDeg(qa, matToQuat(B)) + dist(ta, getTranslation(B)); if (d < bestD) { bestD = d; best = A; } }
-    mateByPair.set(key, best);
-  }
+const mateGroups = new Map<string, Mat4[]>();
+for (const p of parts) for (const e of adj.get(p.id)!) {
+  const Wa = mul(trs(p.pos, p.rot, "XYZ"), frameMat(p, e.myF));
+  const Wb = mul(trs(e.them.pos, e.them.rot, "XYZ"), frameMat(e.them, e.theirF));
+  const key = `${e.myF.dockType}->${e.theirF.dockType}`;
+  (mateGroups.get(key) ?? mateGroups.set(key, []).get(key)!).push(mul(invRigid(Wa), Wb));
 }
-const mate = (myType: string, theirType: string) => mateByPair.get(`${myType}->${theirType}`) ?? ident();
+const medoidOf = (Ms: Mat4[]) => { let best = Ms[0], bestD = Infinity; for (const A of Ms) { const qa = matToQuat(A), ta = getTranslation(A); let d = 0; for (const B of Ms) d += quatAngleDeg(qa, matToQuat(B)) + dist(ta, getTranslation(B)); if (d < bestD) { bestD = d; best = A; } } return best; };
+for (const [key, Ms] of mateGroups) mateByPair.set(key, medoidOf(Ms));
+
+// ---- Stored, config-independent mate table (data/mates.json) ----
+// The mate is how a dock-type pair snaps together — a property of the dock TYPES, not the config.
+// Learn it once from reference configs and store it, so an interactive configuration (which has NO
+// saved poses to learn from) can still place parts. WRITE_MATES merges this config's mates into the
+// table; USE_STORED_MATES solves from the table alone (per-config learning becomes only a fallback,
+// reported) — that is the honest test that the table generalises.
+const MATE_FILE = "data/mates.json";
+const matSpread = (Ms: Mat4[], med: Mat4) => { const q = matToQuat(med), t = getTranslation(med); let a = 0, d = 0; for (const M of Ms) { a = Math.max(a, quatAngleDeg(q, matToQuat(M))); d = Math.max(d, dist(t, getTranslation(M))); } return { a, d }; };
+if (process.env.WRITE_MATES) {
+  let table: Record<string, any> = {};
+  try { table = JSON.parse(readFileSync(MATE_FILE, "utf8")).mates ?? {}; } catch { /* first config: new table */ }
+  let added = 0, improved = 0;
+  for (const [key, Ms] of mateGroups) {
+    const sp = matSpread(Ms, mateByPair.get(key)!);
+    const rec = { m: mateByPair.get(key)!, n: Ms.length, angSpread: +sp.a.toFixed(2), posSpread: +sp.d.toFixed(3) };
+    if (!table[key]) { table[key] = rec; added++; }
+    else if (Ms.length > table[key].n) { rec.angSpread = Math.max(rec.angSpread, table[key].angSpread); table[key] = rec; improved++; }
+    else table[key].angSpread = Math.max(table[key].angSpread, rec.angSpread);
+  }
+  writeFileSync(MATE_FILE, JSON.stringify({ note: "config-independent dock-pair mates: medoid of invWa*Wb over reference configs. angSpread>~5deg => non-constant/symmetric pair (single mate cannot place it exactly).", count: Object.keys(table).length, mates: table }));
+  console.log(`  [WRITE_MATES] ${MATE_FILE}: +${added} new, ${improved} improved -> ${Object.keys(table).length} dock-pair mates stored`);
+}
+let storedMates: Map<string, Mat4> | null = null;
+if (process.env.USE_STORED_MATES) {
+  try { const t = JSON.parse(readFileSync(MATE_FILE, "utf8")).mates; storedMates = new Map(Object.entries(t).map(([k, v]: any) => [k, v.m as Mat4])); }
+  catch { storedMates = new Map(); }
+}
+const mateFellBack = new Set<string>();
+const mate = (myType: string, theirType: string): Mat4 => {
+  const key = `${myType}->${theirType}`;
+  if (storedMates) { const s = storedMates.get(key); if (s) return s; mateFellBack.add(key); } // table miss: would fail in a true interactive config
+  return mateByPair.get(key) ?? ident();
+};
 
 // candidate world transform for `p` implied by an edge to an already-placed partner: W_p = W_them * Fb * mate(them->me) * inv(Fa).
 const candidate = (p: GPart, e: Edge, world: Map<string, Mat4>) =>
@@ -258,6 +286,7 @@ if (unreached.length) {
 }
 if (missFrame.size) console.log(`  MISSING dock frames (top): ${[...missFrame].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, n]) => `${k}×${n}`).join(", ")}`);
 if (noPartner.size) console.log(`  unresolved partner docks: ${[...noPartner].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t}×${n}`).join(", ")}`);
+if (storedMates) console.log(`  [USE_STORED_MATES] solved from ${storedMates.size}-pair stored table — ${mateFellBack.size ? `${mateFellBack.size} pair(s) NOT in table, fell back to this config: ${[...mateFellBack].slice(0, 8).join(", ")}` : "FULL coverage, zero reliance on this config's saved poses"}`);
 console.log(`  --- of parts the solver placed (${checked} excl. anchor): ---`);
 console.log(`  POSITION match (<=${POS_TOL}cm): ${posMatch}/${checked} (${(100 * posMatch / checked).toFixed(1)}%)   max posErr=${maxPos.toFixed(3)}cm`);
 console.log(`  ORIENTATION exact (<=${ANG_TOL}°): ${oriMatch}/${checked} (${(100 * oriMatch / checked).toFixed(1)}%)`);
