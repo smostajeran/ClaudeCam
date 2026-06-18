@@ -378,11 +378,18 @@ for (let pass = 0; pass < 20; pass++) {
       for (let pass = 0; pass < 20; pass++) {
         let changed = 0;
         for (const p of parts) {
-          if (p === anchor || !world.has(p.id) || isBall(p.type)) continue;
+          // pin lattice-positioned balls; re-place everything else, incl. OFF-lattice balls reached
+          // only through a tube chain (e.g. ball#457 behind the threaded gewrohr)
+          if (p === anchor || !world.has(p.id) || (isBall(p.type) && gpos.has(p.id))) continue;
           const placed = adj.get(p.id)!.filter((e) => world.has(e.them.id));
           if (!placed.length) continue;
-          let best = world.get(p.id)!, bestS = score(p, best, placed, world);
-          for (const e of placed) for (const c of candidatesFor(p, e, world)) { const s = score(p, c, placed, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
+          // A tube on a gewrohr THREAD (rohr2gewinde) takes its pose from the gewrohr — the grid-anchored
+          // side — scored ONLY on that thread edge, so the sub-assembly dangling off its other end (a
+          // single attachment point that can't pin orientation) can't drag it off-axis.
+          const tE = placed.find((e) => /2gewinde/.test(e.myF.dockType) && /gewrohr/.test(e.them.type));
+          const set = tE ? [tE] : placed;
+          let best = world.get(p.id)!, bestS = score(p, best, set, world);
+          for (const e of set) for (const c of candidatesFor(p, e, world)) { const s = score(p, c, set, world); if (s < bestS - 1e-6) { bestS = s; best = c; } }
           if (best !== world.get(p.id)) { world.set(p.id, best); changed++; }
         }
         if (!changed) break;
