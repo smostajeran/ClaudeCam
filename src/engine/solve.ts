@@ -357,7 +357,10 @@ for (let pass = 0; pass < 20; pass++) {
         (ballAdj.get(balls[j].id) ?? ballAdj.set(balls[j].id, []).get(balls[j].id)!).push({ other: balls[i], len });
       }
     }
-    const snapAxis = (v: Vec3): Vec3 => { const len = Math.hypot(v[0], v[1], v[2]); if (len < 1e-6) return v; const n: Vec3 = [v[0] / len, v[1] / len, v[2] / len]; const a = [Math.abs(n[0]), Math.abs(n[1]), Math.abs(n[2])]; const k = a[0] >= a[1] && a[0] >= a[2] ? 0 : a[1] >= a[2] ? 1 : 2; if (a[k] < 0.97) return n; const o: Vec3 = [0, 0, 0]; o[k] = Math.sign(n[k]) || 1; return o; };
+    // Snap to the nearest of the 6 axes. ballAdj only ever holds standard tubes (rohr/gewrohr/fraes/
+    // gewhilfs/kurz), which in USM are ALWAYS axis-aligned — so snap unconditionally. (A no-snap guard
+    // here left a skewed seam tube, e.g. rohr100 at 35deg, diagonal and gridded ball#457 5cm off.)
+    const snapAxis = (v: Vec3): Vec3 => { const len = Math.hypot(v[0], v[1], v[2]); if (len < 1e-6) return v; const n: Vec3 = [v[0] / len, v[1] / len, v[2] / len]; const a = [Math.abs(n[0]), Math.abs(n[1]), Math.abs(n[2])]; const k = a[0] >= a[1] && a[0] >= a[2] ? 0 : a[1] >= a[2] ? 1 : 2; const o: Vec3 = [0, 0, 0]; o[k] = Math.sign(n[k]) || 1; return o; };
     const seed = parts.find((p) => world.has(p.id) && isBall(p.type) && find(p.id) === find(anchor.id));
     if (seed && ballAdj.size) {
       const gpos = new Map<string, Vec3>(); gpos.set(seed.id, getTranslation(world.get(seed.id)!));
