@@ -113,10 +113,15 @@ export const BUILTINS: Record<string, Builtin> = {
   NodeValue: () => null,  // TODO: project node values
   ListAdd: (a) => { (a[0] as Value[]).push(a[1]); return a[0]; },
   ListExtend: (a) => (a[0] as Value[]).concat(a[1]),
+  JoinList: (a) => (Array.isArray(a[0]) ? a[0] : a[0] != null ? [a[0]] : []).concat(Array.isArray(a[1]) ? a[1] : a[1] != null ? [a[1]] : []),
+  Sort: (a) => (Array.isArray(a[0]) ? a[0].slice().sort((x, y) => (typeof x === "number" && typeof y === "number") ? x - y : String(x).localeCompare(String(y))) : a[0]),
+  InRange: (a) => Number(a[2]) >= Number(a[0]) && Number(a[2]) <= Number(a[1]), // InRange(min, max, value)
+  CopyTable: (a) => (Array.isArray(a[0]) ? a[0].slice() : a[0] && typeof a[0] === "object" ? { ...(a[0] as object) } : a[0]),
+  CompressTable: (a) => a[0],
   Size: (a) => (Array.isArray(a[0]) ? a[0].length : String(a[0]).length),
   InList: (a) => Array.isArray(a[1]) && a[1].includes(a[0]),
   Bool: (a) => a[0] === true || a[0] === "true" || a[0] === 1,
-  Round: (a) => Math.round(Number(a[0])),
+  Round: (a) => { const p = a[1] != null ? Number(a[1]) : 1; return p ? Math.round(Number(a[0]) / p) * p : Math.round(Number(a[0])); }, // Round(x, step): round to nearest step (default 1)
   StrLen: (a) => String(a[0]).length,
   SubStr: (a) => String(a[0]).substr(Number(a[1]), a[2] != null ? Number(a[2]) : undefined),
   BeginsWith: (a) => String(a[0]).startsWith(String(a[1])),

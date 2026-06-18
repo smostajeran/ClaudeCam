@@ -80,8 +80,25 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
 
   (host as any).partFns = {
     GetTypeName: (a: any[]) => a[0]?.type ?? null,
-    Feature: (a: any[]) => { const [p, k] = featOf(a); return p?.features?.get(k) ?? null; },
-    PartAttr: (a: any[]) => { const [p, k] = featOf(a); return p?.features?.get(k) ?? null; },
+    Feature: (a: any[]) => {
+      const [p, k] = featOf(a); const v = p?.features?.get(k);
+      if (v != null) return v;
+      // f_horizontal is computed by P'X5, not stored: a tube is horizontal when its two rohr2kugel
+      // balls sit at the same height (z). Derive it so orientation-based conflict checks work.
+      if (k === "f_horizontal" && p) {
+        const balls = (p.docks ?? []).filter((d: any) => d.type === "rohr2kugel" && d.connectedPart).map((d: any) => d.connectedPart);
+        if (balls.length >= 2) return Math.abs((balls[0].pos?.z ?? 0) - (balls[1].pos?.z ?? 0)) < 0.5;
+      }
+      return v ?? null;
+    },
+    PartAttr: (a: any[]) => {
+      const [p, k] = featOf(a); const v = p?.features?.get(k);
+      if (v != null) return v;
+      // computed attributes not stored as features: hc_length is the part's nominal length in mm,
+      // encoded in the type (rohr350 -> 350). Derive it so length-based conflict checks can run.
+      if (p && /length/i.test(String(k))) { const m = String(p.type).match(/(\d{2,4})/); if (m) return Number(m[1]); }
+      return null;
+    },
     Dock: (a: any[]) => { const ds = (a[0]?.docks ?? []).filter((d: any) => d.type === a[1]); return a[2] ? ds[Number(a[2]) - 1] ?? null : ds[0] ?? null; },
     DockGetConnectedPart: (a: any[]) => a[0]?.connectedPart ?? null,
     ConnectedDocksOfType: (a: any[]) => (a[0]?.docks ?? []).filter((d: any) => d.type === a[1]),
@@ -107,5 +124,22 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
     PartBoundingBox: () => ({ extent: { x: 0, y: 0, z: 0 }, min: { x: 0, y: 0, z: 0 } }), // TODO: from mesh geometry
     USMPartPrintZone: () => null,
     GlobalDockPos: (a: any[]) => a[0]?.pos ?? { x: 0, y: 0, z: 0 },
+    // scene-wide accessors
+    GetComponentList: () => scene.slice(),
+    GetVolumeList: () => [...volumes.values()],
+    HasFeature: (a: any[]) => { const [p, k] = featOf(a); return p?.features?.has(k) ?? false; },
+    // Forest('mainstructure') is the structure root: a synthetic node whose deep children are every
+    // scene part and whose 'volume' children are the connection clusters.
+    Forest: () => ({ __forest: true } as any),
+    ChildrenListOfType: (a: any[]) => (a[0]?.__forest
+      ? (String(a[1]) === "volume" || String(a[1]) === "normal_volume" ? [...volumes.values()] : ofType(String(a[1])))
+      : (a[0]?.parts ?? []).filter((p: ScenePart) => isSub(p.type, String(a[1])))),
+    ChildrenListOfTypeDeep: (a: any[]) => (a[0]?.__forest
+      ? ofType(String(a[1]))
+      : (volOf(a[0])?.parts ?? []).filter((p: ScenePart) => isSub(p.type, String(a[1])))),
+    // not modeled yet -> return empty so dependent conflicts never FALSE-fire (honest non-detection):
+    GlobalClauseMarkedParts: () => [], // global clause-marking (print-zone clauses) not modeled
+    GetCollisions: () => [],           // geometric collision detection not modeled
+    USMGetPrintZones: () => [],        // print-zone scene state not modeled
   };
 }
