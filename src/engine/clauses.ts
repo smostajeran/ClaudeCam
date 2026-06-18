@@ -9,6 +9,7 @@ import type { ConflictDef, Severity } from "./conflicts_catalog.ts";
 import { evalConflictsVCML, loadConflictExpressions } from "./conflicts_eval.ts";
 import type { ConflictPart } from "./conflicts_eval.ts";
 import { getCollisions } from "./geom_box.ts";
+import { buildAffordances } from "./affordances.ts";
 
 interface Vol { id: string; type: string; parts: ScenePart[]; features: Map<string, unknown> }
 interface Bind { volume?: Vol; part?: ScenePart; byId: Record<string, Vol> }
@@ -136,12 +137,16 @@ for (const f of fired) counts[f.level]++;
 const vcmlRan = vcml.total - vcml.errors.length;
 const topBlockers = Object.entries(vcml.missingFns).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([f, n]) => ({ fn: f, blocks: n }));
 
+// Affordances: legal edits the app can offer for this scene (swap / removable), computed on the same
+// scene + model so they travel with the configure payload.
+const affordances = buildAffordances(scene, model);
+
 // Structured output for the UI error panel (grouped by severity, mirroring P'X5's conflict list).
 const report = {
   scene: scene.length, volumes: volumes.length, catalogSize: catalog.length,
   detection: "vcml+structural",
   vcmlExpressions: vcml.total, vcmlRan, vcmlErrored: vcml.errors.length, topBlockers,
-  counts, fired, catalog,
+  counts, fired, catalog, affordances,
 };
 import("node:fs").then(({ writeFileSync }) => writeFileSync("out/conflicts.json", JSON.stringify(report)));
 

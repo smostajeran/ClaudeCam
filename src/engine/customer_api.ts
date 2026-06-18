@@ -33,5 +33,6 @@ export function customerPayload(placement: any, conflicts: any): any {
     catalog: rk.catalog,
     bom,
     conflicts: { counts: conflicts?.counts ?? { severe: 0, warning: 0, info: 0 }, items },
+    affordances: conflicts?.affordances ?? [], // legal edits per part: { id, label, removable, swap[] }
   };
 }
