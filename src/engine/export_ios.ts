@@ -63,7 +63,14 @@ function family(t: string): string {
   if (/trafo|verbraucher|safety|klemm|griff|schloss|scheren|winkel|zapfen/.test(x)) return "hardware";
   return "other";
 }
-export const identity = (type: string) => { const label = prettyName(type); return { part: slug(label) || "part", label, family: family(type), resolved: label !== type }; };
+// Neutral English label per family — the fallback when the glossary can't name a type, so a raw USM
+// code is NEVER emitted into the shipped payload (the IP guarantee), only a generic descriptor.
+const FAMILY_LABEL: Record<string, string> = { fitting: "Fitting", glass: "Glass element", connector: "Connector", tube: "Tube", panel: "Panel", door: "Door", drawer: "Drawer", support: "Support", hardware: "Hardware", other: "Component" };
+export const identity = (type: string) => {
+  const label = prettyName(type), fam = family(type);
+  if (label === type) return { part: fam, label: FAMILY_LABEL[fam] ?? "Component", family: fam, resolved: false }; // unresolved -> neutral, never the raw code
+  return { part: slug(label) || "part", label, family: fam, resolved: true };
+};
 
 // Convert a solved placement to the one52 iOS payload (own ids/labels + RealityKit transforms only).
 export function placementToRK(pl: any): any {

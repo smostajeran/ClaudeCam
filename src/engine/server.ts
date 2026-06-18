@@ -7,6 +7,7 @@
 //   POST /api/override      -> {kind:'property'|'clause', key, patch} merged into the overlay
 //   POST /api/reset         -> clear the overlay
 //   POST /api/run           -> {script:'validate'|'conflicts'} runs the engine validator, returns stdout
+//   POST /api/configure     -> customer payload: placement+conflicts+BOM, IP-safe (one52 ids/EN/RealityKit)
 //
 // The overlay is non-destructive: the decoded source model is never mutated. Run: node src/engine/server.ts
 import { createServer } from "node:http";
@@ -15,6 +16,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { placementToRK } from "./export_ios.ts";
+import { customerPayload } from "./customer_api.ts";
 import { extractConfigPx5 } from "./pxpz.ts";
 import { bootstrap } from "./bootstrap.ts";
 
@@ -140,6 +142,29 @@ const server = createServer(async (req, res) => {
       const pf = join(ROOT, "out", "placement.json");
       if (r.status !== 0 || !existsSync(pf)) return send(res, 500, JSON.stringify({ error: "solver failed", log: (r.stdout ?? "") + (r.stderr ?? "") }));
       return send(res, 200, JSON.stringify(placementToRK(JSON.parse(readFileSync(pf, "utf8")))));
+    }
+
+    // Customer app: ONE IP-safe payload = placement + conflicts + BOM (one52 ids/EN labels/RealityKit
+    // geometry; no USM codes/article numbers/prices). POST a .pxpz to solve it; empty body returns the
+    // last-solved scene. This is the contract the iOS app consumes.
+    if (req.method === "POST" && url === "/api/configure") {
+      if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
+      const buf = await readRawBody(req);
+      const pf = join(ROOT, "out", "placement.json"), cf = join(ROOT, "out", "conflicts.json");
+      if (buf && buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b) { // "PK" -> a .pxpz upload: re-solve both on it
+        const cfg = extractConfigPx5(buf);
+        if (!cfg) return send(res, 400, JSON.stringify({ error: "no config.px5 found in .pxpz" }));
+        const tmp = join(ROOT, "out", "upload_config.px5");
+        writeFileSync(tmp, cfg.data);
+        const r = spawnSync(process.execPath, ["src/engine/solve.ts", tmp], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
+        if (r.status !== 0 || !existsSync(pf)) return send(res, 500, JSON.stringify({ error: "solver failed", log: (r.stdout ?? "") + (r.stderr ?? "") }));
+        spawnSync(process.execPath, ["src/engine/clauses.ts", tmp], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
+      } else if (!existsSync(pf)) {
+        return send(res, 400, JSON.stringify({ error: "no solved scene — POST a .pxpz to configure" }));
+      }
+      const placement = JSON.parse(readFileSync(pf, "utf8"));
+      const conflicts = existsSync(cf) ? JSON.parse(readFileSync(cf, "utf8")) : null;
+      return send(res, 200, JSON.stringify(customerPayload(placement, conflicts)));
     }
 
     // Error handler: classified conflict catalog + any fired on the last-solved scene.
