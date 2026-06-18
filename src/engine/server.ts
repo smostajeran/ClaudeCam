@@ -25,6 +25,7 @@ const MODEL = join(ROOT, "out", "model.json");
 const OVERLAY = join(ROOT, "out", "overrides.json");
 const UI = join(ROOT, "ui", "index.html");
 const DEMO = join(ROOT, "data", "demo_configure.json"); // pre-solved demo scene (public, IP-safe)
+const START = join(ROOT, "data", "start_configure.json"); // clean base model to start a configuration
 const PORT = Number(process.env.PORT ?? 5152);
 
 type Overlay = { properties: Record<string, any>; clauses: Record<string, any> };
@@ -91,6 +92,9 @@ const server = createServer(async (req, res) => {
     // never be blocked by sign-in. Same shape as POST /api/configure.
     if (req.method === "GET" && url === "/api/demo")
       return send(res, 200, existsSync(DEMO) ? readFileSync(DEMO, "utf8") : JSON.stringify({ error: "no demo payload bundled" }));
+    // Public base model to start a configuration from (no auth).
+    if (req.method === "GET" && url === "/api/start")
+      return send(res, 200, existsSync(START) ? readFileSync(START, "utf8") : JSON.stringify({ error: "no start payload bundled" }));
     if (req.method === "GET" && (url === "/" || url === "/index.html")) return send(res, 200, readFileSync(UI, "utf8"), "text/html; charset=utf-8");
     if (req.method === "GET" && url === "/api/model") return send(res, 200, JSON.stringify(mergedModel()));
     if (req.method === "GET" && url === "/api/overrides") return send(res, 200, JSON.stringify(loadOverlay()));
