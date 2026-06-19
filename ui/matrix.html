@@ -1,0 +1,115 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D Matrix Generator</title>
+<style>
+  :root{--bg:#0b0d12;--panel:#10131a;--ink:#e7ebf3;--mut:#8893a6;--line:#23262e;--accent:#5aa7ff}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg);overflow:hidden}
+  .wrap{display:flex;flex-direction:column;height:100vh}
+  .bar{display:flex;align-items:center;gap:18px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .bar.bottom{border-bottom:0;border-top:1px solid var(--line)}
+  .title{font-weight:700;margin-right:8px}
+  .fld{display:flex;align-items:center;gap:7px}
+  .fld label{color:var(--mut);font-size:12px}
+  input[type=number]{width:64px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px}
+  input[type=range]{accent-color:var(--accent);width:180px}
+  .axis{font-weight:700}.ax-x{color:#ff6b6b}.ax-y{color:#7ee0a0}.ax-z{color:#5aa7ff}
+  .stage{position:relative;flex:1}canvas{display:block;width:100%;height:100%}
+  .readout{position:absolute;top:12px;left:14px;color:var(--mut);font-size:12px;font-variant-numeric:tabular-nums}
+  .hint{margin-left:auto;color:var(--mut);font-size:11px}
+</style></head>
+<body><div class="wrap">
+  <div class="bar">
+    <span class="title">3D Matrix Generator</span>
+    <div class="fld"><label class="axis ax-x">X dots</label><input type="number" id="nx" min="1" max="60" value="5"></div>
+    <div class="fld"><label class="axis ax-y">Y dots</label><input type="number" id="ny" min="1" max="60" value="4"></div>
+    <div class="fld"><label class="axis ax-z">Z dots</label><input type="number" id="nz" min="1" max="60" value="3"></div>
+    <span class="hint">drag = orbit · wheel = zoom</span>
+  </div>
+  <div class="stage"><canvas id="cv"></canvas><div class="readout" id="readout"></div></div>
+  <div class="bar bottom">
+    <div class="fld"><label>Distance between dots</label>
+      <input type="number" id="spacing" min="1" max="2000" step="1" value="10"><span style="color:var(--mut)">mm</span></div>
+    <div class="fld"><input type="range" id="spacingR" min="1" max="200" step="1" value="10"></div>
+    <label class="fld" style="margin-left:auto"><input type="checkbox" id="edges"> show grid lines</label>
+  </div>
+</div>
+<script>
+// ---------- model (modular: change dims/spacing here, everything reads from it) ----------
+const model = { nx: 5, ny: 4, nz: 3, spacing: 10 };   // spacing in mm; uniform on X/Y/Z
+
+// generate the matrix of dot positions (mm), centred on the origin.
+function generateMatrix(m){
+  const sx = m.spacing, sy = m.spacing, sz = m.spacing;   // per-axis-ready: swap to m.sx/sy/sz to vary
+  const cx = (m.nx-1)*sx/2, cy = (m.ny-1)*sy/2, cz = (m.nz-1)*sz/2;
+  const dots = [];
+  for (let i=0;i<m.nx;i++) for (let j=0;j<m.ny;j++) for (let k=0;k<m.nz;k++)
+    dots.push([i*sx-cx, j*sy-cy, k*sz-cz]);
+  return dots;
+}
+
+// ---------- 3D render (canvas, orbit camera) ----------
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const cam = { yaw:-0.6, pitch:0.45, dist:1, f:1 };
+let DOTS = [];
+
+function project(p){
+  const cyw=Math.cos(cam.yaw),syw=Math.sin(cam.yaw); let x=p[0]*cyw - p[2]*syw, z=p[0]*syw + p[2]*cyw;
+  const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch); let y=p[1]*cp - z*sp; z=p[1]*sp + z*cp;
+  const d=z+cam.dist; if(d<=1) return null;
+  return { x: cv.width/2 + x*cam.f/d, y: cv.height/2 - y*cam.f/d, depth:d };
+}
+function fit(){
+  cv.width=cv.clientWidth; cv.height=cv.clientHeight;
+  let r=0; for(const p of DOTS) r=Math.max(r, Math.hypot(p[0],p[1],p[2]));
+  r=Math.max(r, model.spacing);
+  cam.dist = r*3.2; cam.f = Math.min(cv.width,cv.height)*0.55*cam.dist/r;
+}
+function draw(){
+  cv.width=cv.clientWidth; cv.height=cv.clientHeight; ctx.clearRect(0,0,cv.width,cv.height);
+  const showEdges = document.getElementById('edges').checked;
+  const P = DOTS.map(project);
+  if (showEdges){
+    ctx.strokeStyle='rgba(90,167,255,0.18)'; ctx.lineWidth=1;
+    const idx=(i,j,k)=>((i*model.ny)+j)*model.nz+k;
+    for(let i=0;i<model.nx;i++)for(let j=0;j<model.ny;j++)for(let k=0;k<model.nz;k++){
+      const a=P[idx(i,j,k)]; if(!a)continue;
+      const ns=[]; if(i+1<model.nx)ns.push(idx(i+1,j,k)); if(j+1<model.ny)ns.push(idx(i,j+1,k)); if(k+1<model.nz)ns.push(idx(i,j,k+1));
+      for(const n of ns){const b=P[n]; if(b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}
+    }
+  }
+  // dots, far-to-near so nearer dots sit on top; depth-shaded for 3D perception
+  const order = P.map((p,i)=>({p,i})).filter(o=>o.p).sort((a,b)=>b.p.depth-a.p.depth);
+  const dmin=Math.min(...P.filter(Boolean).map(p=>p.depth)), dmax=Math.max(...P.filter(Boolean).map(p=>p.depth));
+  for(const {p} of order){
+    const t = dmax>dmin ? (p.depth-dmin)/(dmax-dmin) : 0;   // 0 near, 1 far
+    const shade = 1 - t*0.55, rad = 5 - t*2;
+    ctx.fillStyle = `rgba(${Math.round(231*shade)},${Math.round(235*shade)},${Math.round(243*shade)},1)`;
+    ctx.beginPath(); ctx.arc(p.x,p.y,rad,0,7); ctx.fill();
+    ctx.strokeStyle=`rgba(90,167,255,${0.5-t*0.35})`; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,rad+3,0,7); ctx.stroke();
+  }
+}
+
+// ---------- wire up ----------
+function rebuild(){ DOTS = generateMatrix(model); fit(); draw();
+  document.getElementById('readout').textContent =
+    `${model.nx} × ${model.ny} × ${model.nz} = ${DOTS.length} dots · ${model.spacing} mm spacing · `+
+    `${(model.nx-1)*model.spacing} × ${(model.ny-1)*model.spacing} × ${(model.nz-1)*model.spacing} mm`;
+}
+function bindNum(id, key, min, max){ const el=document.getElementById(id);
+  el.oninput=()=>{ let v=parseInt(el.value,10); if(isNaN(v))return; v=Math.max(min,Math.min(max,v)); model[key]=v; rebuild(); }; }
+bindNum('nx','nx',1,60); bindNum('ny','ny',1,60); bindNum('nz','nz',1,60);
+const sp=document.getElementById('spacing'), spR=document.getElementById('spacingR');
+function setSpacing(v){ v=Math.max(1,v); model.spacing=v; sp.value=v; if(v<=200)spR.value=v; rebuild(); }
+sp.oninput=()=>{ const v=parseInt(sp.value,10); if(!isNaN(v))setSpacing(v); };
+spR.oninput=()=>setSpacing(parseInt(spR.value,10));
+document.getElementById('edges').onchange=draw;
+
+let drag=null;
+cv.addEventListener('mousedown',e=>drag={x:e.clientX,y:e.clientY});
+addEventListener('mouseup',()=>drag=null);
+addEventListener('mousemove',e=>{ if(!drag)return; cam.yaw+=(e.clientX-drag.x)*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+(e.clientY-drag.y)*0.008)); drag={x:e.clientX,y:e.clientY}; draw(); });
+cv.addEventListener('wheel',e=>{ e.preventDefault(); cam.dist*=e.deltaY>0?1.1:0.9; draw(); },{passive:false});
+addEventListener('resize',()=>{ fit(); draw(); });
+rebuild();
+</script></body></html>
