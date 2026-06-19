@@ -67,6 +67,26 @@ const CONTENT_FAMILIES: { id: CellContent; name: string; type: (w: number, h: nu
 
 const cum = (arr: number[]): number[] => { const o = [0]; for (const a of arr) o.push(o[o.length - 1] + a / 10); return o; }; // mm -> cm boundaries
 
+export interface MatrixEdge { a: V3; b: V3; mid: V3; axis: "x" | "y" | "z"; dim: number }
+/** The matrix mesh: dots (nodes) at the lattice; each edge is a tube whose length EQUALS the spacing
+ *  between its two dots (X = column width, Y = depth, Z = row height). `lift` raises the grid off the
+ *  floor by the foot height. Verified: distance(dot,dot) === edge.dim on every axis. */
+export function buildMatrix(p: PathP, lift = 0): { nodes: V3[]; edges: MatrixEdge[]; xs: number[]; ys: number[]; zs: number[] } {
+  const cols = p.columnWidths?.length ? p.columnWidths : [750];
+  const rows = p.rowHeights?.length ? p.rowHeights : [350];
+  const depth = p.depth || 350;
+  const xs = cum(cols), zs = cum(rows).map((z) => z + lift), ys = [0, depth / 10];
+  const nC = cols.length, nR = rows.length;
+  const mid = (a: V3, b: V3): V3 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+  const nodes: V3[] = [];
+  for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) for (let j = 0; j <= nR; j++) nodes.push([xs[i], ys[k], zs[j]]);
+  const edges: MatrixEdge[] = [];
+  for (let i = 0; i < nC; i++) for (let k = 0; k < 2; k++) for (let j = 0; j <= nR; j++) { const a: V3 = [xs[i], ys[k], zs[j]], b: V3 = [xs[i + 1], ys[k], zs[j]]; edges.push({ a, b, mid: mid(a, b), axis: "x", dim: cols[i] }); }
+  for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) for (let j = 0; j < nR; j++) { const a: V3 = [xs[i], ys[k], zs[j]], b: V3 = [xs[i], ys[k], zs[j + 1]]; edges.push({ a, b, mid: mid(a, b), axis: "z", dim: rows[j] }); }
+  for (let i = 0; i <= nC; i++) for (let j = 0; j <= nR; j++) { const a: V3 = [xs[i], ys[0], zs[j]], b: V3 = [xs[i], ys[1], zs[j]]; edges.push({ a, b, mid: mid(a, b), axis: "y", dim: depth }); }
+  return { nodes, edges, xs, ys, zs };
+}
+
 export function buildFrame(p: PathP): BuildResult {
   const cols = p.columnWidths?.length ? p.columnWidths : [750];
   const rows = p.rowHeights?.length ? p.rowHeights : [350];
@@ -93,11 +113,11 @@ export function buildFrame(p: PathP): BuildResult {
   };
   const quad = (type: string, q: Q, corners: V3[]) => emit(type, [(corners[0][0] + corners[2][0]) / 2, (corners[0][1] + corners[2][1]) / 2, (corners[0][2] + corners[2][2]) / 2], q, corners);
 
-  // lattice
-  for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) for (let j = 0; j <= nR; j++) emit("kugel_std", [xs[i], ys[k], zs[j]], [0, 0, 0, 1]);
-  for (let i = 0; i < nC; i++) for (let k = 0; k < 2; k++) for (let j = 0; j <= nR; j++) emit("rohr" + cols[i], [(xs[i] + xs[i + 1]) / 2, ys[k], zs[j]], Q_WIDTH);
-  for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) for (let j = 0; j < nR; j++) emit("rohr" + rows[j], [xs[i], ys[k], (zs[j] + zs[j + 1]) / 2], Q_HEIGHT);
-  for (let i = 0; i <= nC; i++) for (let j = 0; j <= nR; j++) emit("rohr" + depth, [xs[i], depth / 20, zs[j]], Q_DEPTH);
+  // lattice = the matrix mesh: a dot (ball) at every node, a tube on every edge whose length is the
+  // dot-to-dot spacing (verified: distance === edge.dim). Single source of truth for the grid.
+  const matrix = buildMatrix(p, lift);
+  for (const nd of matrix.nodes) emit("kugel_std", nd, [0, 0, 0, 1]);
+  for (const e of matrix.edges) emit("rohr" + e.dim, e.mid, e.axis === "x" ? Q_WIDTH : e.axis === "z" ? Q_HEIGHT : Q_DEPTH);
 
   // base support: only feet are source-verified (hallerfuss). casters/plinth have no component; glides blocked (D5).
   if (base === "feet") { for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) emit("hallerfuss", [xs[i], ys[k], 0], [0, 0, 0, 1]); }
