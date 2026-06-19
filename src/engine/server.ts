@@ -98,6 +98,7 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url === "/api/start")
       return send(res, 200, existsSync(START) ? readFileSync(START, "utf8") : JSON.stringify({ error: "no start payload bundled" }));
     if (req.method === "GET" && (url === "/" || url === "/index.html")) return send(res, 200, readFileSync(UI, "utf8"), "text/html; charset=utf-8");
+    if (req.method === "GET" && url === "/configurator") return send(res, 200, readFileSync(join(ROOT, "ui", "configurator.html"), "utf8"), "text/html; charset=utf-8");
     if (req.method === "GET" && url === "/api/model") return send(res, 200, JSON.stringify(mergedModel()));
     if (req.method === "GET" && url === "/api/overrides") return send(res, 200, JSON.stringify(loadOverlay()));
 

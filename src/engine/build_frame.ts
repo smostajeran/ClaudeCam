@@ -171,6 +171,7 @@ export function gridOptions(p: PathP): any {
       rows: { current: rows, addHeights: HEIGHT_VOCAB, removableIndices: rows.length > 1 ? rows.map((_, j) => j) : [] },
       depth: { current: depth, options: DEPTH_DOMAIN },
       base: { current: p.baseSupport ?? "feet", options: ["feet", "casters", "plinth"] },
+      finish: { current: p.globalFinishId ?? FINISHES[1].id, options: FINISHES.map((f) => ({ id: f.id, name: f.name })) },
     },
     cells: cols.flatMap((w, i) => rows.map((h, j) => ({ col: i, row: j, width: w, height: h, current: cellAt(i, j), available: cellContent(w, h, depth) }))),
   };
