@@ -30,8 +30,9 @@
 </div>
 <script>
 const $=s=>document.querySelector(s);
-let state={columnWidths:[750],rowHeights:[350],depth:350,cells:[],baseSupport:"feet",globalFinishId:"light-grey"};
-let PAYLOAD=null, finishRGB=[0.74,0.75,0.76];
+let state={columnWidths:[750],rowHeights:[350],depth:350,cells:[],baseSupport:"feet"};
+let PAYLOAD=null;
+const METAL=[0.72,0.73,0.75]; // neutral render colour for steel — NOT a finish (no source-verified finish palette exists)
 const cellMap=new Map(); // "c,r"->type
 
 async function build(){
@@ -40,7 +41,6 @@ async function build(){
   for(let c=0;c<state.columnWidths.length;c++)for(let r=0;r<state.rowHeights.length;r++){const t=cellMap.get(c+","+r);if(t&&t!=="closed")state.cells.push({col:c,row:r,type:t});}
   const res=await fetch('/api/build',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(state)});
   PAYLOAD=await res.json();
-  finishRGB=(PAYLOAD.meta&&PAYLOAD.meta.finish&&PAYLOAD.meta.finish.rgb)||finishRGB;
   renderControls();renderInfo();fit();draw();
 }
 
@@ -56,7 +56,6 @@ function renderControls(){
   h+=`<button class="add" onclick="addH()">+ row</button>`;
   h+=`<h2>Depth</h2><div class="row"><select onchange="set('depth',+this.value)">${o.depth.options.map(d=>`<option ${d==state.depth?'selected':''}>${d}</option>`).join('')}</select></div>`;
   h+=`<h2>Base</h2><div class="row"><select onchange="set('baseSupport',this.value)">${o.base.options.map(b=>`<option ${b==state.baseSupport?'selected':''}>${b}</option>`).join('')}</select></div>`;
-  h+=`<h2>Finish</h2><div class="row"><span class="swatch" style="background:rgb(${finishRGB.map(v=>Math.round(v*255))})"></span><select onchange="set('globalFinishId',this.value)">${o.finish.options.map(f=>`<option value="${f.id}" ${f.id==state.globalFinishId?'selected':''}>${f.name}</option>`).join('')}</select></div>`;
   h+="<h2>Cells (content)</h2>";
   for(const cell of PAYLOAD.options.cells){h+=`<div class="row"><span class="lbl">${cell.width}×${cell.height}</span><select onchange="setCell(${cell.col},${cell.row},this.value)">${cell.available.map(a=>`<option value="${a.id}" ${a.id==cell.current?'selected':''}>${a.name}</option>`).join('')}</select></div>`;}
   c.innerHTML=h;
@@ -83,7 +82,7 @@ function qrot(q,v){const[x,y,z,w]=q,[a,b,c]=v;const tx=2*(y*c-z*b),ty=2*(z*a-x*c
 function project(p){let x=p[0]-cam.cx,y=p[1]-cam.cy,z=p[2]-cam.cz;const cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw);let x1=x*cy-z*sy,z1=x*sy+z*cy;const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);let y2=y*cp-z1*sp,z2=y*sp+z1*cp;const d=z2+cam.dist;if(d<=0.05)return null;return{x:cv.width/2+x1*cam.f/d,y:cv.height/2-y2*cam.f/d,depth:d};}
 function fit(){if(!PAYLOAD||!PAYLOAD.parts.length)return;const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(const p of PAYLOAD.parts)for(let i=0;i<3;i++){mn[i]=Math.min(mn[i],p.pos[i]);mx[i]=Math.max(mx[i],p.pos[i]);}for(let i=0;i<3;i++)cam["cxyz"[i]==='c'?["cx","cy","cz"][i]:0]=(mn[i]+mx[i])/2;cam.cx=(mn[0]+mx[0])/2;cam.cy=(mn[1]+mx[1])/2;cam.cz=(mn[2]+mx[2])/2;const ext=Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2],0.5);cam.dist=ext*4;cam.f=Math.min(cv.width,cv.height)*0.62*cam.dist/ext;}
 const rgb=(a,m=1)=>`rgb(${a.map(v=>Math.round(v*255*m)).join(',')})`;
-function famColor(f){const m={connector:[.42,.45,.5],tube:finishRGB,panel:finishRGB,glass:[.31,.82,.88],door:[.95,.78,.4],drawer:[.95,.78,.4],support:[.3,.32,.36]};return m[f]||[.6,.62,.66];}
+function famColor(f){const m={connector:[.42,.45,.5],tube:METAL,panel:METAL,glass:[.31,.82,.88],door:[.95,.78,.4],drawer:[.95,.78,.4],support:[.3,.32,.36]};return m[f]||[.6,.62,.66];}
 function draw(){if(!PAYLOAD)return;cv.width=cv.clientWidth;cv.height=cv.clientHeight;ctx.clearRect(0,0,cv.width,cv.height);const prims=[];
   for(const p of PAYLOAD.parts){const P=project(p.pos);if(!P)continue;
     if(p.quad){const C=p.quad.map(project);if(C.every(Boolean))prims.push({d:P.depth,t:'quad',C,f:p.family});}
@@ -91,7 +90,7 @@ function draw(){if(!PAYLOAD)return;cv.width=cv.clientWidth;cv.height=cv.clientHe
     else prims.push({d:P.depth,t:'dot',P,f:p.family,r:p.family==='connector'?3.4:2.4});}
   prims.sort((a,b)=>b.d-a.d);
   for(const o of prims){
-    if(o.t==='rod'){ctx.strokeStyle=rgb(finishRGB,.85);ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(o.A.x,o.A.y);ctx.lineTo(o.B.x,o.B.y);ctx.stroke();}
+    if(o.t==='rod'){ctx.strokeStyle=rgb(METAL,.85);ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(o.A.x,o.A.y);ctx.lineTo(o.B.x,o.B.y);ctx.stroke();}
     else if(o.t==='quad'){const g=o.f==='glass';ctx.fillStyle=g?'rgba(79,208,224,.18)':rgb(famColor(o.f),1)+'';ctx.globalAlpha=g?1:.55;ctx.strokeStyle=g?'rgba(79,208,224,.8)':rgb(famColor(o.f),.7);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(o.C[0].x,o.C[0].y);for(let i=1;i<4;i++)ctx.lineTo(o.C[i].x,o.C[i].y);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1;}
     else{ctx.fillStyle=rgb(famColor(o.f));ctx.beginPath();ctx.arc(o.P.x,o.P.y,o.r,0,7);ctx.fill();}
   }
