@@ -14,6 +14,19 @@ const SQRT1_2 = Math.SQRT1_2;
 export const WIDTH_VOCAB = [175, 250, 350, 395, 500, 750];
 export const DEPTH_DOMAIN = [250, 350, 500];
 
+// one52 generic finish palette (neutral descriptive names + RGB). NOT the licensed USM colour feed —
+// flagged as placeholder pending owner approval, same spirit as D6 for pricing.
+export const FINISHES = [
+  { id: "white", name: "White", rgb: [0.95, 0.95, 0.93] },
+  { id: "light-grey", name: "Light grey", rgb: [0.74, 0.75, 0.76] },
+  { id: "silver", name: "Silver", rgb: [0.66, 0.68, 0.70] },
+  { id: "olive", name: "Olive green", rgb: [0.42, 0.45, 0.30] },
+  { id: "blue", name: "Steel blue", rgb: [0.27, 0.40, 0.55] },
+  { id: "anthracite", name: "Anthracite", rgb: [0.24, 0.25, 0.27] },
+  { id: "black", name: "Graphite black", rgb: [0.11, 0.11, 0.12] },
+];
+function resolveFinish(id?: string) { return FINISHES.find((f) => f.id === id) ?? FINISHES[1]; }
+
 export type CellContent = "open" | "closed" | "panel" | "shelf" | "pullout" | "drawer" | "door" | "glass";
 
 export interface PathP {
@@ -32,7 +45,7 @@ const Q_WIDTH: Q = [0, 0, -SQRT1_2, SQRT1_2];            // local Y -> world X (
 const Q_HEIGHT: Q = [SQRT1_2, 0, 0, SQRT1_2];            // local Y -> world Z (RotX +90)
 
 export interface BuiltPart { id: string; type: string; pos: V3; quat: Q; quad?: V3[] }
-export interface BuildResult { parts: BuiltPart[]; issues: { level: "warning" | "severe"; title: string; detail: string }[] }
+export interface BuildResult { parts: BuiltPart[]; issues: { level: "warning" | "severe"; title: string; detail: string }[]; finish: { id: string; name: string; rgb: number[] } }
 
 const cum = (arr: number[]): number[] => { const o = [0]; for (const a of arr) o.push(o[o.length - 1] + a / 10); return o; }; // mm -> cm boundaries
 
@@ -57,7 +70,19 @@ export function buildFrame(p: PathP): BuildResult {
   for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) for (let j = 0; j < nR; j++) tube(rows[j], [xs[i], ys[k], (zs[j] + zs[j + 1]) / 2], Q_HEIGHT); // height (Z)
   for (let i = 0; i <= nC; i++) for (let j = 0; j <= nR; j++) tube(depth, [xs[i], depth / 20, zs[j]], Q_DEPTH);                                          // depth (Y)
 
-  if ((p.baseSupport ?? "feet") === "feet") for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) parts.push({ id: id(), type: "hallerfuss", pos: [xs[i], ys[k], 0], quat: [0, 0, 0, 1] });
+  const base = p.baseSupport ?? "feet";
+  const totalW = xs[nC];
+  if (base === "glides") {
+    issues.push({ level: "severe", title: "Glides blocked", detail: "Glide base material is blocked/conflict (D5)." });
+  } else if (base === "casters") {
+    for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) parts.push({ id: id(), type: "rolle", pos: [xs[i], ys[k], 0], quat: [0, 0, 0, 1] });
+    issues.push({ level: "warning", title: "Casters are a placeholder", detail: "Caster geometry is a placeholder primitive — not source-verified (pending an approved component / owner approval)." });
+  } else if (base === "plinth") {
+    parts.push({ id: id(), type: "co_plinth", pos: [totalW / 2, ys[0], 2.5], quat: [-SQRT1_2, 0, 0, SQRT1_2], quad: [[0, ys[0], 0], [totalW, ys[0], 0], [totalW, ys[0], 5], [0, ys[0], 5]] });
+    issues.push({ level: "warning", title: "Plinth is a placeholder", detail: "Plinth geometry is a placeholder — not source-verified (pending owner approval)." });
+  } else { // feet (default)
+    for (let i = 0; i <= nC; i++) for (let k = 0; k < 2; k++) parts.push({ id: id(), type: "hallerfuss", pos: [xs[i], ys[k], 0], quat: [0, 0, 0, 1] });
+  }
 
   // panels per cell (default closed-box: back/top/bottom/left/right)
   // Default blech lies in XY with normal +Z. Orient each face's normal: back->+Y (RotX -90),
@@ -90,7 +115,19 @@ export function buildFrame(p: PathP): BuildResult {
       case "glass": quad(`glasblech${h}_${w}`, Q_BACK, front); break;                  // glass on front opening
     }
   }
-  return { parts, issues };
+  // structural validation: content must fit its cell; tall+narrow on point supports -> tipping
+  const inv = contentInventory();
+  const famOf: Record<string, string> = { shelf: "shelf", pullout: "pullout", drawer: "drawer", door: "door", glass: "glass" };
+  for (const c of p.cells ?? []) {
+    const w = cols[c.col], h = rows[c.row], fam = c.type ? famOf[c.type] : undefined;
+    if (w && h && fam && !(inv[fam] ?? []).some(([a, b]) => [w, h, depth].includes(a) && [w, h, depth].includes(b)))
+      issues.push({ level: "warning", title: "Content doesn't fit", detail: `${c.type} does not fit a ${w}×${h} cell at depth ${depth} mm.` });
+  }
+  const totalWmm = cols.reduce((a, b) => a + b, 0), totalHmm = rows.reduce((a, b) => a + b, 0);
+  if ((base === "feet" || base === "casters") && totalHmm > 1.8 * Math.min(totalWmm, depth))
+    issues.push({ level: "warning", title: "Tipping risk", detail: `Tall, narrow unit (H ${totalHmm} vs min(W ${totalWmm}, D ${depth}) mm) — check stability / wall fixing.` });
+
+  return { parts, issues, finish: resolveFinish(p.globalFinishId) };
 }
 
 // ---- grid-aware suggestions: what the user can add/remove given the current grid ----

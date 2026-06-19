@@ -159,10 +159,12 @@ const server = createServer(async (req, res) => {
     // quantity BOM + dimension validation, IP-safe. No auth (the dimensions editor calls this live).
     if (req.method === "POST" && url === "/api/build") {
       const p = await readBody(req);
-      const { parts, issues } = buildFrame(p);
+      const { parts, issues, finish } = buildFrame(p);
       const counts = { severe: issues.filter((i: any) => i.level === "severe").length, warning: issues.filter((i: any) => i.level === "warning").length, info: 0 };
-      const fired = issues.map((it: any, k: number) => ({ type: "dim_" + k, level: it.level, category: "Dimensions", name: it.title, problem: it.detail, solution: "", parts: [] }));
-      return send(res, 200, JSON.stringify({ ...customerPayload({ parts }, { counts, fired, affordances: [] }), options: gridOptions(p) }));
+      const fired = issues.map((it: any, k: number) => ({ type: "dim_" + k, level: it.level, category: it.title?.includes("fit") ? "Structure" : "Configuration", name: it.title, problem: it.detail, solution: "", parts: [] }));
+      const payload = customerPayload({ parts }, { counts, fired, affordances: [] });
+      payload.meta.finish = finish;
+      return send(res, 200, JSON.stringify({ ...payload, options: gridOptions(p) }));
     }
 
     // Customer app: ONE IP-safe payload = placement + conflicts + BOM (one52 ids/EN labels/RealityKit
