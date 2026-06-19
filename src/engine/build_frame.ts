@@ -40,9 +40,12 @@ export interface PathP {
 
 type V3 = [number, number, number];
 type Q = [number, number, number, number];
-const Q_DEPTH: Q = [0, 0, 0, 1];                         // tube along Y (local Y = world Y)
-const Q_WIDTH: Q = [0, 0, -SQRT1_2, SQRT1_2];            // local Y -> world X (RotZ -90)
-const Q_HEIGHT: Q = [SQRT1_2, 0, 0, SQRT1_2];            // local Y -> world Z (RotX +90)
+// Tube quats are chosen so that AFTER quatToRK (the cm/Z-up -> m/Y-up frame conjugation) the rod —
+// drawn along the part's local Y by the renderer — lands on the correct RealityKit axis:
+// width->RK X, height->RK Y(up), depth->RK Z. (Verified empirically against the ball grid.)
+const Q_WIDTH: Q = [0, SQRT1_2, 0, SQRT1_2];   // -> RK +X
+const Q_HEIGHT: Q = [0, 0, 0, 1];              // -> RK +Y
+const Q_DEPTH: Q = [SQRT1_2, 0, 0, SQRT1_2];   // -> RK +Z
 
 export interface BuiltPart { id: string; type: string; pos: V3; quat: Q; quad?: V3[] }
 export interface BuildResult { parts: BuiltPart[]; issues: { level: "warning" | "severe"; title: string; detail: string }[]; finish: { id: string; name: string; rgb: number[] } }
