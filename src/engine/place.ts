@@ -77,6 +77,13 @@ export function addTubeOnEdge(xml: string, idA: string, idB: string, tubeType = 
   const { parts, maxDockId } = parseConfig(xml);
   const A = parts.find((p) => p.id === idA), B = parts.find((p) => p.id === idB);
   if (!A || !B) throw new Error(`ball not found: ${!A ? idA : idB}`);
+  // gap-vs-length guard (mirrors addPanelOnFace): the tube's nominal length must match the ball-centre
+  // gap, else a rohr350 wired across a 750 edge over-constrains the solve (both ends docked, can't fit).
+  const lm = tubeType.match(/(\d+)/);
+  if (lm) {
+    const nominal = +lm[1] / 10, gap = Math.hypot(...sub(B.pos, A.pos));
+    if (Math.abs(gap - nominal) > 2.5) throw new Error(`tube ${nominal}cm doesn't span edge ${gap.toFixed(0)}cm`);
+  }
   const iA = facingSocket(A, B.pos), iB = facingSocket(B, A.pos);
   if (iA == null) throw new Error(`ball ${idA} has no free socket facing ${idB}`);
   if (iB == null) throw new Error(`ball ${idB} has no free socket facing ${idA}`);
