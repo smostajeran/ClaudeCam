@@ -130,6 +130,17 @@ export const BUILTINS: Record<string, Builtin> = {
   StrReplace: (a) => String(a[0]).split(String(a[1])).join(String(a[2])),
   StringToList: (a) => String(a[0]).split(String(a[1] ?? "")),
   Vector: (a) => ({ x: Number(a[0]) || 0, y: Number(a[1]) || 0, z: Number(a[2]) || 0 }),
+  // Vector algebra over {x,y,z} (the Vector() shape). Pure, config-independent — these mirror the
+  // Perspectix builtins the dock-rotation/geometry appcodes use (dockRotationKugel, rotationsWinkel…).
+  VectorAdd: (a) => { const u = a[0] as any, v = a[1] as any; return { x: (Number(u?.x) || 0) + (Number(v?.x) || 0), y: (Number(u?.y) || 0) + (Number(v?.y) || 0), z: (Number(u?.z) || 0) + (Number(v?.z) || 0) }; },
+  VectorSub: (a) => { const u = a[0] as any, v = a[1] as any; return { x: (Number(u?.x) || 0) - (Number(v?.x) || 0), y: (Number(u?.y) || 0) - (Number(v?.y) || 0), z: (Number(u?.z) || 0) - (Number(v?.z) || 0) }; },
+  VectorScale: (a) => { const u = a[0] as any, s = Number(a[1]) || 0; return { x: (Number(u?.x) || 0) * s, y: (Number(u?.y) || 0) * s, z: (Number(u?.z) || 0) * s }; },
+  VectorDot: (a) => { const u = a[0] as any, v = a[1] as any; return (Number(u?.x) || 0) * (Number(v?.x) || 0) + (Number(u?.y) || 0) * (Number(v?.y) || 0) + (Number(u?.z) || 0) * (Number(v?.z) || 0); },
+  VectorLength: (a) => { const u = a[0] as any; return Math.hypot(Number(u?.x) || 0, Number(u?.y) || 0, Number(u?.z) || 0); },
+  VectorNormalize: (a) => { const u = a[0] as any; const l = Math.hypot(Number(u?.x) || 0, Number(u?.y) || 0, Number(u?.z) || 0) || 1; return { x: (Number(u?.x) || 0) / l, y: (Number(u?.y) || 0) / l, z: (Number(u?.z) || 0) / l }; },
+  VectorCross: (a) => { const u = a[0] as any, v = a[1] as any; const ux = Number(u?.x) || 0, uy = Number(u?.y) || 0, uz = Number(u?.z) || 0, vx = Number(v?.x) || 0, vy = Number(v?.y) || 0, vz = Number(v?.z) || 0; return { x: uy * vz - uz * vy, y: uz * vx - ux * vz, z: ux * vy - uy * vx }; },
+  Deg: (a) => (Number(a[0]) || 0) * 180 / Math.PI,
+  Rad: (a) => (Number(a[0]) || 0) * Math.PI / 180,
   Number: (a) => Number(a[0]),
   UpperCase: (a) => String(a[0]).toUpperCase(),
   IsNumeric: (a) => a[0] != null && a[0] !== "" && !globalThis.Number.isNaN(globalThis.Number(a[0])),

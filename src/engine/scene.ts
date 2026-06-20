@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseXmlString, tagOf, attr, kids } from "../xml/parse.ts";
 import type { XNode } from "../xml/parse.ts";
 import { Host } from "./partgraph.ts";
+import { trs, invRigid, applyPoint } from "./geom.ts";
 
 export interface ScenePart {
   id: string;
@@ -107,6 +108,16 @@ export function installPartFns(host: Host, scene: ScenePart[]): void {
     ConnectedDocksOfType: (a: any[]) => (a[0]?.docks ?? []).filter((d: any) => d.type === a[1]),
     PartPos: (a: any[]) => a[0]?.pos ?? null,
     PartRot: (a: any[]) => a[0]?.rot ?? null,
+    // World point -> the part's LOCAL frame: inv(trs(pos,rot)) * point. Same rigid convention
+    // (euler XYZ) the placement solver uses for part world transforms, so e.g. dockRotationKugel's
+    // `LocalPos(part, PartPos(part)+(0,0,-1))` yields world-down expressed in the ball's local axes.
+    LocalPos: (a: any[]) => {
+      const p = a[0], wp = a[1];
+      if (!p?.pos || !p?.rot || wp == null) return { x: 0, y: 0, z: 0 };
+      const inv = invRigid(trs([p.pos.x, p.pos.y, p.pos.z], [p.rot.x, p.rot.y, p.rot.z], "XYZ"));
+      const v = applyPoint(inv, [Number(wp.x) || 0, Number(wp.y) || 0, Number(wp.z) || 0]);
+      return { x: v[0], y: v[1], z: v[2] };
+    },
     Parent: () => null,
     ParentOfType: () => null,
     GetComponentListOfType: (a: any[]) => ofType(String(a[0])),

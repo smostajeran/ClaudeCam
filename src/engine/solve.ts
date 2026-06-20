@@ -67,14 +67,15 @@ installPartFns(host, scene);
 const sceneById = new Map(scene.map((s) => [s.id, s]));
 
 let vcmlOk = 0, vcmlFail = 0;
+const vcmlErrs = new Map<string, string>();   // VCML expr -> first error/result seen (diagnostic)
 const matCache = new Map<string, Mat4>();
 function frameMat(p: GPart, f: any): Mat4 {
   const key = `${p.id}|${f.dockType}#${f.index}`;
   const hit = matCache.get(key); if (hit) return hit;
   const r = f.r.map((s: string) => {
     const n = Number(s); if (!Number.isNaN(n)) return n;
-    try { const sp = sceneById.get(p.id); if (sp) host.current = sp as any; const v = Number(evalVCML(String(s), host, { part: host.current })); vcmlOk++; return Number.isNaN(v) ? 0 : v; }
-    catch { vcmlFail++; return 0; }
+    try { const sp = sceneById.get(p.id); if (sp) host.current = sp as any; const v = Number(evalVCML(String(s), host, { part: host.current })); vcmlOk++; if (!vcmlErrs.has(s)) vcmlErrs.set(s, `OK=${v} (part ${p.type}#${p.id}${sp ? "" : " [NO SCENE PART]"})`); return Number.isNaN(v) ? 0 : v; }
+    catch (err) { vcmlFail++; if (!vcmlErrs.has(s)) vcmlErrs.set(s, `THROW: ${(err as Error).message} (part ${p.type}#${p.id})`); return 0; }
   }) as Vec3;
   const m = trs(f.t as Vec3, r, "XYZ"); matCache.set(key, m); return m;
 }
@@ -428,6 +429,7 @@ console.log("=== PLACEMENT SOLVER vs P'X5 (dock-frame composition, M=identity, e
 const unreached = parts.filter((p) => !world.has(p.id));
 console.log(`  parts: ${parts.length}   placed by solver: ${world.size}   unreachable: ${unreached.length}   dock frames assumed identity (sub-components): ${unframed}`);
 console.log(`  VCML dock rotations evaluated: ${vcmlOk} ok / ${vcmlFail} fail`);
+for (const [expr, res] of vcmlErrs) console.log(`     VCML[${expr.replace(/\s+/g, " ").trim().slice(0, 60)}] -> ${res}`);
 // Honest score: a part the solver could not place counts as a MISS, not as excluded. Denominator = all parts (excl. anchor).
 const allN = parts.length - 1;
 const correctAll = posMatch; // posMatch is counted only over placed parts; unplaced are misses by construction

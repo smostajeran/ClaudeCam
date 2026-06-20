@@ -82,10 +82,11 @@ function draw(){
   const dmin=Math.min(...P.filter(Boolean).map(p=>p.depth)), dmax=Math.max(...P.filter(Boolean).map(p=>p.depth));
   for(const {p} of order){
     const t = dmax>dmin ? (p.depth-dmin)/(dmax-dmin) : 0;   // 0 near, 1 far
-    const shade = 1 - t*0.5;
-    const rad = 3.2;   // same radius as the ball nodes in the 3D view (ui/index.html)
+    const shade = 1 - t*0.55, rad = 5 - t*2;
     ctx.fillStyle = `rgba(${Math.round(231*shade)},${Math.round(235*shade)},${Math.round(243*shade)},1)`;
     ctx.beginPath(); ctx.arc(p.x,p.y,rad,0,7); ctx.fill();
+    ctx.strokeStyle=`rgba(90,167,255,${0.5-t*0.35})`; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,rad+3,0,7); ctx.stroke();
   }
 }
 
