@@ -225,6 +225,10 @@ if (process.argv[1]?.endsWith("place.ts")) {
   // loop-closure residual (catches centred-but-rotated), mirroring the route.
   console.log("\npanel round-trips (residual-validated rotation-retry):");
   const byDock = dockMap(parts);
+  // Honest skip: if this config has no framed panels, say so loudly — a green run on a panel-less
+  // config must NOT read as "panels verified". (The default oracle/data-bundle config has none.)
+  const panelList = parts.filter((p) => /^blech\d/.test(p.type) && p.docks.filter((d) => d.type === "blech2rohr").length === 4);
+  if (!panelList.length) console.log("  ⚠ NO framed panels in this config — panel path NOT exercised. Load a panel-bearing config to verify (e.g. node src/engine/place.ts <config.px5>).");
   const place = (srcXml: string, corners: string[], type: string) => {
     for (let rot = 0; rot < 4; rot++) {
       let cand; try { cand = addPanelOnFace(srcXml, corners, type, rot); } catch (e: any) { return { rot: -1, res: Infinity, msg: String(e?.message ?? e) }; }
@@ -236,7 +240,7 @@ if (process.argv[1]?.endsWith("place.ts")) {
     return { rot: -1, res: Infinity, msg: "no rotation fits" };
   };
   const seen = new Set<string>();
-  for (const panel of parts.filter((p) => /^blech\d/.test(p.type) && p.docks.filter((d) => d.type === "blech2rohr").length === 4)) {
+  for (const panel of panelList) {
     if (seen.has(panel.type)) continue; seen.add(panel.type);
     const corners = cycleCorners(parts, byDock, panel);
     const removed2 = removePart(xml, panel.id);
