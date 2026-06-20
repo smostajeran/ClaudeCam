@@ -307,9 +307,19 @@ function resolveConfig(cfgPath: string): { placement: any; payload: any } | null
   recordPartTypes(placement, payload);
   return { placement, payload };
 }
-// one52 part-id -> internal component type, inverted from the scene's own types (v1: extend with present types).
+// one52 part-id -> internal component type. Prefer a type already in the scene (exact); otherwise
+// reconstruct the internal type for the v1-droppable families and confirm it round-trips through
+// identity() — so an unknown id resolves to null, never a fabricated type. This is what lets the
+// FIRST metal panel (or a tube of a size not yet present) be dropped onto a scene that lacks it.
+function candidateTypes(partId: string): string[] {
+  let m: RegExpMatchArray | null;
+  if ((m = partId.match(/^tube-(\d+)$/))) return [`rohr${m[1]}`];
+  if ((m = partId.match(/^metal-panel-(\d+)x(\d+)$/))) return [`blech${m[1]}_${m[2]}`, `blech${m[2]}_${m[1]}`];
+  return [];
+}
 function typeForPart(xml: string, partId: string): string | null {
   for (const p of parseConfig(xml).parts) if (identity(p.type).part === partId) return p.type;
+  for (const t of candidateTypes(partId)) if (identity(t).part === partId) return t;
   return null;
 }
 
