@@ -115,16 +115,19 @@ export function extractMeshes(file: string): Mesh[] {
   return meshes;
 }
 
-/** Merge the parts of the lightest available LOD into one mesh (what the app should load). */
-export function lowLODMesh(file: string): Mesh {
+/** Merge the parts of the first available LOD in `order` into one mesh. */
+export function pickLODMesh(file: string, order: string[]): Mesh {
   const all = extractMeshes(file);
-  const order = ["low", "medium", "high", ""];
   const lod = order.find((l) => all.some((m) => m.lod === l)) ?? "";
   const parts = all.filter((m) => m.lod === lod);
   const positions: number[][] = []; const triangles: number[] = []; let base = 0;
   for (const m of parts) { positions.push(...m.positions); for (const i of m.triangles) triangles.push(i + base); base += m.positions.length; }
   return { positions, triangles, lod };
 }
+/** Lightest LOD (smallest assets — e.g. for distant/preview). NOTE: some doors' 'low' LOD is a degenerate flat quad. */
+export const lowLODMesh = (file: string): Mesh => pickLODMesh(file, ["low", "medium", "high", ""]);
+/** Richest LOD (real solid geometry — use for parts whose 'low' is flat, e.g. klapptuer doors). */
+export const highLODMesh = (file: string): Mesh => pickLODMesh(file, ["high", "medium", "low", ""]);
 
 if (process.argv[1]?.endsWith("oio3d.ts")) {
   const f = process.argv[2]; if (!f) { console.log("usage: node src/geom/oio3d.ts <file.3d>"); process.exit(0); }
