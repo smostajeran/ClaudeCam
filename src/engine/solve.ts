@@ -14,6 +14,7 @@ import { loadCatalog, loadComponentArtNo } from "./catalog.ts";
 import { trs, mul, invRigid, euler, ident, applyPoint, getTranslation, matToQuat, quatAngleDeg, dist, alignRigid } from "./geom.ts";
 import type { Mat4, Vec3 } from "./geom.ts";
 import { meshExtentCm } from "./meshfind.ts";
+import { resolveSubGeoms } from "./subgeom.ts";
 
 function findFile(dir: string, name: string): string | null {
   for (const f of readdirSync(dir, { withFileTypes: true })) {
@@ -533,6 +534,10 @@ const resolveArtNo = (p: GPart): string | null => {
 };
 
 import("node:fs").then(({ writeFileSync }) => {
+  // Articulated sub-parts (e.g. a scissor stay's arms) are resolved at DOF=0 — the CLOSED/resting pose,
+  // which is the configurator's default view. (Driving them to the live door-open angle is future work;
+  // deriving that reliably needs the dock's true degree-of-freedom, not the panel tilt.)
+  const SUB_DOF = 0;
   const out = parts.map((p) => {
     const artNo = resolveArtNo(p); const art = artNo ? catalog.get(artNo) : null;
     const meta = { ...(p.e ? { e: p.e } : {}), ...(art ? { artNo, name: art.en, price: art.price, weight: art.weight } : artNo ? { artNo } : {}) };
@@ -543,8 +548,9 @@ import("node:fs").then(({ writeFileSync }) => {
     }
     const W = world.get(p.id)!;
     const pq = panelQuad(p, W);
+    const sub = resolveSubGeoms(p.type, SUB_DOF);   // articulated sub-parts (hinge arms) at the closed/resting pose
     return { id: p.id, type: p.type, pos: getTranslation(W).map((x) => +x.toFixed(4)), quat: matToQuat(W).map((x) => +x.toFixed(6)),
-      ...meta, ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}) };
+      ...meta, ...(pq ? { quad: pq.quad, panelKind: pq.kind } : {}), ...(sub.length ? { sub } : {}) };
   });
   // priced BOM rollup (parts that resolved to a catalog article)
   const bomMap = new Map<string, { artNo: string; name: string; qty: number; price: number; weight: number }>();

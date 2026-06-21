@@ -64,7 +64,10 @@ function geomMap() {
   if (GEOMMAP) return GEOMMAP;
   const out: Record<string, string> = {};
   const xml = readCached(join(CART_ROOT, "hallerpackage", "representation", "geometryrepresentation.xml"));
-  if (xml) { const re = /<component type="([^"]+)">\s*<geometry file="geometry\/([^"]+)\.3d"/g; let m: RegExpExecArray | null; while ((m = re.exec(xml))) out[m[1]] = m[2]; }
+  // NB: `type` is not always the first attribute — many parts are `<component preload="true" type="…">`
+  // (scherengelenk hinges, biblio*, klemmzunge_*, …). Match `type=` anywhere, skip optional <localvar>s,
+  // then take the component's first geometry file. Missing this dropped ~49/350 parts from the viewer.
+  if (xml) { const re = /<component\b[^>]*\btype="([^"]+)"[^>]*>\s*(?:<localvar\b[^>]*>\s*)*<geometry\b[^>]*\bfile="geometry\/([^"]+)\.3d"/g; let m: RegExpExecArray | null; while ((m = re.exec(xml))) out[m[1]] = m[2]; }
   GEOMMAP = out; return out;
 }
 // candidate filenames for a solver part TYPE (direct, geometryrep mapping, and the known naming heuristics)

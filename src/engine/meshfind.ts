@@ -19,7 +19,9 @@ function geomMap() {
   const out: Record<string, string> = {};
   try {
     const xml = readFileSync(join(CART_ROOT, "hallerpackage", "representation", "geometryrepresentation.xml"), "utf8");
-    const re = /<component type="([^"]+)">\s*<geometry file="geometry\/([^"]+)\.3d"/g;
+    // `type` is not always first (e.g. `<component preload="true" type="…">`); match it anywhere, skip
+    // optional <localvar>s, take the first geometry file. (Mirrors server.ts geomMap — keep in sync.)
+    const re = /<component\b[^>]*\btype="([^"]+)"[^>]*>\s*(?:<localvar\b[^>]*>\s*)*<geometry\b[^>]*\bfile="geometry\/([^"]+)\.3d"/g;
     let m: RegExpExecArray | null; while ((m = re.exec(xml))) out[m[1]] = m[2];
   } catch { /* map optional — direct/heuristic candidates still resolve most parts */ }
   GEOMMAP = out; return out;

@@ -747,9 +747,14 @@ function qrot(q,v){ const x=q[0],y=q[1],z=q[2],w=q[3], a=v[0],b=v[1],c=v[2];
   const tx=2*(y*c-z*b), ty=2*(z*a-x*c), tz=2*(x*b-y*a);
   return [a+w*tx+(y*tz-z*ty), b+w*ty+(z*tx-x*tz), c+w*tz+(x*ty-y*tx)]; }
 function solvedVerts(p,m){ return m.P.map(v=>{ const r=qrot(p.quat,v); return world([p.pos[0]*10+r[0], p.pos[1]*10+r[1], p.pos[2]*10+r[2]]); }); }  // pos cm→mm + rotate native mesh by the solved quaternion
+function qmul(a,b){ return [a[3]*b[0]+a[0]*b[3]+a[1]*b[2]-a[2]*b[1], a[3]*b[1]-a[0]*b[2]+a[1]*b[3]+a[2]*b[0], a[3]*b[2]+a[0]*b[1]-a[1]*b[0]+a[2]*b[3], a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2]]; }
+function eulerQ(r){ const d=Math.PI/360, ax=(i,g)=>{const s=Math.sin(g*d);return [i==0?s:0,i==1?s:0,i==2?s:0,Math.cos(g*d)];}; return qmul(qmul(ax(0,r[0]),ax(1,r[1])),ax(2,r[2])); }  // euler XYZ° -> quat (matches engine)
+// compound sub-geometry verts: part transform ∘ sub transform (local pos cm + euler° rot), applied to the sub mesh
+function subVerts(p,s,sm){ const q=qmul(p.quat,eulerQ(s.rot)), ow=qrot(p.quat,s.pos), b=[(p.pos[0]+ow[0])*10,(p.pos[1]+ow[1])*10,(p.pos[2]+ow[2])*10];
+  return sm.P.map(v=>{ const r=qrot(q,v); return world([b[0]+r[0], b[1]+r[1], b[2]+r[2]]); }); }
 async function loadSolved(){
   const d = await fetch('/api/placement').then(r=>r.json()); if(d.error){ console.warn(d.error); return d.error; }
-  SOLVED = d.parts; for(const p of SOLVED) getMesh(p.type);                 // prefetch all meshes
+  SOLVED = d.parts; for(const p of SOLVED){ getMesh(p.type); if(p.sub) for(const s of p.sub) getMesh(s.mesh); }   // prefetch all meshes (incl. compound sub-parts)
   // fit camera to the solved bbox (in render space)
   await new Promise(r=>setTimeout(r,1500));
   const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];
@@ -767,7 +772,11 @@ function renderSolved(){
     const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch); let Y=y*cp-Z*sp; Z=y*sp+Z*cp;
     return {x:cv.width/2+X*sc, y:cv.height/2-Y*sc, depth:Z}; };
   for(const p of SOLVED){
-    if(p.quad){                                                  // flat panel/glass: use the solver's AUTHORITATIVE corners (correct aspect+orientation), like configurator.html
+    if(p.sub) for(const s of p.sub){                             // articulated compound geometry (hinge scissor arms, brackets) — engine-resolved at the door angle
+      const sm=getMesh(s.mesh); if(!sm||!sm.P) continue;
+      const pj=subVerts(p,s,sm).map(proj);
+      for(let i=0;i<sm.T.length;i+=3){ const a=pj[sm.T[i]],b=pj[sm.T[i+1]],c=pj[sm.T[i+2]]; if(a&&b&&c) tris.push({a,b,c,depth:(a.depth+b.depth+c.depth)/3,fam:s.mesh}); } }
+    if(p.quad && !/loch|perf|biblioblech/i.test(p.type)){        // flat panel/glass: solver's AUTHORITATIVE corners. Perforated/library panels fall through to their real (framed) mesh instead of a flat quad.
       const C=p.quad.map(c=>proj(world([c[0]*10,c[1]*10,c[2]*10])));
       if(C.every(Boolean)){ const fam=(p.panelKind==='glass'||/glas/.test(p.type))?'glas':'panel';
         tris.push({a:C[0],b:C[1],c:C[2],depth:(C[0].depth+C[1].depth+C[2].depth)/3,fam});
