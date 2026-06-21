@@ -773,7 +773,7 @@ function renderSolved(){
         tris.push({a:C[0],b:C[1],c:C[2],depth:(C[0].depth+C[1].depth+C[2].depth)/3,fam});
         tris.push({a:C[0],b:C[2],c:C[3],depth:(C[0].depth+C[2].depth+C[3].depth)/3,fam}); }
       continue; }
-    const m=getMesh(p.type); if(!m||!m.P) continue;              // everything else: native mesh + solved quaternion
+    const m = getMesh(p.type); if(!m||!m.P) continue;   // native finest-LOD mesh + the solver's authoritative quaternion (glasschar hinges included)
     const pj=solvedVerts(p,m).map(proj);
     for(let i=0;i<m.T.length;i+=3){ const a=pj[m.T[i]],b=pj[m.T[i+1]],c=pj[m.T[i+2]]; if(a&&b&&c) tris.push({a,b,c,depth:(a.depth+b.depth+c.depth)/3,fam:p.type}); } }
   let dmn=Infinity,dmx=-Infinity; for(const t of tris){ if(t.depth<dmn)dmn=t.depth; if(t.depth>dmx)dmx=t.depth; }

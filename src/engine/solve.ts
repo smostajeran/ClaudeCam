@@ -13,6 +13,7 @@ import { APPCODES_DIR, SNX } from "../import/paths.ts";
 import { loadCatalog, loadComponentArtNo } from "./catalog.ts";
 import { trs, mul, invRigid, euler, ident, applyPoint, getTranslation, matToQuat, quatAngleDeg, dist, alignRigid } from "./geom.ts";
 import type { Mat4, Vec3 } from "./geom.ts";
+import { meshExtentCm } from "./meshfind.ts";
 
 function findFile(dir: string, name: string): string | null {
   for (const f of readdirSync(dir, { withFileTypes: true })) {
@@ -502,6 +503,20 @@ function panelQuad(p: GPart, W: Mat4): { quad: number[][]; kind: string } | null
   const thin = rng.indexOf(Math.min(...rng));
   const ip = [0, 1, 2].filter((i) => i !== thin);
   if (!(rng[ip[0]] > 8 && rng[ip[1]] > 8 && rng[thin] < 4)) return null; // not a flat panel
+  // Dock points can sit INBOARD of the real glass edge (a door's hinges/handle are ~14mm inside the
+  // pane), which renders the panel too small. Grow each in-plane axis to the real glass slab's face
+  // size. The slab mesh is authored in its OWN frame, so pair its two face dimensions to the dock
+  // in-plane axes BY SIZE (not axis index). When the pane is larger than the dock reach (a door),
+  // centre it on the part origin — that's where the mesh renders. Fixed glass already spans its bay
+  // (dock >= pane), so it is left untouched.
+  const ext = meshExtentCm(p.type);
+  if (ext) {
+    const md = [ext.max[0] - ext.min[0], ext.max[1] - ext.min[1], ext.max[2] - ext.min[2]].sort((a, b) => b - a);
+    const meshIP = [md[0], md[1]]; // two largest mesh dims = the pane face (drop the thin one)
+    [...ip].sort((a, b) => (mx[b] - mn[b]) - (mx[a] - mn[a])).forEach((a, k) => {
+      if (meshIP[k] > mx[a] - mn[a]) { mn[a] = -meshIP[k] / 2; mx[a] = meshIP[k] / 2; } // pane wider than docks -> centre on origin
+    });
+  }
   const mid = (mn[thin] + mx[thin]) / 2;
   const corner = (s0: boolean, s1: boolean) => { const v = [0, 0, 0] as [number, number, number]; v[thin] = mid; v[ip[0]] = s0 ? mx[ip[0]] : mn[ip[0]]; v[ip[1]] = s1 ? mx[ip[1]] : mn[ip[1]]; return applyPoint(W, v).map((x) => +x.toFixed(2)); };
   return { quad: [corner(false, false), corner(true, false), corner(true, true), corner(false, true)], kind: /glas/.test(p.type) ? "glass" : "panel" };

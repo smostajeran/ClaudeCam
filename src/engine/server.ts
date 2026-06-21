@@ -109,8 +109,8 @@ function loadMesh(name: string, lod?: string) {
   const file = findMeshFile(name);
   if (!file) return { name, error: "mesh not found" };
   const isObj = file.toLowerCase().endsWith(".obj");
-  const wantHigh = lod === "high" || /klapptuer|tuerelement|einschubtuer|perfblech/i.test(name);   // doors + perforated panel have a degenerate flat 'low' LOD
-  const m = isObj ? parseObj(file) : (wantHigh ? highLODMesh(file) : lowLODMesh(file));   // .obj already mm; .3d in cm
+  const wantCoarse = lod === "low";   // .3d packs several SizeLOD levels; default to the FINEST (correct shape, no overlay). ?lod=low for the light asset.
+  const m = isObj ? parseObj(file) : (wantCoarse ? lowLODMesh(file) : highLODMesh(file));   // .obj already mm; .3d in cm
   const s = isObj ? 1 : 10;                                     // cm → mm
   const P = s === 1 ? m.positions : m.positions.map((p) => [p[0] * s, p[1] * s, p[2] * s]);   // NATIVE orientation (the solver's quat assumes native mesh axes)
   const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
