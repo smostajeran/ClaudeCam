@@ -107,9 +107,9 @@ export function removePart(xml: string, partId: string): string {
 }
 
 // ---- panels/sheets on a FACE: 4 corner balls -> 4 edge tubes, each wired via its INWARD rohr2blech ----
-const dockMap = (parts: CPart[]) => { const m = new Map<number, CPart>(); for (const p of parts) for (const d of p.docks) m.set(d.dockid, p); return m; };
-const tubeBalls = (t: CPart, byDock: Map<number, CPart>) => t.docks.filter((d) => d.type === "rohr2kugel").map((d) => byDock.get(d.connId)?.id).filter(Boolean) as string[];
-function findEdgeTube(parts: CPart[], byDock: Map<number, CPart>, a: string, b: string): CPart | null {
+export const dockMap = (parts: CPart[]) => { const m = new Map<number, CPart>(); for (const p of parts) for (const d of p.docks) m.set(d.dockid, p); return m; };
+export const tubeBalls = (t: CPart, byDock: Map<number, CPart>) => t.docks.filter((d) => d.type === "rohr2kugel").map((d) => byDock.get(d.connId)?.id).filter(Boolean) as string[];
+export function findEdgeTube(parts: CPart[], byDock: Map<number, CPart>, a: string, b: string): CPart | null {
   for (const p of parts) { if (!/^rohr/.test(p.type)) continue; const bs = tubeBalls(p, byDock); if (bs.length === 2 && bs.includes(a) && bs.includes(b)) return p; }
   return null;
 }

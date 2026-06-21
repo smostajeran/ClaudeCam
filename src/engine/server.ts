@@ -275,7 +275,8 @@ function resolveConfig(cfgPath: string): { placement: any; payload: any } | null
   const placement = JSON.parse(readFileSync(pf, "utf8"));
   const cf = join(ROOT, "out", "conflicts.json");
   const conflicts = existsSync(cf) ? JSON.parse(readFileSync(cf, "utf8")) : null;
-  return { placement, payload: customerPayload(placement, conflicts) };
+  const xml = existsSync(cfgPath) ? readFileSync(cfgPath, "utf8") : undefined;
+  return { placement, payload: customerPayload(placement, conflicts, xml) };
 }
 // one52 part-id -> internal component type, inverted from the scene's own types (v1: extend with present types).
 function typeForPart(xml: string, partId: string): string | null {
@@ -393,11 +394,13 @@ const server = createServer(async (req, res) => {
       if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
       const buf = await readRawBody(req);
       const pf = join(ROOT, "out", "placement.json"), cf = join(ROOT, "out", "conflicts.json");
+      let cfgXml: string | undefined; // emit slots only when THIS request solved a known config (not the last-scene fallback)
       if (buf && buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b) { // "PK" -> a .pxpz upload: re-solve both on it
         const cfg = extractConfigPx5(buf);
         if (!cfg) return send(res, 400, JSON.stringify({ error: "no config.px5 found in .pxpz" }));
         const tmp = join(ROOT, "out", "upload_config.px5");
         writeFileSync(tmp, cfg.data);
+        cfgXml = cfg.data.toString("utf8");
         const r = spawnSync(process.execPath, ["src/engine/solve.ts", tmp], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
         if (r.status !== 0 || !existsSync(pf)) return send(res, 500, JSON.stringify({ error: "solver failed", log: (r.stdout ?? "") + (r.stderr ?? "") }));
         spawnSync(process.execPath, ["src/engine/clauses.ts", tmp], { cwd: ROOT, encoding: "utf8", timeout: 120000 });
@@ -408,7 +411,7 @@ const server = createServer(async (req, res) => {
       }
       const placement = JSON.parse(readFileSync(pf, "utf8"));
       const conflicts = existsSync(cf) ? JSON.parse(readFileSync(cf, "utf8")) : null;
-      return send(res, 200, JSON.stringify(customerPayload(placement, conflicts)));
+      return send(res, 200, JSON.stringify(customerPayload(placement, conflicts, cfgXml)));
     }
 
     // ---- interactive editing: a working scene the app drags catalog parts onto (config mutation + re-solve) ----

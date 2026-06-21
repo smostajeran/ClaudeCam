@@ -3,12 +3,13 @@
 // IP boundary as export_ios.ts: one52 stable ids + English labels + RealityKit geometry only. Raw
 // USM/Perspectix codes, article numbers and prices are processed internally and never shipped here.
 import { placementToRK, identity, posToRK } from "./export_ios.ts";
+import { openFaceSlots } from "./slots.ts";
 
 // Stable, opaque conflict code derived from the internal type — lets the app switch/localize on a
 // kind without exposing the proprietary German identifier.
 const hashCode = (s: string): string => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return "c" + (h >>> 0).toString(36); };
 
-export function customerPayload(placement: any, conflicts: any): any {
+export function customerPayload(placement: any, conflicts: any, configXml?: string): any {
   const rk = placementToRK(placement); // { meta, parts, catalog } — already IP-safe
 
   // Bill of materials: aggregate the placed parts by one52 part id.
@@ -34,5 +35,6 @@ export function customerPayload(placement: any, conflicts: any): any {
     bom,
     conflicts: { counts: conflicts?.counts ?? { severe: 0, warning: 0, info: 0 }, items },
     affordances: conflicts?.affordances ?? [], // legal edits per part: { id, label, removable, swap[] }
+    slots: configXml ? openFaceSlots(configXml, placement) : [], // open faces a panel can be dropped onto
   };
 }
