@@ -776,7 +776,7 @@ function renderSolved(){
       const sm=getMesh(s.mesh); if(!sm||!sm.P) continue;
       const pj=subVerts(p,s,sm).map(proj);
       for(let i=0;i<sm.T.length;i+=3){ const a=pj[sm.T[i]],b=pj[sm.T[i+1]],c=pj[sm.T[i+2]]; if(a&&b&&c) tris.push({a,b,c,depth:(a.depth+b.depth+c.depth)/3,fam:s.mesh}); } }
-    if(p.quad && !/loch|perf|biblioblech/i.test(p.type)){        // flat panel/glass: solver's AUTHORITATIVE corners. Perforated/library panels fall through to their real (framed) mesh instead of a flat quad.
+    if(p.quad && !/loch|perf|biblioblech|klapptuer|tuerelement|einschubtuer/i.test(p.type)){  // flat panel/glass: solver's AUTHORITATIVE corners. Perforated panels + SOLID doors fall through to their real mesh (door has thickness + handle; glass doors stay as the transparent quad).
       const C=p.quad.map(c=>proj(world([c[0]*10,c[1]*10,c[2]*10])));
       if(C.every(Boolean)){ const fam=(p.panelKind==='glass'||/glas/.test(p.type))?'glas':'panel';
         tris.push({a:C[0],b:C[1],c:C[2],depth:(C[0].depth+C[1].depth+C[2].depth)/3,fam});

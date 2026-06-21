@@ -39,6 +39,7 @@ function meshCandidates(name: string): string[] {
   if (/^tuerelement/i.test(name)) { const t = name.match(/(\d+)_(\d+)/); if (t) c.push(`klapptuer${t[1]}x${t[2]}`); }
   // VCML-computed geometry names — geometryrepresentation maps these via StrReplace(GetTypeName(...)),
   // which the literal-file geomMap can't see (e.g. tablarseitenwinkel500_l -> tablarwinkel500_l.3d).
+  if (/^einschubtuer\d/.test(name)) c.push("einschubtuer");   // slide-in door, single-size variant -> einschubtuer.3d
   if (/tablarseitenwinkel/.test(name)) c.push(name.replace("tablarseitenwinkel", "tablarwinkel"));
   if (/normaltrapezvorderwand/.test(name)) c.push(name.replace("normaltrapezvorderwand", "blech"));
   if (/einsatz/.test(name)) c.push(name.replace("einsatz", "buntglas"), name.replace("einsatz", "kelco"));
