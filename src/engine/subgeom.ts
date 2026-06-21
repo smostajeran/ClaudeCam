@@ -15,14 +15,16 @@ const GEOMREP = join(CART_ROOT, "hallerpackage", "representation", "geometryrepr
 export interface SubGeom { mesh: string; pos: [number, number, number]; rot: [number, number, number] }
 interface RawGeom { file: string; active: string | null; hasXform: boolean; t: [string, string, string]; r: [string, string, string] }
 
-// Evaluate one transform-component expression with the dock DOF substituted in. Trusted internal data
-// (the cartridge geometry rep), so a scoped arithmetic eval is acceptable; anything unparseable -> 0.
-function evalExpr(expr: string | undefined, dof: number): number {
+interface Ctx { dof: number; xpos: number; zpos: number }   // dock angle + door half-extents (width/20, height/20)
+// Evaluate one transform-component expression in `ctx`. Trusted internal data (the cartridge geometry
+// rep), so a scoped arithmetic eval is acceptable; anything unparseable -> 0.
+function evalExpr(expr: string | undefined, ctx: Ctx): number {
   if (expr == null) return 0;
   let s = String(expr).replace(/;/g, "").trim();
   if (s === "") return 0;
   const n = Number(s); if (!Number.isNaN(n)) return n;                          // fast path: literal
-  s = s.replace(/GetDOFValue\s*\(\s*Dock\s*\([^()]*\)\s*\)/g, "(" + dof + ")");  // the door angle
+  s = s.replace(/GetDOFValue\s*\(\s*Dock\s*\([^()]*\)\s*\)/g, "(" + ctx.dof + ")");  // the door angle
+  s = s.replace(/\bxpos\b/g, "(" + ctx.xpos + ")").replace(/\bzpos\b/g, "(" + ctx.zpos + ")"); // door half-extents
   if (/[a-rt-zA-QS-Z_]/.test(s.replace(/Sin|Cos|Tan|Rad|Deg/g, ""))) return 0;  // unknown identifier -> bail to 0
   s = s.replace(/\bSin\s*\(/g, "Math.sin(").replace(/\bCos\s*\(/g, "Math.cos(").replace(/\bTan\s*\(/g, "Math.tan(")
        .replace(/\bRad\s*\(/g, "_rad(").replace(/\bDeg\s*\(/g, "_deg(");
@@ -65,15 +67,23 @@ function parseGeomRep(): Map<string, RawGeom[]> {
  *  degrees. Returns [] for a simple single-mesh part. `active` conditions are assumed satisfied (the
  *  part is present and docked); a follow-up can gate them on real dock counts. */
 export function resolveSubGeoms(type: string, dof: number): SubGeom[] {
-  const geoms = parseGeomRep().get(type);
-  if (!geoms || geoms.length <= 1) return [];
-  // Keep only genuine positioned sub-parts: an explicit transform AND no `active` gate. That excludes
-  // the LOD variants (active="EnvValue(...)"), export/electrical/acoustic conditionals (active="..."),
-  // and untransformed siblings — leaving the articulated pieces like a scissor stay's arms.
-  return geoms.slice(1).filter((g) => g.active == null && g.hasXform && !/_export$|^export\//.test(g.file)).map((g) => ({
+  const map = parseGeomRep();
+  let geoms = map.get(type);
+  if (!geoms) { const base = type.replace(/\d+[_x].*$/, "").replace(/_+$/, ""); geoms = map.get(base); } // sized variant -> generic component (tuerelement750_350 -> tuerelement)
+  if (!geoms || !geoms.length) return [];
+  const dim = type.match(/(\d+)[_x](\d+)/);
+  const ctx: Ctx = { dof, xpos: dim ? +dim[1] / 20 : 0, zpos: dim ? +dim[2] / 20 : 0 };
+  // Keep genuine positioned sub-parts: an explicit transform, NOT an export/LOD/acoustic/electrical
+  // variant, and either unconditional (a scissor stay's arms) or a structural connection — e.g.
+  // active="scherengelenk" is the door's hinge bracket (scherengelenk_halter), the door attachment.
+  // The base body has no transform, so it's excluded automatically (no need to slice it off).
+  const keep = (g: RawGeom) => g.hasXform && !/_export(\.3d)?$|^export\//.test(g.file)
+    && !/export|akustik|envvalue|verbraucher|licht|colormatch|3ds|3dexport/i.test(g.active ?? "")
+    && (g.active == null || /scherengelenk|gelenk|halter/i.test(g.active));
+  return geoms.filter(keep).map((g) => ({
     mesh: g.file,
-    pos: [evalExpr(g.t[0], dof), evalExpr(g.t[1], dof), evalExpr(g.t[2], dof)] as [number, number, number],
-    rot: [evalExpr(g.r[0], dof), evalExpr(g.r[1], dof), evalExpr(g.r[2], dof)] as [number, number, number],
+    pos: [evalExpr(g.t[0], ctx), evalExpr(g.t[1], ctx), evalExpr(g.t[2], ctx)] as [number, number, number],
+    rot: [evalExpr(g.r[0], ctx), evalExpr(g.r[1], ctx), evalExpr(g.r[2], ctx)] as [number, number, number],
   }));
 }
 
