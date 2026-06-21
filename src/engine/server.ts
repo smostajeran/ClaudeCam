@@ -414,6 +414,7 @@ const server = createServer(async (req, res) => {
     // ---- interactive editing: a working scene the app drags catalog parts onto (config mutation + re-solve) ----
     // POST /api/session: seed a working scene from an uploaded .pxpz (or the dev seed). Returns { sessionId, ...payload }.
     if (req.method === "POST" && url === "/api/session") {
+      if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
       const buf = await readRawBody(req);
       let baseXml: string | null = null;
       if (buf && buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b) { const cfg = extractConfigPx5(buf); if (cfg) baseXml = cfg.data.toString("utf8"); }
@@ -430,6 +431,7 @@ const server = createServer(async (req, res) => {
     // POST /api/place: drop a catalog part onto the scene. Body { sessionId, part, target }. Re-solves; on
     // an invalid joint it reverts the mutation and returns { ok:false, rejected:{ reason } }.
     if (req.method === "POST" && url === "/api/place") {
+      if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
       const { sessionId, part, target } = await readBody(req);
       const cfgPath = SESSIONS.get(String(sessionId));
       if (!cfgPath || !existsSync(cfgPath)) return send(res, 400, JSON.stringify({ ok: false, error: "unknown session" }));
@@ -444,9 +446,13 @@ const server = createServer(async (req, res) => {
         try {
           if (target?.kind === "edge" && Array.isArray(target.between) && target.between.length === 2 && /^rohr/.test(type))
             build = () => addTubeOnEdge(xml, String(target.between[0]), String(target.between[1]), type);
-          else if (target?.kind === "face" && Array.isArray(target.corners) && target.corners.length === 4 && /^blech/.test(type)) {
+          // Sheet panels all dock via blech2rohr to the 4 edge tubes — solid blech AND perforated
+          // (lochblech/perfblech), kurzblech, biblioblech place identically. Glass & doors do NOT dock
+          // this way (glas2glashalter / tuer2scherengelenk / einschubtuer2einschubtuerhalter) — they
+          // need their own add-hardware-and-wire routine, not addPanelOnFace.
+          else if (target?.kind === "face" && Array.isArray(target.corners) && target.corners.length === 4 && /^(blech|lochblech|perfblech|kurzblech|biblioblech)\d/.test(type)) {
             const corners = target.corners.map(String); build = (r: number) => addPanelOnFace(xml, corners, type, r); rots = [0, 1, 2, 3];
-          } else return { ok: false, rejected: { reason: `slot kind '${target?.kind}' for ${type} not supported yet (v1: edge/tube, face/metal-panel)` } };
+          } else return { ok: false, rejected: { reason: `slot kind '${target?.kind}' for ${type} not supported yet (edge/tube, face/sheet-panel incl. perforated; glass & doors need hardware wiring)` } };
         } catch (e: any) { return { ok: false, rejected: { reason: String(e?.message ?? e) } }; }
         let reason = "could not place — joint not in mate table or compartment doesn't fit";
         for (const r of rots) {
@@ -468,6 +474,7 @@ const server = createServer(async (req, res) => {
 
     // POST /api/remove: delete a part (and its dock wiring) from the session scene. Body { sessionId, partId }.
     if (req.method === "POST" && url === "/api/remove") {
+      if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
       const { sessionId, partId } = await readBody(req);
       const cfgPath = SESSIONS.get(String(sessionId));
       if (!cfgPath || !existsSync(cfgPath)) return send(res, 400, JSON.stringify({ ok: false, error: "unknown session" }));
@@ -484,6 +491,7 @@ const server = createServer(async (req, res) => {
 
     // GET /api/scene/:id: the current IP-safe payload for a session (re-sync).
     if (req.method === "GET" && url.startsWith("/api/scene/")) {
+      if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
       const id = url.slice("/api/scene/".length);
       const cfgPath = SESSIONS.get(id);
       if (!cfgPath || !existsSync(cfgPath)) return send(res, 404, JSON.stringify({ error: "unknown session" }));
