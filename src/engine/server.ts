@@ -81,6 +81,10 @@ function meshCandidates(name: string): string[] {
   const gt = name.match(/^glastuer_(?:links|rechts)(\d+)_(\d+)/i); if (gt) c.push(`glas${gt[1]}x${gt[2]}`);  // glass door leaf -> glass slab
   const am = name.match(/^(perfblech|biblioblech|ausziehtablar|schraegtablar|klapptuer|einschubtuer|kurzblech|lochblech)(\d+)_(\d+)/i); if (am) c.push(`${am[1]}${am[2]}x${am[3]}`);
   if (/^tuerelement/i.test(name)) { const t = name.match(/(\d+)_(\d+)/); if (t) c.push(`klapptuer${t[1]}x${t[2]}`); }
+  // VCML-computed geometry names (geometryrepresentation StrReplace maps; literal geomMap can't see them)
+  if (/tablarseitenwinkel/.test(name)) c.push(name.replace("tablarseitenwinkel", "tablarwinkel")); // -> tablarwinkel500_l.3d
+  if (/normaltrapezvorderwand/.test(name)) c.push(name.replace("normaltrapezvorderwand", "blech"));
+  if (/einsatz/.test(name)) c.push(name.replace("einsatz", "buntglas"), name.replace("einsatz", "kelco"));
   return c;
 }
 function findOneFile(safe: string): string | null {
