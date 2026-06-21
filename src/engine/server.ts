@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { placementToRK, identity } from "./export_ios.ts";
 import { customerPayload } from "./customer_api.ts";
-import { addTubeOnEdge, addPanelOnFace, panelFitResidual, removePart, parseConfig } from "./place.ts";
+import { addTubeOnEdge, addPanelOnFace, addGlassOnFace, panelFitResidual, removePart, parseConfig } from "./place.ts";
 import { buildFrame, gridOptions } from "./build_frame.ts";
 import { extractConfigPx5 } from "./pxpz.ts";
 import { bootstrap } from "./bootstrap.ts";
@@ -455,7 +455,14 @@ const server = createServer(async (req, res) => {
           // need their own add-hardware-and-wire routine, not addPanelOnFace.
           else if (target?.kind === "face" && Array.isArray(target.corners) && target.corners.length === 4 && /^(blech|lochblech|perfblech|kurzblech|biblioblech)\d/.test(type)) {
             const corners = target.corners.map(String); build = (r: number) => addPanelOnFace(xml, corners, type, r); rots = [0, 1, 2, 3];
-          } else return { ok: false, rejected: { reason: `slot kind '${target?.kind}' for ${type} not supported yet (edge/tube, face/sheet-panel incl. perforated; glass & doors need hardware wiring)` } };
+          }
+          // Glass leaf docks via 4 corner glashalter clips (glas2glashalter), not directly to the tubes.
+          else if (target?.kind === "face" && Array.isArray(target.corners) && target.corners.length === 4 && /^glas\d+_\d+$/.test(type)) {
+            const corners = target.corners.map(String); build = () => addGlassOnFace(xml, corners, type);
+          }
+          // Doors (tuerelement/klapptuer/einschubtuer/glastuer) mount via dedicated hardware
+          // (scherengelenk/einschubtuerhalter/glasscharnier) — their add-and-wire routine is not built yet.
+          else return { ok: false, rejected: { reason: `slot kind '${target?.kind}' for ${type} not supported yet (edge/tube, face/sheet-panel incl. perforated, face/glass; doors need hardware wiring)` } };
         } catch (e: any) { return { ok: false, rejected: { reason: String(e?.message ?? e) } }; }
         let reason = "could not place — joint not in mate table or compartment doesn't fit";
         for (const r of rots) {

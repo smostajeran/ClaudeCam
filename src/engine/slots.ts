@@ -5,9 +5,9 @@
 // same condition addPanelOnFace requires to place a panel. So every emitted slot is one the engine can
 // actually fill, and every fillable face is emitted. IP-safe: only opaque part ids (the same Part.id the
 // payload already exposes) + RealityKit-frame corners cross the boundary — no German types, no .px5.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { parseConfig, dockMap, tubeBalls, findEdgeTube, inwardBlechIndex } from "./place.ts";
+import { parseConfig, dockMap, tubeBalls, findEdgeTube, inwardBlechIndex, addGlassOnFace } from "./place.ts";
 import type { CPart } from "./place.ts";
 import type { Vec3 } from "./geom.ts";
 import { posToRK } from "./export_ios.ts";
@@ -21,7 +21,7 @@ export interface FaceSlot {
   accepts: string[];         // one52 families that drop into a tube-bounded face
 }
 
-const SHEET_FAMILIES = ["panel"]; // solid + perforated + biblio sheets are all family "panel"
+const SHEET_FAMILIES = ["panel", "glass"]; // an open tube-bounded face takes a sheet panel (solid/perforated/biblio) OR a glass leaf
 const len = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 // All open (panel-less) tube-bounded faces in a solved scene. `placement` supplies world positions for
@@ -87,4 +87,23 @@ if (process.argv[1]?.endsWith("slots.ts")) {
   // count existing panels for context
   const panels = (placement.parts ?? []).filter((p: any) => /^(blech|lochblech|perfblech|kurzblech|biblioblech)\d/.test(p.type) && p.placed !== false).length;
   console.log(`(scene has ${panels} panel(s) already placed)`);
+
+  // glass round-trip: drop a glass leaf onto the first matching open face, re-solve, expect it placed at centre
+  if (process.argv[3] === "glass") {
+    const want = (process.argv[4] ?? "350_350").replace("x", "_");
+    const [gw, gh] = want.split("_").map(Number);
+    const slot = slots.find((s) => (s.dims[0] === gw / 10 && s.dims[1] === gh / 10) || (s.dims[0] === gh / 10 && s.dims[1] === gw / 10));
+    if (!slot) { console.log(`\nglass round-trip: no open face matching glas${want}`); process.exit(0); }
+    console.log(`\nglass round-trip on face [${slot.corners}] (${slot.dims[0]}x${slot.dims[1]}cm) with glas${want}:`);
+    const res = addGlassOnFace(xml, slot.corners, `glas${want}`);
+    writeFileSync("out/glass_roundtrip.px5", res.xml);
+    const gr = spawnSync(process.execPath, ["src/engine/solve.ts", "out/glass_roundtrip.px5"], { encoding: "utf8", timeout: 120000, env: { ...process.env, USE_STORED_MATES: "1" } });
+    if (gr.status !== 0) { console.log("  ✗ solve failed:\n" + (gr.stdout ?? "").slice(-800) + (gr.stderr ?? "")); process.exit(1); }
+    const pl2 = JSON.parse(readFileSync("out/placement.json", "utf8"));
+    const glass = pl2.parts.find((p: any) => p.id === res.newId);
+    const clips = pl2.parts.filter((p: any) => String(p.id).startsWith(res.newId + "c"));
+    const d = glass ? Math.hypot(glass.pos[0] - res.center[0], glass.pos[1] - res.center[1], glass.pos[2] - res.center[2]) : Infinity;
+    const ok = !!glass && glass.placed !== false && clips.length === 4 && clips.every((c: any) => c.placed !== false) && d < 1;
+    console.log(`  glass placed=${!!glass && glass.placed !== false}  clips=${clips.filter((c: any) => c.placed !== false).length}/4  Δcentre=${d.toFixed(2)}cm  ${ok ? "✓ OK" : "✗ FAIL"}`);
+  }
 }

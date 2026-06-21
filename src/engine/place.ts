@@ -186,6 +186,82 @@ export function panelFitResidual(placement: any, addedId: string, wiring: { pane
   return maxd;
 }
 
+// ---- glass leaf on a FACE: 4 corner clips (glashalter) on the edge tubes + the glass wired to them ----
+const addV = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+
+// The FREE rohr2glashalter socket on `tube` nearest `corner` whose radial face points toward `center`.
+// Unlike panels (one rohr2blech per face, pickable by direction), a tube carries 8 glashalter sockets —
+// 4 at EACH end — so the normalized socket direction is dominated by the axial offset and can't pick the
+// face. Selection is POSITION-driven: the clip sits at a corner, so take the free socket at the near end
+// whose radial component faces the glass side.
+export function glashalterSocketIndex(tube: CPart, corner: Vec3, center: Vec3): number | null {
+  const R = euler(tube.rot[0], tube.rot[1], tube.rot[2], "XYZ");
+  const toC = norm(sub(center, tube.pos));                 // inward radial for this tube
+  let best: number | null = null, bestD = Infinity;
+  for (const s of (FRAMES.get(tube.type) ?? []).filter((f) => f.dockType === "rohr2glashalter")) {
+    if (tube.docks.some((d) => d.type === "rohr2glashalter" && d.index === s.index)) continue; // occupied
+    const radial = norm(applyPoint(R, [(s.t as Vec3)[0], 0, (s.t as Vec3)[2]])); // rohr axial is local Y
+    if (dot(radial, toC) < 0.3) continue;                  // must face the glass side
+    const wp = addV(tube.pos, applyPoint(R, s.t as Vec3));
+    const d = Math.hypot(wp[0] - corner[0], wp[1] - corner[1], wp[2] - corner[2]);
+    if (d < bestD) { bestD = d; best = s.index; }
+  }
+  return best;
+}
+
+// Add a GLASS LEAF on the face bounded by 4 corner balls (rect cycle order). Mirrors addPanelOnFace, but
+// glass mounts via 4 corner clips, not directly to the tubes: each corner gets a glashalter_std bridging
+// its 2 incident edge tubes (glashalter2rohr <-> rohr2glashalter) and holding one glass corner
+// (glashalter2glas <-> glas2glashalter). The solver places the chain from the tubes via learned mates.
+export function addGlassOnFace(xml: string, corners: string[], glasType = "glas350_350"): { xml: string; newId: string; center: Vec3 } {
+  if (corners.length !== 4) throw new Error("a glass face needs exactly 4 corner ball ids (rect order)");
+  const { parts, maxDockId } = parseConfig(xml);
+  const byDock = dockMap(parts);
+  const tubes: CPart[] = [];
+  for (let i = 0; i < 4; i++) { const t = findEdgeTube(parts, byDock, corners[i], corners[(i + 1) % 4]); if (!t) throw new Error(`no edge tube between ${corners[i]} and ${corners[(i + 1) % 4]}`); tubes.push(t); }
+  const balls = corners.map((id) => { const p = parts.find((x) => x.id === id); if (!p) throw new Error(`corner ball not found: ${id}`); return p; });
+  const center: Vec3 = [0, 0, 0]; for (const b of balls) for (let k = 0; k < 3; k++) center[k] += b.pos[k] / 4;
+  const dm = glasType.match(/(\d+)_(\d+)/);                 // size guard vs compartment, like addPanelOnFace
+  if (dm) {
+    const pa = +dm[1] / 10, pb = +dm[2] / 10;
+    const e0 = Math.hypot(...sub(balls[1].pos, balls[0].pos)), e1 = Math.hypot(...sub(balls[2].pos, balls[1].pos));
+    const near = (a: number, b: number) => Math.abs(a - b) < 2.5;
+    if (!((near(e0, pa) && near(e1, pb)) || (near(e0, pb) && near(e1, pa)))) throw new Error(`glass ${pa}×${pb}cm doesn't fit compartment ${e0.toFixed(0)}×${e1.toFixed(0)}cm`);
+  }
+  const GLAS_DOCK = [1, 2, 11, 12];                          // corner k -> glass glas2glashalter index (reference wiring)
+  const newId = String(Math.max(0, ...parts.map((p) => +p.id || 0)) + 1);
+  let nid = maxDockId;
+  const gd = [++nid, ++nid, ++nid, ++nid];                  // glass's 4 glas2glashalter dock ids
+  const tubeAdds = new Map<string, string[]>();             // each tube is shared by 2 corners -> accumulate, splice once
+  const clipBlocks: string[] = [];
+  const cgIds: number[] = [];                                // each clip's glashalter2glas dock id (glass wires back to these)
+  for (let k = 0; k < 4; k++) {
+    const tA = tubes[k], tB = tubes[(k + 3) % 4];            // the two edges meeting at corner k
+    const iA = glashalterSocketIndex(tA, balls[k].pos, center), iB = glashalterSocketIndex(tB, balls[k].pos, center);
+    if (iA == null || iB == null) throw new Error(`corner ${corners[k]}: no free glashalter socket on its edge tubes (already glazed?)`);
+    const cr1 = ++nid, ta = ++nid, cr2 = ++nid, tb = ++nid, cg = ++nid; cgIds.push(cg);
+    const clipId = `${newId}c${k}`;
+    clipBlocks.push(
+      `\t\t<componentset type="glashalter_std" dockconnections="true" _PXI_unique_comp_id="${clipId}" uuid="added-${clipId}-0000-0000-000000000000">\n` +
+      `\t\t\t<pos x="${balls[k].pos[0]}" y="${balls[k].pos[1]}" z="${balls[k].pos[2]}"/>\n\t\t\t<rot x="0" y="0" z="0"/>\n\t\t\t<features Mounted="true" calculated="true"/>\n` +
+      `\t\t\t<connecteddock type="glashalter2rohr" index="1" dockid="${cr1}" connecteddockid="${ta}"/>\n` +
+      `\t\t\t<connecteddock type="glashalter2rohr" index="2" dockid="${cr2}" connecteddockid="${tb}"/>\n` +
+      `\t\t\t<connecteddock type="glashalter2glas" index="1" dockid="${cg}" connecteddockid="${gd[k]}"/>\n` +
+      `\t\t</componentset>`);
+    (tubeAdds.get(tA.id) ?? tubeAdds.set(tA.id, []).get(tA.id)!).push(`<connecteddock type="rohr2glashalter" index="${iA}" dockid="${ta}" connecteddockid="${cr1}"/>`);
+    (tubeAdds.get(tB.id) ?? tubeAdds.set(tB.id, []).get(tB.id)!).push(`<connecteddock type="rohr2glashalter" index="${iB}" dockid="${tb}" connecteddockid="${cr2}"/>`);
+  }
+  let glass = `\t\t<componentset type="${glasType}" dockconnections="true" _PXI_unique_comp_id="${newId}" uuid="added-${newId}-0000-0000-000000000000">\n` +
+    `\t\t\t<pos x="${center[0]}" y="${center[1]}" z="${center[2]}"/>\n\t\t\t<rot x="0" y="-90" z="0"/>\n\t\t\t<features Mounted="true" calculated="true"/>\n`;
+  for (let k = 0; k < 4; k++) glass += `\t\t\t<connecteddock type="glas2glashalter" index="${GLAS_DOCK[k]}" dockid="${gd[k]}" connecteddockid="${cgIds[k]}"/>\n`;
+  glass += `\t\t</componentset>`;
+  // wire each tube's accumulated rohr2glashalter docks (once), then splice clips + glass after corner 0's ball
+  let out = xml;
+  for (const t of tubes) { const adds = tubeAdds.get(t.id); if (!adds) continue; let blk = t.block; for (const line of adds) blk = addDock(blk, line); out = out.replace(t.block, blk); }
+  out = out.replace(balls[0].block, balls[0].block + "\n" + clipBlocks.join("\n") + "\n" + glass);
+  return { xml: out, newId, center };
+}
+
 // derive corner balls of an existing panel in rect cycle order (test helper)
 function cycleCorners(parts: CPart[], byDock: Map<number, CPart>, panel: CPart): string[] {
   const tubes = panel.docks.filter((d) => d.type === "blech2rohr").map((d) => byDock.get(d.connId)).filter(Boolean) as CPart[];
