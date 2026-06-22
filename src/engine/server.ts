@@ -266,6 +266,22 @@ const SEED_CFG = join(ROOT, "oracle", "test_project", "K4_admi_2026061780565", "
 let SOLVE_CHAIN: Promise<any> = Promise.resolve();    // global serialize: one solve at a time (shared out/placement.json)
 const serialize = <T,>(fn: () => T | Promise<T>): Promise<T> => { const p = SOLVE_CHAIN.then(fn, fn); SOLVE_CHAIN = p.catch(() => {}); return p as Promise<T>; };
 const newSessionId = () => "s" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+
+// one52 part-id -> internal component type, learned from every solve (so /api/part-mesh can resolve a
+// mesh by the IP-safe id without any German type crossing the wire). Populated by joining the internal
+// placement (id->type) with the customer payload (id->part).
+const PART_TYPE = new Map<string, string>();
+function recordPartTypes(placement: any, payload: any) {
+  const byId = new Map<string, string>((placement?.parts ?? []).map((p: any) => [String(p.id), p.type]));
+  for (const p of payload?.parts ?? []) { const t = byId.get(String(p.id)); if (t) PART_TYPE.set(p.part, t); }
+}
+// Per-asset orientation calibration (the meshCorrection PART_MANIFEST calls for). `rohr` is modelled
+// long along local Y but the solver's quat assumes Z, so rotate +90° about X (y->z). Others: identity.
+function meshCorrect(type: string, v: number[]): number[] {
+  if (/^rohr/.test(type)) return [v[0], -v[2], v[1]];
+  return v;
+}
+
 // re-solve + re-classify the session config; returns { placement, payload } (IP-safe) or null on solver failure.
 function resolveConfig(cfgPath: string): { placement: any; payload: any } | null {
   const r = spawnSync(process.execPath, ["src/engine/solve.ts", cfgPath], { cwd: ROOT, encoding: "utf8", timeout: 120000, env: { ...process.env, USE_STORED_MATES: "1" } });
@@ -276,7 +292,9 @@ function resolveConfig(cfgPath: string): { placement: any; payload: any } | null
   const cf = join(ROOT, "out", "conflicts.json");
   const conflicts = existsSync(cf) ? JSON.parse(readFileSync(cf, "utf8")) : null;
   const xml = existsSync(cfgPath) ? readFileSync(cfgPath, "utf8") : undefined;
-  return { placement, payload: customerPayload(placement, conflicts, xml) };
+  const payload = customerPayload(placement, conflicts, xml);
+  recordPartTypes(placement, payload);
+  return { placement, payload };
 }
 // one52 part-id -> internal component type, inverted from the scene's own types (v1: extend with present types).
 function typeForPart(xml: string, partId: string): string | null {
@@ -411,7 +429,26 @@ const server = createServer(async (req, res) => {
       }
       const placement = JSON.parse(readFileSync(pf, "utf8"));
       const conflicts = existsSync(cf) ? JSON.parse(readFileSync(cf, "utf8")) : null;
-      return send(res, 200, JSON.stringify(customerPayload(placement, conflicts, cfgXml)));
+      const payload = customerPayload(placement, conflicts, cfgXml);
+      recordPartTypes(placement, payload);
+      return send(res, 200, JSON.stringify(payload));
+    }
+
+    // App-facing real geometry: the actual part mesh for a one52 part id, so the client renders real
+    // tubes/panels/hardware instead of primitives. Auth-gated; IP-safe (keyed by one52 id, returns only
+    // positions/triangles in metres with the per-asset orientation baked in — the client applies just
+    // pos+quat). The part must have appeared in a solved scene this session (so its type is known).
+    if (req.method === "GET" && url === "/api/part-mesh") {
+      if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
+      const part = new URLSearchParams((req.url ?? "").split("?")[1] ?? "").get("part") ?? "";
+      const type = PART_TYPE.get(part);
+      if (!type) return send(res, 404, JSON.stringify({ error: "unknown part — solve a scene containing it first", part }));
+      try {
+        const m = loadMesh(type) as any;
+        if (!m.positions) return send(res, 404, JSON.stringify({ error: "no mesh for part", part }));
+        const positions = m.positions.map((v: number[]) => { const c = meshCorrect(type, v); return [c[0] * 0.001, c[1] * 0.001, c[2] * 0.001]; }); // mm -> m, corrected
+        return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (m.triangles.length / 3) | 0, positions, triangles: m.triangles }));
+      } catch (e: any) { return send(res, 500, JSON.stringify({ error: String(e?.message ?? e), part })); }
     }
 
     // ---- interactive editing: a working scene the app drags catalog parts onto (config mutation + re-solve) ----
