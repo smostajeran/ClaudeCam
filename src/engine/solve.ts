@@ -156,10 +156,17 @@ if (process.env.USE_STORED_MATES) {
   try { const t = JSON.parse(readFileSync(MATE_FILE, "utf8")).mates; storedMates = new Map(Object.entries(t).map(([k, v]: any) => [k, v.m as Mat4])); }
   catch { storedMates = new Map(); }
 }
+// Perforated / library / short sheets dock to the edge tubes with the SAME blech2rohr geometry as a
+// solid panel, but the learned table is keyed per type and often only has `blech` for a given size.
+// Alias the sheet family to `blech` on a miss so e.g. perfblech350_750 seats exactly like blech350_750.
+const sheetAlias = (key: string) => key.replace(/(perf|loch|kurz|biblio)blech/g, "blech");
+const storedMate = (key: string): Mat4 | undefined =>
+  storedMates ? (storedMates.get(key) ?? storedMates.get(sheetAlias(key))) : undefined;
+
 const mateFellBack = new Set<string>();
 const mate = (aT: string, fa: any, bT: string, fb: any): Mat4 => {
   const key = mkey(aT, fa, bT, fb);
-  if (storedMates) { const s = storedMates.get(key); if (s) return s; mateFellBack.add(key); } // table miss: would fail in a true interactive config
+  if (storedMates) { const s = storedMate(key); if (s) return s; mateFellBack.add(key); } // table miss: would fail in a true interactive config
   return mateByPair.get(key) ?? ident();
 };
 
@@ -182,7 +189,7 @@ for (const [key, Ms] of mateGroups) {
 }
 const mateVariants = (aT: string, fa: any, bT: string, fb: any): Mat4[] => {
   const key = mkey(aT, fa, bT, fb);
-  if (storedMates) { const s = storedMates.get(key); if (s) return [s]; }
+  if (storedMates) { const s = storedMate(key); if (s) return [s]; }
   return mateVariantsByPair.get(key) ?? [mate(aT, fa, bT, fb)];
 };
 
