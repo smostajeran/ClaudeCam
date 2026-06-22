@@ -283,9 +283,11 @@ function recordPartTypes(placement: any, payload: any) {
 // X from RealityKit's (a tube reads long along local Y, a sheet lies in the X-Z plane) — so the solver's
 // pos+quat seats them edge-/face-on. Rotate y->z so they stand on their faces. Anchored on a trailing
 // digit so clips/hinges (glashalter, glasscharnier) are NOT caught. Feet/connectors need no correction.
-function meshCorrect(type: string, v: number[]): number[] {
-  if (/^(rohr|blech|perfblech|lochblech|kurzblech|biblioblech|glas)\d/.test(type)) return [v[0], -v[2], v[1]];
-  return v;
+function meshCorrect(_type: string, v: number[]): number[] {
+  // Every .3d source mesh is authored Z-up (CAD convention); RealityKit is Y-up. Rotate the whole
+  // catalogue the same way (y <- z) so tubes, sheets, glass AND leveling feet all stand correctly.
+  // Symmetric balls are unaffected by the rotation, so applying it globally is safe.
+  return [v[0], -v[2], v[1]];
 }
 // smooth per-vertex normals (average of incident face normals) so the client can light the mesh
 function vertexNormals(pos: number[][], tri: number[]): number[][] {
