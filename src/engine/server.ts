@@ -318,6 +318,8 @@ function candidateTypes(partId: string): string[] {
   let m: RegExpMatchArray | null;
   if ((m = partId.match(/^tube-(\d+)$/))) return [`rohr${m[1]}`];
   if ((m = partId.match(/^metal-panel-(\d+)x(\d+)$/))) return [`blech${m[1]}_${m[2]}`, `blech${m[2]}_${m[1]}`];
+  if ((m = partId.match(/^glass-(\d+)x(\d+)$/))) return [`glas${m[1]}_${m[2]}`, `glas${m[2]}_${m[1]}`];
+  if ((m = partId.match(/^acoustic-perforated-panel-(\d+)x(\d+)$/))) return [`perfblech${m[1]}_${m[2]}`, `perfblech${m[2]}_${m[1]}`];
   return [];
 }
 function typeForPart(xml: string, partId: string): string | null {
