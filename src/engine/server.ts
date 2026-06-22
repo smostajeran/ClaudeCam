@@ -56,8 +56,11 @@ function mergedModel() {
 // resolves a part name to its .obj (mm) or .3d (cm→mm) mesh under the decoded packages and returns
 // the parsed geometry + real bounding-box dimensions. Used by the configurator prototype to load
 // the actual mesh + properties for a placed part / catalog item.
+// proprietary mesh geometry (external to the repo) — override the base dir with USM_GEO_ROOT so no
+// symlink is needed; defaults to a sibling `virtual.USM-4/`.
+const GEO_BASE = process.env.USM_GEO_ROOT ?? join(ROOT, "..", "virtual.USM-4");
 const GEO_DIRS = ["hallerpackage", "addonspackage", "primopackage", "hallertischpackage", "kitospackage", "displaypackage"]
-  .map((p) => join(ROOT, "..", "virtual.USM-4", "co", "packages", p, "representation", "geometry"));
+  .map((p) => join(GEO_BASE, "co", "packages", p, "representation", "geometry"));
 // component type -> geometry file basename (from geometryrepresentation.xml) — resolves solver part types to meshes
 let GEOMMAP: Record<string, string> | null = null;
 function geomMap() {
@@ -180,7 +183,7 @@ function plausibility() {
 // ---- real snap/dock rules (INTERNAL) — from the decoded VCML docksystem + componentsystem ----
 // each component declares <dock type index translation rotation>; each dock type's partner (what it
 // snaps INTO) + degrees-of-freedom come from docksystem.xml. This is the authoritative placement rule.
-const CART_ROOT = join(ROOT, "..", "snx2xml", "co", "packages");
+const CART_ROOT = process.env.USM_CART_ROOT ?? join(ROOT, "..", "snx2xml", "co", "packages");   // decoded cartridges (external); override to avoid a symlink
 const CART_PKGS = ["hallerpackage", "addonspackage", "primopackage", "hallertischpackage", "kitospackage", "displaypackage", "space_configurator", "shared"];
 const FILE_CACHE: Record<string, string | null> = {};
 const readCached = (f: string) => (f in FILE_CACHE ? FILE_CACHE[f] : (FILE_CACHE[f] = existsSync(f) ? readFileSync(f, "utf8") : null));
