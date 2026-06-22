@@ -281,6 +281,17 @@ function meshCorrect(type: string, v: number[]): number[] {
   if (/^rohr/.test(type)) return [v[0], -v[2], v[1]];
   return v;
 }
+// smooth per-vertex normals (average of incident face normals) so the client can light the mesh
+function vertexNormals(pos: number[][], tri: number[]): number[][] {
+  const n = pos.map(() => [0, 0, 0]);
+  for (let i = 0; i + 2 < tri.length; i += 3) {
+    const a = pos[tri[i]], b = pos[tri[i + 1]], c = pos[tri[i + 2]];
+    const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+    const fx = uy * vz - uz * vy, fy = uz * vx - ux * vz, fz = ux * vy - uy * vx;
+    for (const k of [tri[i], tri[i + 1], tri[i + 2]]) { n[k][0] += fx; n[k][1] += fy; n[k][2] += fz; }
+  }
+  return n.map((v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; });
+}
 
 // re-solve + re-classify the session config; returns { placement, payload } (IP-safe) or null on solver failure.
 function resolveConfig(cfgPath: string): { placement: any; payload: any } | null {
@@ -447,7 +458,8 @@ const server = createServer(async (req, res) => {
         const m = loadMesh(type) as any;
         if (!m.positions) return send(res, 404, JSON.stringify({ error: "no mesh for part", part }));
         const positions = m.positions.map((v: number[]) => { const c = meshCorrect(type, v); return [c[0] * 0.001, c[1] * 0.001, c[2] * 0.001]; }); // mm -> m, corrected
-        return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (m.triangles.length / 3) | 0, positions, triangles: m.triangles }));
+        const normals = vertexNormals(positions, m.triangles);   // per-vertex, so RealityKit can light it
+        return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (m.triangles.length / 3) | 0, positions, normals, triangles: m.triangles }));
       } catch (e: any) { return send(res, 500, JSON.stringify({ error: String(e?.message ?? e), part })); }
     }
 
