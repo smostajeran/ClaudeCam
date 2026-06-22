@@ -527,24 +527,28 @@ const server = createServer(async (req, res) => {
         } else {
           return { ok: false, rejected: { reason: `slot kind '${target?.kind}' for ${type0} not supported yet (edge/tube, face/sheet-panel incl. perforated, face/glass; doors need hardware wiring)` } };
         }
-        let reason = "could not place — joint not in mate table or compartment doesn't fit";
+        console.log(`[place] part='${part}' target=${target?.kind} corners=[${corners}] -> ${attempts.length} attempt(s)`);
+        let reason = "could not place — no valid joint, or the part doesn't fit this face";
         for (const a of attempts) {
           let cand: { xml: string; newId: string; wiring?: { panelDock: number; tubeId: string; tubeIndex: number }[] };
           try {
             cand = a.kind === "tube" ? addTubeOnEdge(xml, String(target.between[0]), String(target.between[1]), a.type)
                  : a.kind === "glass" ? addGlassOnFace(xml, corners, a.type)
                  : addPanelOnFace(xml, corners, a.type, a.rot);
-          } catch (e: any) { reason = String(e?.message ?? e); continue; } // size guard / wiring -> next attempt
+          } catch (e: any) { reason = String(e?.message ?? e); console.log(`[place]   ${a.type} rot${a.rot}: skip — ${reason}`); continue; }
           writeFileSync(cfgPath, cand.xml);
           const out = resolveConfig(cfgPath);
-          if (out) {
-            const added = out.placement.parts.find((p: any) => p.id === cand.newId);
-            const placed = added && added.placed !== false;
-            const fits = cand.wiring ? panelFitResidual(out.placement, cand.newId, cand.wiring) < 0.5 : placed;
-            if (placed && fits) return { ok: true, addedId: cand.newId, ...out.payload };
-          }
+          if (!out) { reason = "the solver failed on the resulting configuration"; console.log(`[place]   ${a.type} rot${a.rot}: solver failed`); writeFileSync(cfgPath, xml); continue; }
+          const added = out.placement.parts.find((p: any) => p.id === cand.newId);
+          const placed = added && added.placed !== false;
+          const resid = cand.wiring ? panelFitResidual(out.placement, cand.newId, cand.wiring) : (placed ? 0 : Infinity);
+          if (placed && resid < 0.5) { console.log(`[place]   ${a.type} rot${a.rot}: OK (residual ${resid.toFixed(2)}cm) -> id ${cand.newId}`); return { ok: true, addedId: cand.newId, ...out.payload }; }
+          reason = !placed ? `no mate to seat '${a.type}' on these tubes`
+                 : `'${a.type}' seated off-alignment (${resid.toFixed(1)}cm gap)`;
+          console.log(`[place]   ${a.type} rot${a.rot}: ${reason}`);
           writeFileSync(cfgPath, xml); // revert, try the next attempt
         }
+        console.log(`[place] REJECT '${part}': ${reason}`);
         return { ok: false, rejected: { reason } };
       });
       return send(res, result.ok ? 200 : 422, JSON.stringify(result));
