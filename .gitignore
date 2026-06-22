@@ -11,3 +11,8 @@ oracle/test_project/
 # proprietary USM article catalog (prices/article numbers) — kept OUT of the repo even though the
 # structural cartridge (data/) is baked in; the one52 app payload never needs prices.
 database.xml
+
+# local USM project exports + extracted configs (reference scenes for learning/verifying placement;
+# proprietary like .pxpz — German types, article lists, previews). Keep OUT of the repo.
+K4_*/
+*_config.px5
