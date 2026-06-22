@@ -278,10 +278,13 @@ function recordPartTypes(placement: any, payload: any) {
   const byId = new Map<string, string>((placement?.parts ?? []).map((p: any) => [String(p.id), p.type]));
   for (const p of payload?.parts ?? []) { const t = byId.get(String(p.id)); if (t) PART_TYPE.set(p.part, t); }
 }
-// Per-asset orientation calibration (the meshCorrection PART_MANIFEST calls for). `rohr` is modelled
-// long along local Y but the solver's quat assumes Z, so rotate +90° about X (y->z). Others: identity.
+// Per-asset orientation calibration (the meshCorrection PART_MANIFEST calls for). Tubes (`rohr`) and the
+// flat sheets (`blech`/perf/loch/kurz/biblio + glass `glas`) share a native .3d frame rotated +90° about
+// X from RealityKit's (a tube reads long along local Y, a sheet lies in the X-Z plane) — so the solver's
+// pos+quat seats them edge-/face-on. Rotate y->z so they stand on their faces. Anchored on a trailing
+// digit so clips/hinges (glashalter, glasscharnier) are NOT caught. Feet/connectors need no correction.
 function meshCorrect(type: string, v: number[]): number[] {
-  if (/^rohr/.test(type)) return [v[0], -v[2], v[1]];
+  if (/^(rohr|blech|perfblech|lochblech|kurzblech|biblioblech|glas)\d/.test(type)) return [v[0], -v[2], v[1]];
   return v;
 }
 // smooth per-vertex normals (average of incident face normals) so the client can light the mesh
