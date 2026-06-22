@@ -504,33 +504,34 @@ const server = createServer(async (req, res) => {
       if (!cfgPath || !existsSync(cfgPath)) return send(res, 400, JSON.stringify({ ok: false, error: "unknown session" }));
       const result = await serialize(() => {
         const xml = readFileSync(cfgPath, "utf8");
-        const type = typeForPart(xml, String(part));
-        if (!type) return { ok: false, rejected: { reason: `unknown part '${part}'` } };
-        // candidate builder: one mutation for an edge; up to 4 rotations for a face (non-square panels
-        // only fit in their dimension-matching rotation — re-solve each and accept the one that closes).
-        let build: ((r: number) => { xml: string; newId: string; wiring?: { panelDock: number; tubeId: string; tubeIndex: number }[] }) | null = null;
-        let rots = [0];
-        try {
-          if (target?.kind === "edge" && Array.isArray(target.between) && target.between.length === 2 && /^rohr/.test(type))
-            build = () => addTubeOnEdge(xml, String(target.between[0]), String(target.between[1]), type);
-          // Sheet panels all dock via blech2rohr to the 4 edge tubes — solid blech AND perforated
-          // (lochblech/perfblech), kurzblech, biblioblech place identically. Glass & doors do NOT dock
-          // this way (glas2glashalter / tuer2scherengelenk / einschubtuer2einschubtuerhalter) — they
-          // need their own add-hardware-and-wire routine, not addPanelOnFace.
-          else if (target?.kind === "face" && Array.isArray(target.corners) && target.corners.length === 4 && /^(blech|lochblech|perfblech|kurzblech|biblioblech)\d/.test(type)) {
-            const corners = target.corners.map(String); build = (r: number) => addPanelOnFace(xml, corners, type, r); rots = [0, 1, 2, 3];
-          }
-          // Glass leaf docks via 4 corner glashalter clips (glas2glashalter), not directly to the tubes.
-          else if (target?.kind === "face" && Array.isArray(target.corners) && target.corners.length === 4 && /^glas\d+_\d+$/.test(type)) {
-            const corners = target.corners.map(String); build = () => addGlassOnFace(xml, corners, type);
-          }
-          // Doors (tuerelement/klapptuer/einschubtuer/glastuer) mount via dedicated hardware
-          // (scherengelenk/einschubtuerhalter/glasscharnier) — their add-and-wire routine is not built yet.
-          else return { ok: false, rejected: { reason: `slot kind '${target?.kind}' for ${type} not supported yet (edge/tube, face/sheet-panel incl. perforated, face/glass; doors need hardware wiring)` } };
-        } catch (e: any) { return { ok: false, rejected: { reason: String(e?.message ?? e) } }; }
+        const type0 = typeForPart(xml, String(part));
+        if (!type0) return { ok: false, rejected: { reason: `unknown part '${part}'` } };
+        const corners = Array.isArray(target?.corners) ? target.corners.map(String) : [];
+        // Ordered (internal type, rotation) attempts; the first that seats wins. Sheet panels all dock
+        // via blech2rohr (solid blech + perforated lochblech/perfblech + kurz/biblio place identically);
+        // glass docks via 4 glashalter clips; tubes via addTubeOnEdge. Doors aren't wired yet.
+        let attempts: { type: string; rot: number; kind: "tube" | "panel" | "glass" }[] = [];
+        if (target?.kind === "edge" && Array.isArray(target.between) && target.between.length === 2 && /^rohr/.test(type0)) {
+          attempts = [{ type: type0, rot: 0, kind: "tube" }];
+        } else if (target?.kind === "face" && corners.length === 4 && /^(blech|lochblech|perfblech|kurzblech|biblioblech)\d/.test(type0)) {
+          // Try BOTH dimension orders × 4 rotations: a face emitted as 35×75 resolves to blechW_H whose
+          // learned mates may only exist for the swapped order (same panel, other label).
+          const swapped = type0.replace(/(\d+)_(\d+)/, (_m, w, h) => `${h}_${w}`);
+          const types = swapped === type0 ? [type0] : [type0, swapped];
+          attempts = types.flatMap((t) => [0, 1, 2, 3].map((rot) => ({ type: t, rot, kind: "panel" as const })));
+        } else if (target?.kind === "face" && corners.length === 4 && /^glas\d+_\d+$/.test(type0)) {
+          attempts = [{ type: type0, rot: 0, kind: "glass" }];
+        } else {
+          return { ok: false, rejected: { reason: `slot kind '${target?.kind}' for ${type0} not supported yet (edge/tube, face/sheet-panel incl. perforated, face/glass; doors need hardware wiring)` } };
+        }
         let reason = "could not place — joint not in mate table or compartment doesn't fit";
-        for (const r of rots) {
-          let cand; try { cand = build(r); } catch (e: any) { reason = String(e?.message ?? e); break; } // guard (e.g. wrong size) -> stop
+        for (const a of attempts) {
+          let cand: { xml: string; newId: string; wiring?: { panelDock: number; tubeId: string; tubeIndex: number }[] };
+          try {
+            cand = a.kind === "tube" ? addTubeOnEdge(xml, String(target.between[0]), String(target.between[1]), a.type)
+                 : a.kind === "glass" ? addGlassOnFace(xml, corners, a.type)
+                 : addPanelOnFace(xml, corners, a.type, a.rot);
+          } catch (e: any) { reason = String(e?.message ?? e); continue; } // size guard / wiring -> next attempt
           writeFileSync(cfgPath, cand.xml);
           const out = resolveConfig(cfgPath);
           if (out) {
@@ -539,7 +540,7 @@ const server = createServer(async (req, res) => {
             const fits = cand.wiring ? panelFitResidual(out.placement, cand.newId, cand.wiring) < 0.5 : placed;
             if (placed && fits) return { ok: true, addedId: cand.newId, ...out.payload };
           }
-          writeFileSync(cfgPath, xml); // revert, try the next rotation
+          writeFileSync(cfgPath, xml); // revert, try the next attempt
         }
         return { ok: false, rejected: { reason } };
       });
