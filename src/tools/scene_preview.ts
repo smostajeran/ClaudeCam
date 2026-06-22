@@ -63,7 +63,8 @@ function build(parts: any[]) {
       if (p.quad && p.quad.length === 4) { addQuad(p.quad[0], p.quad[1], p.quad[2], p.quad[3], col); addQuad(p.quad[3], p.quad[2], p.quad[1], p.quad[0], col); continue; }
       const d = dimsMM(p.label); const w = (d[0] ?? 350) / 1000, h = (d[1] ?? 350) / 1000; addBox([w, h, 0.012], q, pos, col); continue;
     }
-    addBox([0.03, 0.03, 0.03], q, pos, col);
+    if (p.family === "fitting") { addSphere(pos, 0.009, col); continue; }      // glass clips / hinges — small node
+    addBox([0.016, 0.016, 0.016], q, pos, col);                                 // hardware / other — small block
   }
 }
 
