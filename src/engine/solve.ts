@@ -60,7 +60,11 @@ for (const p of parts) for (const d of p.docks) byDockId.set(d.dockid, { p, type
 
 // host (for VCML dock rotations) + dock frames
 const frames = loadAllDockFrames();
-const frameOf = (ptype: string, dtype: string, index: number) => (frames.get(ptype) ?? []).find((f) => f.dockType === dtype && f.index === index);
+// Sheet panels are authored in ONE dimension order (blech350_750 but not blech750_350; lochblech the other
+// way), so a perforated/loch/kurz/biblio panel whose order lacks frames must borrow the same-size blech's
+// frames — same alias the mate lookup uses, else it falls back to a [0,0,0] frame and seats Infinity off.
+const frameOf = (ptype: string, dtype: string, index: number) =>
+  (frames.get(ptype) ?? frames.get(ptype.replace(/(perf|loch|kurz|biblio)blech/g, "blech")) ?? []).find((f) => f.dockType === dtype && f.index === index);
 const model = JSON.parse(readFileSync("out/model.json", "utf8"));
 const host = new Host(model.components, { scenario: "co" });
 (host as any).namedOps = loadAppcodes(APPCODES_DIR);

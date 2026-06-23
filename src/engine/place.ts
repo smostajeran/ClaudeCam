@@ -184,7 +184,10 @@ export function panelFitResidual(placement: any, addedId: string, wiring: { pane
   let maxd = 0;
   for (const w of wiring) {
     const tube = byId.get(w.tubeId); if (!tube) return Infinity;
-    const pf = (FRAMES.get(panel.type) ?? []).find((f) => f.dockType === "blech2rohr" && f.index === w.panelDock);
+    // Same sheet-family alias the solver uses: a panel order with no frames (e.g. lochblech350_750) borrows
+    // the same-size blech's frames, else this returns Infinity even when the solver placed it correctly.
+    const pframes = FRAMES.get(panel.type) ?? FRAMES.get(panel.type.replace(/(perf|loch|kurz|biblio)blech/g, "blech")) ?? [];
+    const pf = pframes.find((f) => f.dockType === "blech2rohr" && f.index === w.panelDock);
     const tf = (FRAMES.get(tube.type) ?? []).find((f) => f.dockType === "rohr2blech" && f.index === w.tubeIndex);
     if (!pf || !tf) return Infinity;
     const pw = qrot(panel.quat, pf.t as Vec3), tw = qrot(tube.quat, tf.t as Vec3);
