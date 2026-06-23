@@ -66,6 +66,20 @@ function family(t: string): string {
 // Neutral English label per family — the fallback when the glossary can't name a type, so a raw USM
 // code is NEVER emitted into the shipped payload (the IP guarantee), only a generic descriptor.
 const FAMILY_LABEL: Record<string, string> = { fitting: "Fitting", glass: "Glass element", connector: "Connector", tube: "Tube", panel: "Panel", door: "Door", drawer: "Drawer", support: "Support", hardware: "Hardware", other: "Component" };
+
+// Render-material hint so the client doesn't have to infer materials from family (which conflated
+// e.g. glides and casters, and left clamps guessing). One value per part; perforation/felt/glass
+// translucency still layer on top via the part-mesh perforation block / padTriStart as before.
+//   chrome = polished (clamps, hinges, handles, locks)   glass = translucent
+//   perforated = holed sheet (also carries a perforation block)   metal = satin steel (everything else:
+//   frame tubes, balls, connectors, solid panels, and SUPPORT — leveling glides AND casters share this)
+function materialOf(type: string): string {
+  const x = (type || "").toLowerCase();
+  if (/halter|scharnier|klemm|griff|schloss/.test(x)) return "chrome"; // check before glas: glashalter is a clamp, not glass
+  if (/glas/.test(x)) return "glass";
+  if (/loch|perf/.test(x)) return "perforated";
+  return "metal"; // glides (fuss) + casters (rolle) land here together — the shared support rule
+}
 export const identity = (type: string) => {
   const label = prettyName(type), fam = family(type);
   if (label === type) return { part: fam, label: FAMILY_LABEL[fam] ?? "Component", family: fam, resolved: false }; // unresolved -> neutral, never the raw code
@@ -79,7 +93,7 @@ export function placementToRK(pl: any): any {
   const parts = (pl.parts ?? []).filter((p: any) => p.placed !== false).map((p: any) => {
     const id = identity(p.type);
     return {
-      id: p.id, part: id.part, label: id.label, family: id.family,
+      id: p.id, part: id.part, label: id.label, family: id.family, material: materialOf(p.type),
       pos: posToRK(p.pos), quat: quatToRK(p.quat),
       ...(p.e ? { role: p.e } : {}),
       ...(p.quad ? { quad: p.quad.map((c: V3) => posToRK(c)) } : {}),
