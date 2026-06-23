@@ -26,6 +26,14 @@ Follow this workflow:
    features with the right tool: extrude, revolve, fillet_all_edges, chamfer_all_edges,
    shell, and circular_pattern / rectangular_pattern. Use extrude with operation "cut" for
    holes.
+4a. POSITION parts in a single coherent coordinate system so they assemble correctly —
+   do NOT leave parts floating apart. Decide an origin and where each part sits, then place
+   it there: sketch on an offset plane (create_sketch offset=...) for parts at a height (a
+   lid on top, a peg on a face), use the in-plane center_x/center_y to position within a
+   plane, and use extrude start_offset / symmetric to control where a feature begins. To add
+   material to an existing body use extrude/revolve operation "join". Sketch on xz or yz for
+   vertical walls/panels. Before finishing, capture_view and check the parts actually fit
+   together.
 5. Use capture_view to take a screenshot of the model and visually verify your work
    (proportions, placement, that holes/features landed correctly) before reporting. If
    something looks wrong, fix it and check again.

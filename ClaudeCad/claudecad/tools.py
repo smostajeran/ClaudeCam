@@ -25,11 +25,17 @@ TOOLS = [
     },
     {
         "name": "create_sketch",
-        "description": "Create a new sketch on a construction plane. Every design starts with sketches. Returns a sketch id (e.g. 's1') used by the drawing and feature tools.",
+        "description": (
+            "Create a new sketch on a construction plane. Every design starts with sketches. "
+            "Use 'offset' to place the sketch at a height/position away from the origin so "
+            "parts assemble in the right place instead of overlapping at the origin (e.g. a lid "
+            "on top of a box, or a peg on a face). Returns a sketch id (e.g. 's1')."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "plane": {"type": "string", "enum": ["xy", "xz", "yz"], "description": "Construction plane. Defaults to xy."},
+                "plane": {"type": "string", "enum": ["xy", "xz", "yz"], "description": "Base construction plane. Defaults to xy."},
+                "offset": {"type": ["string", "number"], "description": "Distance (mm) or expression to offset the sketch from the base plane. Default 0 (on the plane)."},
                 "name": {"type": "string", "description": "Optional readable name for the sketch."},
             },
         },
@@ -78,7 +84,7 @@ TOOLS = [
     },
     {
         "name": "extrude",
-        "description": "Extrude a closed profile of a sketch. Prefer a parameter expression for distance (e.g. 'height'). Use operation 'cut' for holes, 'join' to add to a body.",
+        "description": "Extrude a closed profile of a sketch. Prefer a parameter expression for distance (e.g. 'height'). Use operation 'cut' for holes, 'join' to add to a body. Use 'symmetric' to extrude both ways about the sketch, and 'start_offset' to begin the extrude at a distance from the sketch plane (useful for positioning).",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -86,6 +92,8 @@ TOOLS = [
                 "distance": _LENGTH,
                 "operation": {"type": "string", "enum": ["new", "join", "cut", "intersect"], "description": "Default 'new'."},
                 "profile_index": {"type": "integer", "description": "Which profile in the sketch to extrude. Default 0."},
+                "symmetric": {"type": "boolean", "description": "Extrude equally in both directions about the sketch plane. Default false."},
+                "start_offset": {"type": ["string", "number"], "description": "Distance (mm) or expression to offset the start of the extrude from the sketch plane. Default 0."},
             },
             "required": ["sketch_id", "distance"],
         },
@@ -183,7 +191,7 @@ def execute(name, tool_input, cad):
     if name == "create_parameter":
         return cad.create_parameter(ti["name"], ti["expression"], ti.get("unit", "mm"), ti.get("comment", ""))
     if name == "create_sketch":
-        return cad.create_sketch(ti.get("plane", "xy"), ti.get("name"))
+        return cad.create_sketch(ti.get("plane", "xy"), ti.get("name"), ti.get("offset", 0))
     if name == "draw_rectangle":
         return cad.draw_rectangle(ti["sketch_id"], ti["width"], ti["height"],
                                   float(ti.get("center_x", 0.0)), float(ti.get("center_y", 0.0)))
@@ -193,7 +201,9 @@ def execute(name, tool_input, cad):
     if name == "draw_line":
         return cad.draw_line(ti["sketch_id"], float(ti["x1"]), float(ti["y1"]), float(ti["x2"]), float(ti["y2"]))
     if name == "extrude":
-        return cad.extrude(ti["sketch_id"], ti["distance"], ti.get("operation", "new"), int(ti.get("profile_index", 0)))
+        return cad.extrude(ti["sketch_id"], ti["distance"], ti.get("operation", "new"),
+                           int(ti.get("profile_index", 0)), bool(ti.get("symmetric", False)),
+                           ti.get("start_offset"))
     if name == "revolve":
         return cad.revolve(ti["sketch_id"], ti.get("axis", "z"), ti.get("angle", 360),
                            ti.get("operation", "new"), int(ti.get("profile_index", 0)))
