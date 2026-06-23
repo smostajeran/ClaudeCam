@@ -84,8 +84,12 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Sketches** with rectangles, circles, lines. Width/height/radius accept a parameter
   expression (e.g. `"width"`, `"2 * wall"`), so the sketch is **parameter-driven** —
   change the parameter and the part updates.
-- **Features:** extrude (incl. cut for holes), revolve, fillet-all-edges,
-  chamfer-all-edges, shell (hollow / open box), and circular / rectangular patterns.
+- **Features:** extrude (incl. cut for holes; symmetric and start-offset options), revolve,
+  fillet-all-edges, chamfer-all-edges, shell (hollow / open box), and circular / rectangular
+  patterns.
+- **3D placement:** sketches can be created on an **offset** construction plane so parts are
+  positioned at the right height/location and assemble together rather than overlapping at
+  the origin.
 - **Vision:** `capture_view` screenshots the viewport so Claude can *see* the model and
   self-correct before asking you to approve.
 

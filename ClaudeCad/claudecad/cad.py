@@ -136,15 +136,29 @@ class CadBuilder:
             self._params.append(name)
         return "Created parameter {} = {} ({}).".format(name, expression, unit or "mm")
 
-    def create_sketch(self, plane="xy", name=None):
+    def create_sketch(self, plane="xy", name=None, offset=0):
         comp = self._comp()
-        sketch = comp.sketches.add(self._plane(comp, plane))
+        base = self._plane(comp, plane)
+        target = base
+        offset_note = ""
+
+        use_offset = offset is not None and not (isinstance(offset, (int, float)) and float(offset) == 0.0)
+        if use_offset:
+            off_expr = offset if isinstance(offset, str) else "{:g} mm".format(float(offset))
+            plane_input = comp.constructionPlanes.createInput()
+            plane_input.setByOffset(base, adsk.core.ValueInput.createByString(off_expr))
+            target = comp.constructionPlanes.add(plane_input)
+            offset_note = ", offset {} from the {} plane".format(off_expr, (plane or "xy").lower())
+
+        sketch = comp.sketches.add(target)
         if name:
             sketch.name = name
         self._sketch_counter += 1
         sketch_id = "s{}".format(self._sketch_counter)
         self._sketches[sketch_id] = sketch
-        return "Created sketch '{}' on the {} plane (id={}).".format(sketch.name, (plane or "xy").lower(), sketch_id)
+        return "Created sketch '{}' on the {} plane{} (id={}).".format(
+            sketch.name, (plane or "xy").lower(), offset_note, sketch_id
+        )
 
     def draw_rectangle(self, sketch_id, width, height, center_x=0.0, center_y=0.0):
         sketch = self._sketch(sketch_id)
@@ -215,7 +229,7 @@ class CadBuilder:
         return "Drew a line in {} from ({:g},{:g}) to ({:g},{:g}) mm.".format(sketch_id, x1, y1, x2, y2)
 
     # -- features ------------------------------------------------------------
-    def extrude(self, sketch_id, distance, operation="new", profile_index=0):
+    def extrude(self, sketch_id, distance, operation="new", profile_index=0, symmetric=False, start_offset=None):
         sketch = self._sketch(sketch_id)
         if sketch.profiles.count == 0:
             raise RuntimeError("Sketch {} has no closed profile to extrude.".format(sketch_id))
@@ -229,9 +243,24 @@ class CadBuilder:
         comp = self._comp()
         profile = sketch.profiles.item(profile_index)
         ext_input = comp.features.extrudeFeatures.createInput(profile, op)
-        ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString(self._length(distance)))
+
+        has_offset = start_offset is not None and not (isinstance(start_offset, (int, float)) and float(start_offset) == 0.0)
+        if has_offset:
+            ext_input.startExtent = adsk.fusion.OffsetStartDefinition.create(
+                adsk.core.ValueInput.createByString(self._length(start_offset))
+            )
+        ext_input.setDistanceExtent(bool(symmetric), adsk.core.ValueInput.createByString(self._length(distance)))
         self._remember(comp.features.extrudeFeatures.add(ext_input))
-        return "Extruded profile {} of {} by {} ({}).".format(profile_index, sketch_id, self._length(distance), operation)
+
+        extras = []
+        if symmetric:
+            extras.append("symmetric")
+        if has_offset:
+            extras.append("start offset {}".format(self._length(start_offset)))
+        suffix = (", " + ", ".join(extras)) if extras else ""
+        return "Extruded profile {} of {} by {} ({}{}).".format(
+            profile_index, sketch_id, self._length(distance), operation, suffix
+        )
 
     def revolve(self, sketch_id, axis="z", angle=360, operation="new", profile_index=0):
         sketch = self._sketch(sketch_id)
