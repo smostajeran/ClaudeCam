@@ -68,6 +68,52 @@ class Session:
         self.generation += 1
 
 
+def _strip_orphan_tool_uses(messages):
+    """Remove assistant messages whose tool_use blocks aren't immediately followed by a
+    user message containing tool_result blocks.
+
+    Such an orphan can arise when a turn is interrupted (e.g. Discard, or an error) between
+    Claude emitting tool calls and the results being recorded. The API rejects it with a
+    400 ("tool_use ids were found without tool_result blocks") on the next request, so we
+    repair the history before sending instead of getting stuck.
+    """
+    result = []
+    n = len(messages)
+    i = 0
+    while i < n:
+        message = messages[i]
+        content = message.get("content") if isinstance(message, dict) else None
+        is_tool_use = (
+            isinstance(message, dict)
+            and message.get("role") == "assistant"
+            and isinstance(content, list)
+            and any(isinstance(b, dict) and b.get("type") == "tool_use" for b in content)
+        )
+        if is_tool_use:
+            nxt = messages[i + 1] if i + 1 < n else None
+            nxt_content = nxt.get("content") if isinstance(nxt, dict) else None
+            followed = (
+                isinstance(nxt, dict)
+                and nxt.get("role") == "user"
+                and isinstance(nxt_content, list)
+                and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in nxt_content)
+            )
+            if not followed:
+                # Drop the orphaned tool_use blocks (and the now-moot thinking that
+                # preceded them) but keep any text so the model still sees what it said.
+                # Drop the whole message only if nothing usable remains.
+                kept = [b for b in content if isinstance(b, dict) and b.get("type") == "text"]
+                if kept:
+                    repaired = dict(message)
+                    repaired["content"] = kept
+                    result.append(repaired)
+                i += 1
+                continue
+        result.append(message)
+        i += 1
+    return result
+
+
 def run_turn(chat, user_text, ui, cad, dispatcher):
     """Process one user message in ``chat``: call Claude, run tool calls, surface replies.
 
@@ -99,6 +145,10 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         chat.messages.append({"role": "user", "content": user_text})
 
         while alive():
+            # Repair any orphaned tool_use left by a previously interrupted turn.
+            chat.messages[:] = _strip_orphan_tool_uses(chat.messages)
+            if not alive():
+                return  # Discard happened between the loop check and the request
             response = api.create_message(
                 api_key=key,
                 model=config.MODEL,
@@ -123,13 +173,20 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
                 if block.get("type") == "text" and (block.get("text") or "").strip():
                     ui.assistant(chat, block["text"])
 
-            if response.get("stop_reason") != "tool_use":
+            # Note truncation whether or not tool calls were emitted.
+            if response.get("stop_reason") == "max_tokens":
+                ui.system_for(chat, "Heads up: the response hit the length limit and may be cut off.")
+
+            # Execute tool calls whenever they're present — even if the response stopped on
+            # max_tokens — so every tool_use is always paired with a tool_result. Breaking
+            # on stop_reason here was what left an orphaned tool_use (the 400) when a big
+            # batch of tool calls hit the length limit.
+            tool_use_blocks = [b for b in content if b.get("type") == "tool_use"]
+            if not tool_use_blocks:
                 break
 
             tool_results = []
-            for block in content:
-                if block.get("type") != "tool_use":
-                    continue
+            for block in tool_use_blocks:
                 if not alive():
                     return
                 ui.status(chat, True, "Building: {}…".format(block.get("name")))

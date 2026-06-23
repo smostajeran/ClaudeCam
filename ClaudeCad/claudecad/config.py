@@ -10,7 +10,7 @@ import os
 # --- Claude model -----------------------------------------------------------
 # Opus 4.8 is the most capable Opus-tier model; adaptive thinking is enabled in agent.py.
 MODEL = "claude-opus-4-8"
-MAX_TOKENS = 8000
+MAX_TOKENS = 16000
 
 # --- Fusion UI identifiers --------------------------------------------------
 PALETTE_ID = "claudeCadChatPalette"
