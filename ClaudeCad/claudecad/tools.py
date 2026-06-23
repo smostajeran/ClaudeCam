@@ -176,8 +176,36 @@ TOOLS = [
         "input_schema": {"type": "object", "properties": {}},
     },
     {
+        "name": "inspect_model",
+        "description": (
+            "Read back the current document so you can see what already exists — your own "
+            "work, geometry the user added, and imported meshes. Returns units, user "
+            "parameters, every solid body (name, bounding-box size in mm, face/edge counts, "
+            "volume), every mesh body (size + triangle count; meshes are NOT parametric and "
+            "can't be edited by these tools), and sketch count. Call this before acting on or "
+            "around existing geometry, or to verify your work."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "list_faces",
+        "description": "List the faces of a solid body with an index, surface type (plane/cylinder/…), area, location (mm) and (for planes) normal. Use to find a specific face to work from.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"body_index": {"type": "integer", "description": "Which solid body (from inspect_model). Default 0."}},
+        },
+    },
+    {
+        "name": "list_edges",
+        "description": "List the edges of a solid body with an index, curve type (line/arc/circle), length (mm) and location (mm). Use to find a specific edge.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"body_index": {"type": "integer", "description": "Which solid body (from inspect_model). Default 0."}},
+        },
+    },
+    {
         "name": "get_design_summary",
-        "description": "Report the current model state: body count, sketch count, and tracked parameters.",
+        "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
     },
 ]
@@ -220,6 +248,12 @@ def execute(name, tool_input, cad):
                                        int(ti.get("count_y", 1)), float(ti.get("spacing_y", 0.0)))
     if name == "capture_view":
         return cad.capture_view()
+    if name == "inspect_model":
+        return cad.inspect_model()
+    if name == "list_faces":
+        return cad.list_faces(int(ti.get("body_index", 0)))
+    if name == "list_edges":
+        return cad.list_edges(int(ti.get("body_index", 0)))
     if name == "get_design_summary":
         return cad.get_design_summary()
 
