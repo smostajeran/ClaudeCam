@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ClaudeCad</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <header class="header">
+        <span class="logo">ClaudeCad</span>
+        <span id="status" class="status"></span>
+        <button id="settingsBtn" type="button" class="icon-btn" title="Settings" aria-label="Settings">&#9881;</button>
+    </header>
+
+    <section id="settings" class="settings hidden">
+        <h2>Settings</h2>
+        <label for="apiKey">Anthropic API key</label>
+        <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
+        <p id="keyHint" class="hint">Stored locally in <code>~/.claudecad/config.json</code> (owner-readable only).</p>
+        <div class="settings-actions">
+            <button id="saveKeyBtn" type="button" class="quick approve">Save</button>
+            <button id="closeSettingsBtn" type="button" class="quick">Close</button>
+        </div>
+    </section>
+
+    <main id="messages" class="messages" aria-live="polite"></main>
+
+    <div class="quick-actions">
+        <button id="approveBtn" type="button" class="quick approve">Approve design</button>
+        <button id="discardBtn" type="button" class="quick discard">Discard &amp; start over</button>
+    </div>
+
+    <form id="composer" class="composer">
+        <textarea id="input" rows="2" placeholder="Describe the part you want to design…"></textarea>
+        <button id="sendBtn" type="submit" class="send">Send</button>
+    </form>
+
+    <script src="main.js"></script>
+</body>
+</html>
