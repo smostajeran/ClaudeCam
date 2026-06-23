@@ -550,7 +550,19 @@ const server = createServer(async (req, res) => {
         }
         const positions = nativePos.map((v: number[]) => { const c = meshCorrect(type, v); return [c[0] * 0.001, c[1] * 0.001, c[2] * 0.001]; }); // mm -> m, corrected
         const normals = vertexNormals(positions, tris);   // per-vertex, so RealityKit can light it
-        return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (tris.length / 3) | 0, padTriStart, positions, normals, triangles: tris }));
+        // Perforated sheets render their holes from a client alpha-texture (the .3d is a solid tray). Ship
+        // planar UVs + the hole spec so the client tiles holes at REAL pitch (uniform size across panel
+        // sizes) and keeps a solid metal MARGIN (no black border). UV = in-plane (X,Z) metres, centred —
+        // the thin axis is Y after meshCorrect; the client maps its hole texture as uv/pitch and renders
+        // solid metal where |uv| is within `margin` of the face edge. Pitch/dia/margin are tunable defaults.
+        let perforation: any;
+        if (/^(lochblech|perfblech)\d/.test(type)) {
+          const uv = positions.map((v: number[]) => [+v[0].toFixed(5), +v[2].toFixed(5)]);
+          let ux0 = 1e9, ux1 = -1e9, uz0 = 1e9, uz1 = -1e9;
+          for (const u of uv) { if (u[0] < ux0) ux0 = u[0]; if (u[0] > ux1) ux1 = u[0]; if (u[1] < uz0) uz0 = u[1]; if (u[1] > uz1) uz1 = u[1]; }
+          perforation = { uv, size: [+(ux1 - ux0).toFixed(4), +(uz1 - uz0).toFixed(4)], pitch: 0.0075, holeDia: 0.0045, margin: 0.012 };
+        }
+        return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (tris.length / 3) | 0, padTriStart, ...(perforation ? { perforation } : {}), positions, normals, triangles: tris }));
       } catch (e: any) { return send(res, 500, JSON.stringify({ error: String(e?.message ?? e), part })); }
     }
 
