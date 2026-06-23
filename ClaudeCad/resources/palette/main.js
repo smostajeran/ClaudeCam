@@ -22,6 +22,9 @@
     var newChatBtn = document.getElementById("newChatBtn");
     var workingEl = document.getElementById("working");
     var workingTextEl = document.getElementById("workingText");
+    var versionEl = document.getElementById("version");
+    var versionSettingsEl = document.getElementById("versionSettings");
+    var updateBtn = document.getElementById("updateBtn");
 
     var busy = false;
     var hasKey = false;
@@ -129,6 +132,10 @@
 
     closeSettingsBtn.addEventListener("click", closeSettings);
 
+    updateBtn.addEventListener("click", function () {
+        sendData("update", {});
+    });
+
     saveKeyBtn.addEventListener("click", function () {
         var key = apiKeyEl.value.trim();
         if (!key) {
@@ -163,6 +170,10 @@
                     break;
                 case "config":
                     hasKey = !!d.has_key;
+                    if (d.version) {
+                        versionEl.textContent = "v" + d.version;
+                        versionSettingsEl.textContent = "v" + d.version;
+                    }
                     if (d.env) {
                         keyHintEl.textContent = "An API key is currently set via the ANTHROPIC_API_KEY environment variable, which takes precedence over a saved key.";
                     } else {

@@ -36,6 +36,18 @@ body {
 
 .logo { font-weight: 600; letter-spacing: 0.2px; }
 
+.version {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 6px;
+}
+
+.settings-sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+}
+
 .status {
     flex: 1;
     text-align: right;

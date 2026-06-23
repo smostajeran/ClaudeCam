@@ -181,14 +181,38 @@ class ClaudeCadUI:
             self._save_key(data.get("key", ""))
         elif action == "discard":
             self._discard()
+        elif action == "update":
+            self._update()
 
     def _send_config(self):
         def do():
             if self.palette:
                 self.palette.sendInfoToHTML(
-                    "config", json.dumps({"has_key": config.has_api_key(), "env": config.key_from_env()})
+                    "config",
+                    json.dumps({
+                        "has_key": config.has_api_key(),
+                        "env": config.key_from_env(),
+                        "version": config.get_version(),
+                    }),
                 )
         self.dispatcher.run(do)
+
+    def _update(self):
+        chat = self.chats.active
+        self.system_for(chat, "Checking for updates…")
+
+        def work():
+            try:
+                from . import updater
+                message, updated, _version = updater.update()
+            except Exception as exc:
+                self.system_for(chat, "Update failed: {}".format(exc))
+                return
+            self.system_for(chat, message)
+            if updated:
+                self._send_config()  # refresh the version shown in the panel
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _save_key(self, key):
         chat = self.chats.active

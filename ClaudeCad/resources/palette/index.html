@@ -9,6 +9,7 @@
 <body>
     <header class="header">
         <span class="logo">ClaudeCad</span>
+        <span id="version" class="version"></span>
         <span id="status" class="status"></span>
         <button id="settingsBtn" type="button" class="icon-btn" title="Settings" aria-label="Settings">&#9881;</button>
     </header>
@@ -21,6 +22,11 @@
         <div class="settings-actions">
             <button id="saveKeyBtn" type="button" class="quick approve">Save</button>
             <button id="closeSettingsBtn" type="button" class="quick">Close</button>
+        </div>
+        <hr class="settings-sep" />
+        <p class="hint">ClaudeCad <span id="versionSettings">—</span></p>
+        <div class="settings-actions">
+            <button id="updateBtn" type="button" class="quick">Check for updates</button>
         </div>
     </section>
 

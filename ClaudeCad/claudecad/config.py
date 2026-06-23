@@ -22,6 +22,43 @@ CMD_NAME = "ClaudeCad"
 CMD_TOOLTIP = "Open the ClaudeCad AI design assistant"
 PANEL_ID = "SolidScriptsAddinsPanel"
 
+# --- Self-update ------------------------------------------------------------
+REPO = "smostajeran/ClaudeCam"
+UPDATE_BRANCH = "main"
+
+# The add-in folder is the parent of this package (…/AddIns/ClaudeCad).
+ADDIN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def addin_dir():
+    return ADDIN_DIR
+
+
+def get_version():
+    try:
+        with open(os.path.join(ADDIN_DIR, "VERSION"), "r", encoding="utf-8") as fh:
+            return fh.read().strip() or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def get_github_token():
+    """Optional token for self-updating from a private repo (env or config file)."""
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        return token.strip()
+    try:
+        cfg = _config_path()
+        if os.path.isfile(cfg):
+            with open(cfg, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            token = data.get("github_token")
+            if token:
+                return token.strip()
+    except Exception:
+        pass
+    return None
+
 
 def _config_path():
     return os.path.join(os.path.expanduser("~"), ".claudecad", "config.json")
