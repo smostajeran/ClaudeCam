@@ -532,7 +532,7 @@ const server = createServer(async (req, res) => {
         // load either orientation. Normalize EVERY glass to a portrait frame (short edge -> local X, long
         // edge -> local Y, in its X-Y plane) so the client's per-face quat (which aligns short->short,
         // long->long edge) is always correct. 90° about Z: (x,y,z) -> (-y, x, z).
-        if (/^glas\d/.test(type)) {
+        if (/^glas(\d|tuer)/.test(type)) {   // glass panels AND glass-door leaves (glastuer) use the glas slab
           let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
           for (const v of nativePos) { if (v[0] < xmin) xmin = v[0]; if (v[0] > xmax) xmax = v[0]; if (v[1] < ymin) ymin = v[1]; if (v[1] > ymax) ymax = v[1]; }
           if (xmax - xmin > ymax - ymin) nativePos = nativePos.map((v) => [-v[1], v[0], v[2]]);   // landscape -> portrait

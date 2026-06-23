@@ -47,7 +47,7 @@ function fixGlassOrientation(parts: any[]): void {
   for (const x of parts) if (Array.isArray(x.pos)) { for (let k = 0; k < 3; k++) sc[k] += x.pos[k]; scn++; }
   if (scn) for (let k = 0; k < 3; k++) sc[k] /= scn;
   for (const p of parts) {
-    if (p.family !== "glass") continue;
+    if (p.family !== "glass" || /glass-door-/.test(String(p.part))) continue;   // glass doors are oriented by fixDoorOrientation (hinges, not clips)
     const clips = parts.filter((c) => String(c.id).startsWith(`${p.id}c`) && Array.isArray(c.pos)); // prefix: robust to count/naming
     const dm = String(p.part).match(/(\d+)x(\d+)/);
     if (clips.length < 3 || !dm) { console.warn(`[glass ${p.id}] ${clips.length} clip(s) — pose NOT corrected (solver pose kept)`); continue; }
@@ -119,9 +119,37 @@ function fixPanelLip(parts: any[]): void {
   }
 }
 
+// Glass-door leaves (glass-door-*) get laid flat by the solver like glass panels, but have no 4 corner
+// clips — their reliable anchors are the 2 hinges (one vertical edge) + the handle (opposite edge). Derive
+// the door plane from them: V = hinge axis (vertical), H = hinge->handle (in-plane horizontal), N = V×H
+// (signed outward). The leaf mesh is portrait-normalized (short->X, long->Y), so map X->H, Y->V, Z->N.
+function fixDoorOrientation(parts: any[]): void {
+  const sc: V3 = [0, 0, 0]; let scn = 0;
+  for (const x of parts) if (Array.isArray(x.pos)) { for (let k = 0; k < 3; k++) sc[k] += x.pos[k]; scn++; }
+  if (scn) for (let k = 0; k < 3; k++) sc[k] /= scn;
+  const leaves = parts.filter((p) => /glass-door-/.test(String(p.part)) && Array.isArray(p.pos)); // left-/right-glass-door-*
+  for (const leaf of leaves) {
+    const near = (pred: (p: any) => boolean) => parts.filter((p) => p !== leaf && pred(p) && Array.isArray(p.pos))
+      .map((p) => ({ p, d: Math.hypot(...(_sub(p.pos, leaf.pos) as V3)) })).sort((a, b) => a.d - b.d);
+    const hinges = near((p) => /hinge/i.test(String(p.part))).slice(0, 2).map((h) => h.p);
+    const handle = near((p) => p.family === "hardware" || /handle|griff/i.test(String(p.part)))[0]?.p;
+    if (hinges.length < 2 || !handle) { console.warn(`[door ${leaf.id}] hinges=${hinges.length} handle=${!!handle} — orientation NOT corrected`); continue; }
+    const [a, b] = hinges as any[];
+    const top = a.pos[1] >= b.pos[1] ? a.pos : b.pos, bot = a.pos[1] >= b.pos[1] ? b.pos : a.pos; // RK Y is up
+    const V = _nrm(_sub(top, bot));                                            // vertical (hinge axis)
+    const hingeMid: V3 = [(top[0] + bot[0]) / 2, (top[1] + bot[1]) / 2, (top[2] + bot[2]) / 2];
+    let H = _sub(handle.pos, hingeMid);
+    H = _nrm(_sub(H, [V[0] * _dot(H, V), V[1] * _dot(H, V), V[2] * _dot(H, V)] as V3)); // horizontal, ⟂ V
+    let N = _nrm(_cross(H, V));
+    if (_dot(N, _sub(leaf.pos as V3, sc)) < 0) N = [-N[0], -N[1], -N[2]];       // outward (door faces the room)
+    leaf.quat = quatFromBasis(H, V, N).map((x) => +x.toFixed(6));              // mesh X->H(width), Y->V(height), Z->N
+  }
+}
+
 export function customerPayload(placement: any, conflicts: any, configXml?: string): any {
   const rk = placementToRK(placement); // { meta, parts, catalog } — already IP-safe
   fixGlassOrientation(rk.parts);        // override the solver's locked glass quat with a per-face one from its clips
+  fixDoorOrientation(rk.parts);         // stand glass-door leaves upright (laid flat by the solver) from their hinges+handle
   fixPanelLip(rk.parts);                // make every panel's lip tuck inward (flat metal face outward)
 
   // Bill of materials: aggregate the placed parts by one52 part id.
