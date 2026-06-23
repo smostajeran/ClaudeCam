@@ -9,8 +9,49 @@ import { openFaceSlots } from "./slots.ts";
 // kind without exposing the proprietary German identifier.
 const hashCode = (s: string): string => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return "c" + (h >>> 0).toString(36); };
 
+// The solver locks a glass leaf's orientation (its glashalter dock-frame mate doesn't reorient per face),
+// so glass renders perpendicular on side faces. Its 4 corner clips ARE seated correctly per face, so derive
+// the glass render quat from the clip corners + the glass's own W×H. Robust on every face, survives re-solve.
+type V3 = [number, number, number];
+const _sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const _cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const _nrm = (v: V3): V3 => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+function quatFromBasis(X: V3, Y: V3, Z: V3): number[] {
+  const m00 = X[0], m01 = Y[0], m02 = Z[0], m10 = X[1], m11 = Y[1], m12 = Z[1], m20 = X[2], m21 = Y[2], m22 = Z[2];
+  const tr = m00 + m11 + m22; let w, x, y, z;
+  if (tr > 0) { const S = Math.sqrt(tr + 1) * 2; w = .25 * S; x = (m21 - m12) / S; y = (m02 - m20) / S; z = (m10 - m01) / S; }
+  else if (m00 > m11 && m00 > m22) { const S = Math.sqrt(1 + m00 - m11 - m22) * 2; w = (m21 - m12) / S; x = .25 * S; y = (m01 + m10) / S; z = (m02 + m20) / S; }
+  else if (m11 > m22) { const S = Math.sqrt(1 + m11 - m00 - m22) * 2; w = (m02 - m20) / S; x = (m01 + m10) / S; y = .25 * S; z = (m12 + m21) / S; }
+  else { const S = Math.sqrt(1 + m22 - m00 - m11) * 2; w = (m10 - m01) / S; x = (m02 + m20) / S; y = (m12 + m21) / S; z = .25 * S; }
+  return [x, y, z, w];
+}
+// corners: 4 clip positions (RK m) in cyclic order; dimsMM: glass native [X,Y] lengths from its id.
+function glassQuatFromCorners(corners: V3[], dimsMM: number[]): number[] | null {
+  if (corners.length !== 4) return null;
+  const e01 = _sub(corners[1], corners[0]), e03 = _sub(corners[3], corners[0]);
+  const Z = _nrm(_cross(e01, e03));                                              // face normal -> native local Z
+  // native local X spans dimsMM[0]; pick whichever edge length matches it
+  let X = Math.abs(Math.hypot(...e01) * 1000 - dimsMM[0]) <= Math.abs(Math.hypot(...e03) * 1000 - dimsMM[0]) ? _nrm(e01) : _nrm(e03);
+  const Y = _nrm(_cross(Z, X)); X = _nrm(_cross(Y, Z));                          // re-orthonormalize, right-handed
+  if (!isFinite(Z[0] + Y[0] + X[0])) return null;
+  return quatFromBasis(X, Y, Z);
+}
+function fixGlassOrientation(parts: any[]): void {
+  const byId = new Map(parts.map((p) => [String(p.id), p]));
+  for (const p of parts) {
+    if (p.family !== "glass") continue;
+    const clips = [0, 1, 2, 3].map((k) => byId.get(`${p.id}c${k}`));
+    if (clips.some((c) => !c)) continue;                                          // need all 4 corners
+    const dm = String(p.part).match(/(\d+)x(\d+)/);
+    if (!dm) continue;
+    const q = glassQuatFromCorners(clips.map((c: any) => c.pos), [+dm[1], +dm[2]]);
+    if (q) p.quat = q;
+  }
+}
+
 export function customerPayload(placement: any, conflicts: any, configXml?: string): any {
   const rk = placementToRK(placement); // { meta, parts, catalog } — already IP-safe
+  fixGlassOrientation(rk.parts);        // override the solver's locked glass quat with a per-face one from its clips
 
   // Bill of materials: aggregate the placed parts by one52 part id.
   // Acoustic panels carry the Akustik feature in the config (the solver drops it from the placement, so we
