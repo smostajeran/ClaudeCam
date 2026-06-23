@@ -24,9 +24,11 @@ export interface FaceSlot {
 const SHEET_FAMILIES = ["panel", "glass"]; // an open tube-bounded face takes a sheet panel (solid/perforated/biblio) OR a glass leaf
 const len = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-// How far (metres) to pull each drop-target quad in from the bounding tubes, so a face's ghost/collider
-// clears its neighbours and leaves room to aim. ~2.5 cm reads clearly as "inside the opening".
-const SLOT_INSET_M = 0.025;
+// How far (metres) to pull each drop-target quad in from the corner balls. Matched to the REAL panel
+// footprint (~8 mm inside the grid — a panel sits against the tube inner faces), so the ghost lands exactly
+// where the panel will, with no floating "gap" between the outline and the frame. (Hit-test clearance for
+// adjacent faces, if needed, is the client's job — don't reintroduce a visible gap to get it.)
+const SLOT_INSET_M = 0.008;
 // Shrink a 4-corner rectangle toward its own plane-centre by `m` on every side (move each corner inward
 // along both of its edges). Keeps the rectangle centred and square; just smaller.
 function insetQuad(quad: number[][], m: number): number[][] {
