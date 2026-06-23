@@ -145,11 +145,13 @@ class ClaudeCadUI:
             self.system("Could not save the API key: {}".format(exc))
 
     def _discard(self):
+        # Cancel any in-flight turn first (bumps the session generation) so a worker
+        # still waiting on Claude can't repopulate the model or the chat after we clear.
+        self.session.reset()
         try:
             self.cad.reset()
         except Exception as exc:
             self.system("Could not fully clear the model: {}".format(exc))
-        self.session.reset()
         self.reset_chat()
         self.system("Workspace cleared. Describe your next design and we'll start fresh.")
 

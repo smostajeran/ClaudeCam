@@ -36,15 +36,23 @@ sentences — not shorthand.
 
 
 class Session:
-    """Holds the running conversation."""
+    """Holds the running conversation.
+
+    ``generation`` is bumped on every reset. An in-flight :func:`run_turn` captures the
+    generation it started under and aborts the moment it changes, so a turn that is still
+    waiting on Claude when the user clicks Discard can't post stale output or touch the
+    freshly-cleared model.
+    """
 
     def __init__(self):
         self.messages = []
         self.busy = False
+        self.generation = 0
 
     def reset(self):
         self.messages = []
         self.busy = False
+        self.generation += 1
 
 
 def run_turn(session, user_text, ui, cad, dispatcher):
@@ -61,12 +69,17 @@ def run_turn(session, user_text, ui, cad, dispatcher):
         )
         return
 
+    gen = session.generation
+
+    def alive():
+        return session.generation == gen
+
     session.busy = True
     ui.status(True, "Thinking…")
     try:
         session.messages.append({"role": "user", "content": user_text})
 
-        while True:
+        while alive():
             response = api.create_message(
                 api_key=key,
                 model=config.MODEL,
@@ -76,6 +89,9 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                 tools=tools.TOOLS,
                 thinking={"type": "adaptive"},
             )
+            if not alive():
+                return  # turn was discarded while we were waiting on Claude
+
             content = response.get("content", [])
             # Preserve the full response (including thinking blocks) in history.
             session.messages.append({"role": "assistant", "content": content})
@@ -91,6 +107,8 @@ def run_turn(session, user_text, ui, cad, dispatcher):
             for block in content:
                 if block.get("type") != "tool_use":
                     continue
+                if not alive():
+                    return
                 ui.status(True, "Building: {}…".format(block.get("name")))
                 try:
                     output = dispatcher.run(
@@ -109,12 +127,19 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                         "is_error": True,
                     })
 
+            if not alive():
+                return
             session.messages.append({"role": "user", "content": tool_results})
 
     except api.APIError as exc:
-        ui.system("Claude API error: {}".format(exc))
+        if alive():
+            ui.system("Claude API error: {}".format(exc))
     except Exception as exc:
-        ui.system("Something went wrong: {}".format(exc))
+        if alive():
+            ui.system("Something went wrong: {}".format(exc))
     finally:
-        session.busy = False
-        ui.status(False, "")
+        # Only touch shared state if this turn is still the current one; otherwise a
+        # discarded worker would clear the status/busy flag of a turn that started after it.
+        if alive():
+            session.busy = False
+            ui.status(False, "")
