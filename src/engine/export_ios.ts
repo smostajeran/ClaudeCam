@@ -70,15 +70,17 @@ const FAMILY_LABEL: Record<string, string> = { fitting: "Fitting", glass: "Glass
 // Render-material hint so the client doesn't have to infer materials from family (which conflated
 // e.g. glides and casters, and left clamps guessing). One value per part; perforation/felt/glass
 // translucency still layer on top via the part-mesh perforation block / padTriStart as before.
-//   chrome = polished (clamps, hinges, handles, locks)   glass = translucent
-//   perforated = holed sheet (also carries a perforation block)   metal = satin steel (everything else:
-//   frame tubes, balls, connectors, solid panels, and SUPPORT — leveling glides AND casters share this)
+//   chrome   = polished (clamps, hinges, handles, locks)        glass = translucent
+//   perforated = holed sheet (also carries a perforation block)
+//   plastic  = matte black (SUPPORT — leveling glides AND casters share this rule)
+//   metal    = satin steel (everything else: frame tubes, balls, connectors, solid panels, hardware)
 function materialOf(type: string): string {
   const x = (type || "").toLowerCase();
   if (/halter|scharnier|klemm|griff|schloss/.test(x)) return "chrome"; // check before glas: glashalter is a clamp, not glass
   if (/glas/.test(x)) return "glass";
   if (/loch|perf/.test(x)) return "perforated";
-  return "metal"; // glides (fuss) + casters (rolle) land here together — the shared support rule
+  if (/fuss|rolle/.test(x)) return "plastic"; // glides + casters: matte black plastic — the shared support rule
+  return "metal"; // frame tubes, balls, connectors, solid panels, hardware
 }
 export const identity = (type: string) => {
   const label = prettyName(type), fam = family(type);
