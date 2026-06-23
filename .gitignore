@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ClaudeCad add-in
+# Vendored Anthropic SDK (installed per-machine, see ClaudeCad/README.md)
+ClaudeCad/lib/
+# Local API key config
+.claudecad/
+
+# Fusion add-in manifest is required (overrides the *.manifest rule above)
+!ClaudeCad/ClaudeCad.manifest

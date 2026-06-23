@@ -1,0 +1,13 @@
+{
+    "autodeskProduct": "Fusion360",
+    "type": "addin",
+    "id": "d2c8f4a1-3b9e-4e2a-9c1d-claudecad0001",
+    "author": "ClaudeCad",
+    "description": {
+        "": "Design parametric Fusion 360 models from a natural-language chat, powered by Claude."
+    },
+    "version": "1.0.0",
+    "runOnStartup": false,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

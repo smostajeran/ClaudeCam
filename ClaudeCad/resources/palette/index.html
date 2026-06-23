@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ClaudeCad</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <header class="header">
+        <span class="logo">ClaudeCad</span>
+        <span id="status" class="status"></span>
+    </header>
+
+    <main id="messages" class="messages" aria-live="polite"></main>
+
+    <div class="quick-actions">
+        <button id="approveBtn" type="button" class="quick approve">Approve design</button>
+        <button id="discardBtn" type="button" class="quick discard">Discard &amp; start over</button>
+    </div>
+
+    <form id="composer" class="composer">
+        <textarea id="input" rows="2" placeholder="Describe the part you want to design…"></textarea>
+        <button id="sendBtn" type="submit" class="send">Send</button>
+    </form>
+
+    <script src="main.js"></script>
+</body>
+</html>
