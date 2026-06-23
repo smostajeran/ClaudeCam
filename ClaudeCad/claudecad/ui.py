@@ -74,7 +74,14 @@ class ClaudeCadUI:
 
     # -- messages to the palette (safe from any thread) ----------------------
     def _send(self, action, payload):
+        # Capture the generation when the update is scheduled. A UI update fired by a
+        # worker just before Discard can still be dispatched on the main thread *after*
+        # the chat is cleared; suppressing it here keeps stale output out of the panel.
+        gen = self.session.generation
+
         def do():
+            if self.session.generation != gen:
+                return
             if self.palette:
                 self.palette.sendInfoToHTML(action, json.dumps(payload))
         self.dispatcher.run(do)

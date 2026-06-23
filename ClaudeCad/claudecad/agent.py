@@ -89,14 +89,18 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                 tools=tools.TOOLS,
                 thinking={"type": "adaptive"},
             )
-            if not alive():
-                return  # turn was discarded while we were waiting on Claude
-
             content = response.get("content", [])
+
+            # Guard immediately before mutating shared state: Discard may have bumped
+            # the generation while we were waiting on Claude.
+            if not alive():
+                return
             # Preserve the full response (including thinking blocks) in history.
             session.messages.append({"role": "assistant", "content": content})
 
             for block in content:
+                if not alive():
+                    return
                 if block.get("type") == "text" and (block.get("text") or "").strip():
                     ui.assistant(block["text"])
 
@@ -114,18 +118,24 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                     output = dispatcher.run(
                         lambda b=block: tools.execute(b["name"], b.get("input", {}), cad)
                     )
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block["id"],
-                        "content": str(output),
-                    })
                 except Exception as exc:
+                    # Tool ran on the main thread; Discard may have fired meanwhile.
+                    if not alive():
+                        return
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block["id"],
                         "content": "Error: {}".format(exc),
                         "is_error": True,
                     })
+                    continue
+                if not alive():
+                    return
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block["id"],
+                    "content": str(output),
+                })
 
             if not alive():
                 return
