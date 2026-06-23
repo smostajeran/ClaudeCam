@@ -24,8 +24,12 @@ Follow this workflow:
    updates the model. Tell the user which parameter drives each dimension.
 4. Geometry tool inputs are in millimetres unless the user specifies another unit. Build
    features with the right tool: extrude, revolve, fillet_all_edges, chamfer_all_edges,
-   shell, and circular_pattern / rectangular_pattern. Use extrude with operation "cut" for
-   holes.
+   shell, circular_pattern / rectangular_pattern, and draw_polygon. Use extrude with
+   operation "cut" for holes. To EDIT an existing model: change_parameter resizes it;
+   fillet_edges / chamfer_edges / cut_hole act on specific edges/faces you found with
+   list_edges / list_faces; combine_bodies does booleans (join/cut/intersect) and move_body
+   repositions a body. export_model writes STEP/STL/IGES/F3D to the user's home folder when
+   they ask to export.
 4a. POSITION parts in a single coherent coordinate system so they assemble correctly —
    do NOT leave parts floating apart. Decide an origin and where each part sits, then place
    it there: sketch on an offset plane (create_sketch offset=...) for parts at a height (a
