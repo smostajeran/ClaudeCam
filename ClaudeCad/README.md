@@ -85,8 +85,11 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   expression (e.g. `"width"`, `"2 * wall"`), so the sketch is **parameter-driven** —
   change the parameter and the part updates.
 - **Features:** extrude (incl. cut for holes; symmetric and start-offset options), revolve,
-  fillet-all-edges, chamfer-all-edges, shell (hollow / open box), and circular / rectangular
-  patterns.
+  fillet/chamfer (all edges **or** specific edges by index), shell (hollow / open box),
+  circular / rectangular patterns, and N-sided polygons.
+- **Editing existing models:** `change_parameter` (resize), `cut_hole` on a chosen face,
+  `combine_bodies` (boolean join/cut/intersect), and `move_body` (reposition).
+- **Export:** `export_model` writes STEP / STL / IGES / F3D to your home folder.
 - **3D placement:** sketches can be created on an **offset** construction plane so parts are
   positioned at the right height/location and assemble together rather than overlapping at
   the origin.

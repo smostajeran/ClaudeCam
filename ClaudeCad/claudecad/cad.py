@@ -11,6 +11,7 @@ user parameter, so editing the parameter later updates the model.
 """
 
 import base64
+import math
 import os
 import tempfile
 
@@ -539,6 +540,150 @@ class CadBuilder:
         if total > limit:
             header += " (showing first {})".format(limit)
         return header + ":\n" + "\n".join(rows)
+
+    # -- edit / modify -------------------------------------------------------
+    def change_parameter(self, name, expression):
+        design = self._design()
+        param = design.userParameters.itemByName(name)
+        if not param:
+            param = design.allParameters.itemByName(name)
+        if not param:
+            raise ValueError("No parameter named '{}'. Use inspect_model to list parameters.".format(name))
+        param.expression = expression
+        return "Set parameter {} = {} (now {:.3g} mm).".format(name, expression, self._mm(param.value))
+
+    def _edge_set(self, body, indices):
+        edges = adsk.core.ObjectCollection.create()
+        for idx in indices:
+            if 0 <= idx < body.edges.count:
+                edges.add(body.edges.item(idx))
+        if edges.count == 0:
+            raise ValueError("No valid edge indices given. Use list_edges to get indices.")
+        return edges
+
+    def fillet_edges(self, body_index, edge_indices, radius):
+        comp = self._comp()
+        body = self._brep_body(body_index)
+        edges = self._edge_set(body, edge_indices)
+        fillets = comp.features.filletFeatures
+        fin = fillets.createInput()
+        fin.addConstantRadiusEdgeSet(edges, adsk.core.ValueInput.createByString(self._length(radius)), True)
+        self._remember(fillets.add(fin))
+        return "Filleted {} edge(s) of body [{}] with radius {}.".format(edges.count, body_index, self._length(radius))
+
+    def chamfer_edges(self, body_index, edge_indices, distance):
+        comp = self._comp()
+        body = self._brep_body(body_index)
+        edges = self._edge_set(body, edge_indices)
+        chamfers = comp.features.chamferFeatures
+        cin = chamfers.createInput(edges, True)
+        cin.setToEqualDistance(adsk.core.ValueInput.createByString(self._length(distance)))
+        self._remember(chamfers.add(cin))
+        return "Chamfered {} edge(s) of body [{}] by {}.".format(edges.count, body_index, self._length(distance))
+
+    def cut_hole(self, body_index, face_index, diameter, depth=None, x_offset=0.0, y_offset=0.0):
+        comp = self._comp()
+        body = self._brep_body(body_index)
+        if face_index < 0 or face_index >= body.faces.count:
+            raise ValueError("face_index {} out of range (body has {} faces).".format(face_index, body.faces.count))
+        face = body.faces.item(face_index)
+        if not adsk.core.Plane.cast(face.geometry):
+            raise RuntimeError("Face [{}] is not planar; cut_hole needs a flat face.".format(face_index))
+
+        sketch = comp.sketches.add(face)
+        center_sketch = sketch.modelToSketchSpace(face.pointOnFace)
+        center = adsk.core.Point3D.create(
+            center_sketch.x + float(x_offset) * MM, center_sketch.y + float(y_offset) * MM, 0.0
+        )
+        r_expr, r_mm = self._resolve(diameter, default_seed=10.0)
+        sketch.sketchCurves.sketchCircles.addByCenterRadius(center, (r_mm / 2.0) * MM)
+
+        profile = sketch.profiles.item(0)
+        ext = comp.features.extrudeFeatures
+        ext_input = ext.createInput(profile, adsk.fusion.FeatureOperations.CutFeatureOperation)
+        if depth is not None and not (isinstance(depth, (int, float)) and float(depth) == 0.0):
+            # negative distance cuts into the body (opposite the outward face normal)
+            ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString("-(" + self._length(depth) + ")"))
+        else:
+            ext_input.setAllExtent(adsk.fusion.ExtentDirections.NegativeExtentDirection)
+        self._remember(ext.add(ext_input))
+        depth_note = self._length(depth) if depth else "through all"
+        return "Cut a {:g} mm hole through face [{}] of body [{}] ({}).".format(r_mm, face_index, body_index, depth_note)
+
+    def combine_bodies(self, target_index, tool_indices, operation="join"):
+        comp = self._comp()
+        op = _OPERATIONS.get((operation or "join").lower())
+        if op is None or (operation or "join").lower() == "new":
+            raise ValueError("operation must be join, cut or intersect.")
+        target = self._brep_body(target_index)
+        tools_col = adsk.core.ObjectCollection.create()
+        for idx in tool_indices:
+            tools_col.add(self._brep_body(idx))
+        if tools_col.count == 0:
+            raise ValueError("No tool bodies given.")
+        combines = comp.features.combineFeatures
+        cin = combines.createInput(target, tools_col)
+        cin.operation = op
+        self._remember(combines.add(cin))
+        return "Combined body [{}] with {} body(ies) using '{}'.".format(target_index, tools_col.count, operation)
+
+    def move_body(self, body_index, dx=0.0, dy=0.0, dz=0.0):
+        comp = self._comp()
+        body = self._brep_body(body_index)
+        col = adsk.core.ObjectCollection.create()
+        col.add(body)
+        moves = comp.features.moveFeatures
+        move_input = moves.createInput2(col)
+        move_input.defineAsTranslateXYZ(
+            adsk.core.ValueInput.createByString("{:g} mm".format(float(dx))),
+            adsk.core.ValueInput.createByString("{:g} mm".format(float(dy))),
+            adsk.core.ValueInput.createByString("{:g} mm".format(float(dz))),
+            True,
+        )
+        moves.add(move_input)
+        return "Moved body [{}] by ({:g}, {:g}, {:g}) mm.".format(body_index, float(dx), float(dy), float(dz))
+
+    def draw_polygon(self, sketch_id, sides, radius, center_x=0.0, center_y=0.0):
+        sketch = self._sketch(sketch_id)
+        sides = int(sides)
+        if sides < 3:
+            raise ValueError("A polygon needs at least 3 sides.")
+        cx, cy = float(center_x), float(center_y)
+        r = float(radius)
+        verts = []
+        for k in range(sides):
+            angle = math.pi / 2 + 2 * math.pi * k / sides
+            verts.append(self._pt(cx + r * math.cos(angle), cy + r * math.sin(angle)))
+        lines = sketch.sketchCurves.sketchLines
+        first = lines.addByTwoPoints(verts[0], verts[1])
+        prev = first
+        for k in range(2, sides):
+            prev = lines.addByTwoPoints(prev.endSketchPoint, verts[k])
+        lines.addByTwoPoints(prev.endSketchPoint, first.startSketchPoint)
+        return "Drew a {}-sided polygon (radius {:g} mm) in {} ({} profile(s)).".format(
+            sides, r, sketch_id, sketch.profiles.count
+        )
+
+    def export_model(self, fmt="step", filename=None):
+        design = self._design()
+        mgr = design.exportManager
+        fmt = (fmt or "step").lower()
+        ext = {"step": ".step", "stp": ".step", "stl": ".stl", "iges": ".igs", "igs": ".igs", "f3d": ".f3d"}.get(fmt)
+        if not ext:
+            raise ValueError("Unsupported format '{}'. Use step, stl, iges or f3d.".format(fmt))
+        name = (filename or "claudecad_export").rsplit(".", 1)[0]
+        path = os.path.join(os.path.expanduser("~"), name + ext)
+
+        if fmt == "stl":
+            options = mgr.createSTLExportOptions(self._comp(), path)
+        elif fmt in ("iges", "igs"):
+            options = mgr.createIGESExportOptions(path)
+        elif fmt == "f3d":
+            options = mgr.createFusionArchiveExportOptions(path)
+        else:
+            options = mgr.createSTEPExportOptions(path)
+        mgr.execute(options)
+        return "Exported the model to {}".format(path)
 
     def capture_view(self):
         """Fit the camera and return a PNG of the active viewport as image content blocks."""

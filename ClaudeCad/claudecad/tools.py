@@ -204,6 +204,111 @@ TOOLS = [
         },
     },
     {
+        "name": "change_parameter",
+        "description": "Change an existing user parameter's value/expression (e.g. make the part bigger). Use inspect_model to see parameter names.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "expression": {"type": "string", "description": "New value/expression, e.g. '120 mm' or '2 * width'."},
+            },
+            "required": ["name", "expression"],
+        },
+    },
+    {
+        "name": "fillet_edges",
+        "description": "Round specific edges of a body. Get edge indices from list_edges first.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Default 0."},
+                "edge_indices": {"type": "array", "items": {"type": "integer"}, "description": "Edge indices from list_edges."},
+                "radius": _LENGTH,
+            },
+            "required": ["edge_indices", "radius"],
+        },
+    },
+    {
+        "name": "chamfer_edges",
+        "description": "Bevel specific edges of a body. Get edge indices from list_edges first.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Default 0."},
+                "edge_indices": {"type": "array", "items": {"type": "integer"}, "description": "Edge indices from list_edges."},
+                "distance": _LENGTH,
+            },
+            "required": ["edge_indices", "distance"],
+        },
+    },
+    {
+        "name": "cut_hole",
+        "description": "Cut a round hole into a flat face of a body. Get the face index from list_faces. Through-all by default; give depth for a blind hole. x_offset/y_offset (mm) move the hole from the face's centre.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Default 0."},
+                "face_index": {"type": "integer", "description": "Planar face from list_faces."},
+                "diameter": _LENGTH,
+                "depth": {"type": ["string", "number"], "description": "Blind-hole depth (mm/expression). Omit for through-all."},
+                "x_offset": {"type": "number", "description": "mm from face centre. Default 0."},
+                "y_offset": {"type": "number", "description": "mm from face centre. Default 0."},
+            },
+            "required": ["face_index", "diameter"],
+        },
+    },
+    {
+        "name": "combine_bodies",
+        "description": "Boolean-combine bodies: join (union), cut (subtract tools from target), or intersect. Body indices come from inspect_model.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "target_index": {"type": "integer", "description": "The body kept/modified."},
+                "tool_indices": {"type": "array", "items": {"type": "integer"}, "description": "Bodies combined into/subtracted from the target."},
+                "operation": {"type": "string", "enum": ["join", "cut", "intersect"], "description": "Default 'join'."},
+            },
+            "required": ["target_index", "tool_indices"],
+        },
+    },
+    {
+        "name": "move_body",
+        "description": "Translate a body by (dx, dy, dz) millimetres — useful to position an existing body. Index from inspect_model.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer"},
+                "dx": {"type": "number"}, "dy": {"type": "number"}, "dz": {"type": "number"},
+            },
+            "required": ["body_index"],
+        },
+    },
+    {
+        "name": "draw_polygon",
+        "description": "Draw a regular N-sided polygon (vertices on a circle of the given radius) in a sketch. All values in mm.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sketch_id": {"type": "string"},
+                "sides": {"type": "integer", "description": "Number of sides (>=3)."},
+                "radius": {"type": "number", "description": "Circumscribed radius in mm."},
+                "center_x": {"type": "number", "description": "Default 0."},
+                "center_y": {"type": "number", "description": "Default 0."},
+            },
+            "required": ["sketch_id", "sides", "radius"],
+        },
+    },
+    {
+        "name": "export_model",
+        "description": "Export the model to a file in the user's home folder. Formats: step, stl, iges, f3d.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "format": {"type": "string", "enum": ["step", "stl", "iges", "f3d"], "description": "Default 'step'."},
+                "filename": {"type": "string", "description": "Base filename (no extension needed). Default 'claudecad_export'."},
+            },
+        },
+    },
+    {
         "name": "get_design_summary",
         "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
@@ -254,6 +359,24 @@ def execute(name, tool_input, cad):
         return cad.list_faces(int(ti.get("body_index", 0)))
     if name == "list_edges":
         return cad.list_edges(int(ti.get("body_index", 0)))
+    if name == "change_parameter":
+        return cad.change_parameter(ti["name"], ti["expression"])
+    if name == "fillet_edges":
+        return cad.fillet_edges(int(ti.get("body_index", 0)), list(ti["edge_indices"]), ti["radius"])
+    if name == "chamfer_edges":
+        return cad.chamfer_edges(int(ti.get("body_index", 0)), list(ti["edge_indices"]), ti["distance"])
+    if name == "cut_hole":
+        return cad.cut_hole(int(ti.get("body_index", 0)), int(ti["face_index"]), ti["diameter"],
+                            ti.get("depth"), float(ti.get("x_offset", 0.0)), float(ti.get("y_offset", 0.0)))
+    if name == "combine_bodies":
+        return cad.combine_bodies(int(ti["target_index"]), list(ti["tool_indices"]), ti.get("operation", "join"))
+    if name == "move_body":
+        return cad.move_body(int(ti["body_index"]), float(ti.get("dx", 0.0)), float(ti.get("dy", 0.0)), float(ti.get("dz", 0.0)))
+    if name == "draw_polygon":
+        return cad.draw_polygon(ti["sketch_id"], int(ti["sides"]), float(ti["radius"]),
+                                float(ti.get("center_x", 0.0)), float(ti.get("center_y", 0.0)))
+    if name == "export_model":
+        return cad.export_model(ti.get("format", "step"), ti.get("filename"))
     if name == "get_design_summary":
         return cad.get_design_summary()
 
