@@ -13,8 +13,21 @@ export function customerPayload(placement: any, conflicts: any, configXml?: stri
   const rk = placementToRK(placement); // { meta, parts, catalog } — already IP-safe
 
   // Bill of materials: aggregate the placed parts by one52 part id.
+  // Acoustic panels carry the Akustik feature in the config (the solver drops it from the placement, so we
+  // read it back here). Flag those parts so the client requests the felt-backed mesh and labels them acoustic.
+  const acousticIds = new Set<string>();
+  if (configXml) {
+    for (const block of configXml.split("<componentset").slice(1)) {
+      const end = block.indexOf("</componentset>");
+      const head = end >= 0 ? block.slice(0, end) : block;
+      const idm = head.match(/_PXI_unique_comp_id="(\d+)"/);
+      if (idm && /Akustik="yes"/i.test(head)) acousticIds.add(idm[1]);
+    }
+  }
+  for (const p of rk.parts) if (acousticIds.has(String(p.id))) { p.acoustic = true; if (!/acoustic/i.test(p.label)) p.label = `${p.label} (acoustic)`; }
+
   const bomMap = new Map<string, any>();
-  for (const p of rk.parts) { const e = bomMap.get(p.part) ?? { part: p.part, label: p.label, family: p.family, qty: 0 }; e.qty++; bomMap.set(p.part, e); }
+  for (const p of rk.parts) { const key = p.part + (p.acoustic ? "+acoustic" : ""); const e = bomMap.get(key) ?? { part: p.part, label: p.label, family: p.family, acoustic: p.acoustic || undefined, qty: 0 }; e.qty++; bomMap.set(key, e); }
   const bom = [...bomMap.values()].sort((a, b) => a.label.localeCompare(b.label));
 
   // Conflicts: English title/detail/fix + severity, offending parts mapped to one52 ids/labels.

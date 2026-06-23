@@ -146,6 +146,7 @@ function meshIndex() {
     { kind: "blech", re: /^blech(\d+)_(\d+)\.3d$/i, pair: true },
     { kind: "perfblech", re: /^perfblech(\d+)x(\d+)\.3d$/i, pair: true },     // fine-perforation "mesh" panel
     { kind: "lochblech", re: /^lochblech(\d+)_(\d+)\.3d$/i, pair: true },     // round-hole "perforated" panel
+    { kind: "vlies", re: /^vlies(\d+)_(\d+)\.3d$/i, pair: true },             // acoustic felt pad (sizes that can be acoustic)
     { kind: "biblioblech", re: /^biblioblech(\d+)x(\d+)\.3d$/i, pair: true }, // library (Biblio) panel
     { kind: "glas", re: /^glas(\d+)x(\d+)\.3d$/i, pair: true },
     { kind: "tablar", re: /^tablar(\d+)_(\d+)\.3d$/i, pair: true },           // intermediate shelf (Zwischentablar)
@@ -324,10 +325,17 @@ function withSlotOptions(payload: any): any {
     const [e0, e1] = s.dims, W = e0 * 10, H = e1 * 10;   // bay edge cm -> panel id mm
     // `material` tells the client how to render each sheet: solid metal, fine "mesh" perforation, or
     // round-hole "perforated". (Acoustic = any of these + a felt pad; that's a feature toggle, not yet wired.)
-    const opts: Array<{ part: string; family: string; label: string; material: string }> = [];
+    const canAcoustic = has("vlies", e0, e1);   // a felt pad exists at this size -> offer the acoustic combo
+    const opts: Array<{ part: string; family: string; label: string; material: string; acoustic?: boolean }> = [];
     if (has("blech", e0, e1)) opts.push({ part: `metal-panel-${W}x${H}`, family: "panel", label: "Metal panel", material: "metal" });
-    if (has("perfblech", e0, e1)) opts.push({ part: `mesh-panel-${W}x${H}`, family: "panel", label: "Mesh panel", material: "mesh" });
-    if (has("lochblech", e0, e1)) opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated panel", material: "perforated" });
+    if (has("perfblech", e0, e1)) {
+      opts.push({ part: `mesh-panel-${W}x${H}`, family: "panel", label: "Mesh panel", material: "mesh" });
+      if (canAcoustic) opts.push({ part: `mesh-panel-${W}x${H}`, family: "panel", label: "Mesh + acoustic", material: "mesh", acoustic: true });
+    }
+    if (has("lochblech", e0, e1)) {
+      opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated panel", material: "perforated" });
+      if (canAcoustic) opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated + acoustic", material: "perforated", acoustic: true });
+    }
     if (has("glas", e0, e1)) opts.push({ part: `glass-${W}x${H}`, family: "glass", label: "Glass", material: "glass" });
     s.options = opts;   // [] when nothing has a mesh at this size -> client shows no placeable material
   }
@@ -505,7 +513,9 @@ const server = createServer(async (req, res) => {
     // pos+quat). The part must have appeared in a solved scene this session (so its type is known).
     if (req.method === "GET" && url === "/api/part-mesh") {
       if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
-      const part = new URLSearchParams((req.url ?? "").split("?")[1] ?? "").get("part") ?? "";
+      const qp = new URLSearchParams((req.url ?? "").split("?")[1] ?? "");
+      const part = qp.get("part") ?? "";
+      const acoustic = qp.get("acoustic") === "1";   // request the felt-backed (Akustik) variant of this panel
       const type = PART_TYPE.get(part);
       if (!type) return send(res, 404, JSON.stringify({ error: "unknown part — solve a scene containing it first", part }));
       try {
@@ -513,15 +523,15 @@ const server = createServer(async (req, res) => {
         if (!m.positions) return send(res, 404, JSON.stringify({ error: "no mesh for part", part }));
         let nativePos = m.positions as number[][];
         let tris = m.triangles as number[];
-        // Acoustic perforated panel = the perforated tray PLUS a felt (vlies) pad authored to sit inside it.
-        // The bare sheet alone leaves the panel looking hollow ("a gap"), so merge the matching vlies{L}_{W}
-        // pad into the same mesh (same native frame, so it lands inside the tray; one meshCorrect covers both).
-        // padTriStart marks where the felt triangles begin so the client can give them a matte-fabric material
-        // (the merged mesh otherwise renders single-material metal); omitted / -1 when there is no pad.
+        // Acoustic panel = the sheet PLUS a felt (vlies) pad authored to sit inside its lip tray. The bare
+        // sheet alone leaves an acoustic panel looking hollow, so when the acoustic variant is requested we
+        // merge the matching vlies{L}_{W} pad into the same mesh (same native frame -> it lands in the tray;
+        // one meshCorrect covers both). padTriStart marks where the felt triangles begin so the client can
+        // give them a matte-fabric material (the merged mesh otherwise renders single-material); -1 = no pad.
         let padTriStart = -1;
-        const am = part.match(/^acoustic-perforated-panel-(\d+)x(\d+)$/);
-        if (am) {
-          const pad = [loadMesh(`vlies${am[1]}_${am[2]}`), loadMesh(`vlies${am[2]}_${am[1]}`)].find((p: any) => p?.positions) as any;
+        const dm = acoustic ? part.match(/(\d+)x(\d+)$/) : null;   // panel ids end in WxH (mm)
+        if (dm) {
+          const pad = [loadMesh(`vlies${dm[1]}_${dm[2]}`), loadMesh(`vlies${dm[2]}_${dm[1]}`)].find((p: any) => p?.positions) as any;
           if (pad) { padTriStart = tris.length / 3 | 0; const base = nativePos.length; nativePos = nativePos.concat(pad.positions); tris = tris.concat(pad.triangles.map((i: number) => i + base)); }
         }
         const positions = nativePos.map((v: number[]) => { const c = meshCorrect(type, v); return [c[0] * 0.001, c[1] * 0.001, c[2] * 0.001]; }); // mm -> m, corrected
@@ -551,7 +561,7 @@ const server = createServer(async (req, res) => {
     // an invalid joint it reverts the mutation and returns { ok:false, rejected:{ reason } }.
     if (req.method === "POST" && url === "/api/place") {
       if (!(await verifyJwt(req))) return send(res, 401, JSON.stringify({ error: "unauthorized — Supabase JWT required" }));
-      const { sessionId, part, target } = await readBody(req);
+      const { sessionId, part, target, acoustic } = await readBody(req);
       const cfgPath = SESSIONS.get(String(sessionId));
       if (!cfgPath || !existsSync(cfgPath)) return send(res, 400, JSON.stringify({ ok: false, error: "unknown session" }));
       const result = await serialize(() => {
@@ -583,7 +593,7 @@ const server = createServer(async (req, res) => {
           try {
             cand = a.kind === "tube" ? addTubeOnEdge(xml, String(target.between[0]), String(target.between[1]), a.type)
                  : a.kind === "glass" ? addGlassOnFace(xml, corners, a.type)
-                 : addPanelOnFace(xml, corners, a.type, a.rot);
+                 : addPanelOnFace(xml, corners, a.type, a.rot, acoustic === true);
           } catch (e: any) { reason = String(e?.message ?? e); console.log(`[place]   ${a.type} rot${a.rot}: skip — ${reason}`); continue; }
           writeFileSync(cfgPath, cand.xml);
           const out = resolveConfig(cfgPath);

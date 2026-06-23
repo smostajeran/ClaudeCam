@@ -138,7 +138,7 @@ export function inwardBlechIndex(tube: CPart, center: Vec3): number | null {
 // `rotation` (0..3) shifts which panel edge-dock maps to which tube — for a NON-square panel only the
 // dimension-matching rotations place (the others wire a long-edge dock to a short tube whose mate is
 // absent). The caller (route) re-solves each rotation and keeps the one that lands at the rect centre.
-export function addPanelOnFace(xml: string, corners: string[], panelType = "blech350_350", rotation = 0): { xml: string; newId: string; center: Vec3 } {
+export function addPanelOnFace(xml: string, corners: string[], panelType = "blech350_350", rotation = 0, acoustic = false): { xml: string; newId: string; center: Vec3 } {
   if (corners.length !== 4) throw new Error("a face needs exactly 4 corner ball ids (rect order)");
   const { parts, maxDockId } = parseConfig(xml);
   const byDock = dockMap(parts);
@@ -161,7 +161,7 @@ export function addPanelOnFace(xml: string, corners: string[], panelType = "blec
   let nid = maxDockId; const pd = [++nid, ++nid, ++nid, ++nid], td = [++nid, ++nid, ++nid, ++nid];
   const newId = String(Math.max(0, ...parts.map((p) => +p.id || 0)) + 1);
   let panel = `\t\t<componentset type="${panelType}" dockconnections="true" _PXI_unique_comp_id="${newId}" uuid="added-${newId}-0000-0000-000000000000">\n` +
-    `\t\t\t<pos x="${center[0]}" y="${center[1]}" z="${center[2]}"/>\n\t\t\t<rot x="-90" y="0" z="0"/>\n\t\t\t<features Mounted="true" calculated="true"/>\n`;
+    `\t\t\t<pos x="${center[0]}" y="${center[1]}" z="${center[2]}"/>\n\t\t\t<rot x="-90" y="0" z="0"/>\n\t\t\t<features Mounted="true" calculated="true"${acoustic ? ' Akustik="yes"' : ""}/>\n`;
   // tube i ↔ panel edge-dock #(((i+rotation)%4)+1)
   for (let i = 0; i < 4; i++) panel += `\t\t\t<connecteddock type="blech2rohr" index="${((i + rotation) % 4) + 1}" dockid="${pd[i]}" connecteddockid="${td[i]}"/>\n`;
   panel += `\t\t</componentset>`;
