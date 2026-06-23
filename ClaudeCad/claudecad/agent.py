@@ -4,6 +4,7 @@
 marshalled to Fusion's main thread through the dispatcher held by the UI object.
 """
 
+from . import api
 from . import config
 from . import tools
 
@@ -34,12 +35,11 @@ sentences — not shorthand.
 
 
 class Session:
-    """Holds the running conversation and the cached Anthropic client."""
+    """Holds the running conversation history for one design session."""
 
     def __init__(self):
         self.messages = []
         self.busy = False
-        self.client = None
 
     def reset(self):
         self.messages = []
@@ -61,26 +61,14 @@ def run_turn(session, user_text, ui, cad, dispatcher):
         )
         return
 
-    try:
-        import anthropic
-    except Exception:
-        ui.system(
-            "The 'anthropic' package is not installed in Fusion's Python. See the README: "
-            "install it into the add-in's lib/ folder, e.g. "
-            "pip install anthropic -t \"<addin>/lib\"."
-        )
-        return
-
     session.busy = True
     ui.status(True, "Thinking…")
     try:
-        if session.client is None:
-            session.client = anthropic.Anthropic(api_key=key)
-
         session.messages.append({"role": "user", "content": user_text})
 
         while True:
-            response = session.client.messages.create(
+            response = api.create_message(
+                api_key=key,
                 model=config.MODEL,
                 max_tokens=config.MAX_TOKENS,
                 system=SYSTEM_PROMPT,
@@ -88,40 +76,45 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                 thinking={"type": "adaptive"},
                 messages=session.messages,
             )
+            content = response.get("content", [])
             # Preserve the full response (including thinking blocks) in history.
-            session.messages.append({"role": "assistant", "content": response.content})
+            session.messages.append({"role": "assistant", "content": content})
 
-            for block in response.content:
-                if getattr(block, "type", None) == "text" and block.text.strip():
-                    ui.assistant(block.text)
+            for block in content:
+                if block.get("type") == "text" and block.get("text", "").strip():
+                    ui.assistant(block["text"])
 
-            if response.stop_reason != "tool_use":
+            if response.get("stop_reason") != "tool_use":
                 break
 
             tool_results = []
-            for block in response.content:
-                if getattr(block, "type", None) != "tool_use":
+            for block in content:
+                if block.get("type") != "tool_use":
                     continue
-                ui.status(True, "Building: {}…".format(block.name))
+                ui.status(True, "Building: {}…".format(block["name"]))
                 try:
-                    output = dispatcher.run(lambda b=block: tools.execute(b.name, b.input, cad))
+                    output = dispatcher.run(
+                        lambda b=block: tools.execute(b["name"], b.get("input", {}), cad)
+                    )
                     tool_results.append({
                         "type": "tool_result",
-                        "tool_use_id": block.id,
+                        "tool_use_id": block["id"],
                         "content": str(output),
                     })
                 except Exception as exc:
                     tool_results.append({
                         "type": "tool_result",
-                        "tool_use_id": block.id,
+                        "tool_use_id": block["id"],
                         "content": "Error: {}".format(exc),
                         "is_error": True,
                     })
 
             session.messages.append({"role": "user", "content": tool_results})
 
-    except Exception as exc:
+    except api.APIError as exc:
         ui.system("Something went wrong talking to Claude: {}".format(exc))
+    except Exception as exc:
+        ui.system("Something went wrong: {}".format(exc))
     finally:
         session.busy = False
         ui.status(False, "")
