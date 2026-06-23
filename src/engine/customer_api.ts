@@ -70,7 +70,9 @@ function fixGlassOrientation(parts: any[]): void {
     const c0 = cc[0];
     const near = cc.slice(1).map((c) => ({ v: _sub(c, c0), d: Math.hypot(...(_sub(c, c0) as V3)) })).sort((a, b) => a.d - b.d);
     const N = _nrm(_cross(near[0].v, near[1].v));                       // face normal (same for all 4 clips)
-    const u1 = _nrm([-1, -1, 0]), u2: V3 = [0, 0, 1], u3 = _cross(u1, u2); // native clamp frame: grip, slot, third
+    // Native clamp frame (calibrated against real USM glashalter orientations): grip points along local
+    // [-1,-1,0] (maps to inward), and local -Z maps to the face normal (the disk seats against the glass).
+    const u1 = _nrm([-1, -1, 0]), u2: V3 = [0, 0, -1], u3 = _cross(u1, u2);
     for (const c of clips) {
       const I = _nrm(_sub(ctr, c.pos as V3));                           // inward (toward face centre)
       const t1 = I, t2 = N, t3 = _cross(t1, t2);                        // target frame
