@@ -68,6 +68,44 @@ class Session:
         self.generation += 1
 
 
+def _strip_orphan_tool_uses(messages):
+    """Remove assistant messages whose tool_use blocks aren't immediately followed by a
+    user message containing tool_result blocks.
+
+    Such an orphan can arise when a turn is interrupted (e.g. Discard, or an error) between
+    Claude emitting tool calls and the results being recorded. The API rejects it with a
+    400 ("tool_use ids were found without tool_result blocks") on the next request, so we
+    repair the history before sending instead of getting stuck.
+    """
+    result = []
+    n = len(messages)
+    i = 0
+    while i < n:
+        message = messages[i]
+        content = message.get("content") if isinstance(message, dict) else None
+        is_tool_use = (
+            isinstance(message, dict)
+            and message.get("role") == "assistant"
+            and isinstance(content, list)
+            and any(isinstance(b, dict) and b.get("type") == "tool_use" for b in content)
+        )
+        if is_tool_use:
+            nxt = messages[i + 1] if i + 1 < n else None
+            nxt_content = nxt.get("content") if isinstance(nxt, dict) else None
+            followed = (
+                isinstance(nxt, dict)
+                and nxt.get("role") == "user"
+                and isinstance(nxt_content, list)
+                and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in nxt_content)
+            )
+            if not followed:
+                i += 1
+                continue
+        result.append(message)
+        i += 1
+    return result
+
+
 def run_turn(chat, user_text, ui, cad, dispatcher):
     """Process one user message in ``chat``: call Claude, run tool calls, surface replies.
 
@@ -99,6 +137,8 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         chat.messages.append({"role": "user", "content": user_text})
 
         while alive():
+            # Repair any orphaned tool_use left by a previously interrupted turn.
+            chat.messages[:] = _strip_orphan_tool_uses(chat.messages)
             response = api.create_message(
                 api_key=key,
                 model=config.MODEL,
