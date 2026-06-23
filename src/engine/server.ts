@@ -481,9 +481,22 @@ const server = createServer(async (req, res) => {
       try {
         const m = loadMesh(type) as any;
         if (!m.positions) return send(res, 404, JSON.stringify({ error: "no mesh for part", part }));
-        const positions = m.positions.map((v: number[]) => { const c = meshCorrect(type, v); return [c[0] * 0.001, c[1] * 0.001, c[2] * 0.001]; }); // mm -> m, corrected
-        const normals = vertexNormals(positions, m.triangles);   // per-vertex, so RealityKit can light it
-        return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (m.triangles.length / 3) | 0, positions, normals, triangles: m.triangles }));
+        let nativePos = m.positions as number[][];
+        let tris = m.triangles as number[];
+        // Acoustic perforated panel = the perforated tray PLUS a felt (vlies) pad authored to sit inside it.
+        // The bare sheet alone leaves the panel looking hollow ("a gap"), so merge the matching vlies{L}_{W}
+        // pad into the same mesh (same native frame, so it lands inside the tray; one meshCorrect covers both).
+        // padTriStart marks where the felt triangles begin so the client can give them a matte-fabric material
+        // (the merged mesh otherwise renders single-material metal); omitted / -1 when there is no pad.
+        let padTriStart = -1;
+        const am = part.match(/^acoustic-perforated-panel-(\d+)x(\d+)$/);
+        if (am) {
+          const pad = [loadMesh(`vlies${am[1]}_${am[2]}`), loadMesh(`vlies${am[2]}_${am[1]}`)].find((p: any) => p?.positions) as any;
+          if (pad) { padTriStart = tris.length / 3 | 0; const base = nativePos.length; nativePos = nativePos.concat(pad.positions); tris = tris.concat(pad.triangles.map((i: number) => i + base)); }
+        }
+        const positions = nativePos.map((v: number[]) => { const c = meshCorrect(type, v); return [c[0] * 0.001, c[1] * 0.001, c[2] * 0.001]; }); // mm -> m, corrected
+        const normals = vertexNormals(positions, tris);   // per-vertex, so RealityKit can light it
+        return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (tris.length / 3) | 0, padTriStart, positions, normals, triangles: tris }));
       } catch (e: any) { return send(res, 500, JSON.stringify({ error: String(e?.message ?? e), part })); }
     }
 
