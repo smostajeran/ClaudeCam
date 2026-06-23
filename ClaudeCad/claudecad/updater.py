@@ -1,9 +1,10 @@
 """Self-update: pull the latest ClaudeCad/ from GitHub and install it over the add-in.
 
-Uses only the standard library. Downloads the repository zipball for the configured
-branch, finds the ``ClaudeCad/`` add-in folder inside it, and copies those files over the
-installed add-in directory. The user then restarts the add-in (Stop, then Run) to load
-the new code — Python modules already imported this session stay in memory until reload.
+Uses only the standard library and the GitHub REST API, so it works for both public
+repositories and private ones (the latter needs a token — see ``config.get_github_token``).
+Downloads the repository zipball for the configured branch, finds the ``ClaudeCad/``
+add-in folder inside it, and copies those files over the installed add-in directory. The
+user then restarts the add-in (Stop, then Run) to load the new code.
 """
 
 import io
@@ -15,51 +16,53 @@ import zipfile
 
 from . import config
 
-_RAW_VERSION_URL = "https://raw.githubusercontent.com/{repo}/{branch}/ClaudeCad/VERSION"
+_CONTENTS_URL = "https://api.github.com/repos/{repo}/contents/ClaudeCad/VERSION?ref={branch}"
 _ZIPBALL_URL = "https://api.github.com/repos/{repo}/zipball/{branch}"
 
 
-def _headers():
-    headers = {"User-Agent": "ClaudeCad-Updater"}
+def _headers(accept):
+    headers = {"User-Agent": "ClaudeCad-Updater", "Accept": accept}
     token = config.get_github_token()
     if token:
         headers["Authorization"] = "Bearer " + token
     return headers
 
 
+def _get(url, accept, timeout):
+    request = urllib.request.Request(url, headers=_headers(accept))
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403, 404):
+            raise RuntimeError(
+                "GitHub returned HTTP {}. The repository '{}' is private or the token is "
+                "missing/insufficient. Open Settings and paste a GitHub token with "
+                "Contents:Read access (or make the repository public).".format(exc.code, config.REPO)
+            )
+        raise RuntimeError("GitHub returned HTTP {}.".format(exc.code))
+    except urllib.error.URLError as exc:
+        raise RuntimeError("Network error: {}.".format(exc.reason))
+
+
 def remote_version(timeout=30):
-    url = _RAW_VERSION_URL.format(repo=config.REPO, branch=config.UPDATE_BRANCH)
-    request = urllib.request.Request(url, headers=_headers())
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read().decode("utf-8").strip()
+    url = _CONTENTS_URL.format(repo=config.REPO, branch=config.UPDATE_BRANCH)
+    return _get(url, "application/vnd.github.raw", timeout).decode("utf-8").strip()
 
 
 def update(timeout=120):
     """Check for and install the latest version.
 
-    Returns ``(message, updated, version)``. Raises on network/IO failure.
+    Returns ``(message, updated, version)``. Raises ``RuntimeError`` on failure.
     """
     local = config.get_version()
-    try:
-        latest = remote_version()
-    except Exception as exc:
-        raise RuntimeError("Could not check the latest version: {}".format(exc))
+    latest = remote_version()
 
     if latest == local:
         return ("You're already on the latest version ({}).".format(local), False, local)
 
     url = _ZIPBALL_URL.format(repo=config.REPO, branch=config.UPDATE_BRANCH)
-    request = urllib.request.Request(url, headers=_headers())
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            blob = response.read()
-    except urllib.error.HTTPError as exc:
-        if exc.code in (401, 403, 404):
-            raise RuntimeError(
-                "Download failed (HTTP {}). If the repository is private, add a "
-                "\"github_token\" to ~/.claudecad/config.json.".format(exc.code)
-            )
-        raise RuntimeError("Download failed (HTTP {}).".format(exc.code))
+    blob = _get(url, "application/vnd.github+json", timeout)
 
     archive = zipfile.ZipFile(io.BytesIO(blob))
     names = archive.namelist()

@@ -60,6 +60,37 @@ def get_github_token():
     return None
 
 
+def has_github_token():
+    return bool(get_github_token())
+
+
+def token_from_env():
+    return bool(os.environ.get("GITHUB_TOKEN"))
+
+
+def save_github_token(token):
+    """Persist a GitHub token to ``~/.claudecad/config.json`` (owner-readable only)."""
+    token = (token or "").strip()
+    if not token:
+        raise ValueError("The token is empty.")
+    cfg = _config_path()
+    os.makedirs(os.path.dirname(cfg), exist_ok=True)
+    data = {}
+    if os.path.isfile(cfg):
+        try:
+            with open(cfg, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:
+            data = {}
+    data["github_token"] = token
+    with open(cfg, "w", encoding="utf-8") as fh:
+        json.dump(data, fh)
+    try:
+        os.chmod(cfg, 0o600)
+    except Exception:
+        pass
+
+
 def _config_path():
     return os.path.join(os.path.expanduser("~"), ".claudecad", "config.json")
 
