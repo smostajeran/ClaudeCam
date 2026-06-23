@@ -41,6 +41,11 @@ function glassQuatFromCorners(corners: V3[], dimsMM: number[]): number[] | null 
   return quatFromBasis(X, Y, Z);
 }
 function fixGlassOrientation(parts: any[]): void {
+  // structure centroid — used to give each face normal a consistent OUTWARD sign (the chrome clamp disk
+  // faces the room), so all four clamps on a pane orient the same way regardless of clip winding.
+  const sc: V3 = [0, 0, 0]; let scn = 0;
+  for (const x of parts) if (Array.isArray(x.pos)) { for (let k = 0; k < 3; k++) sc[k] += x.pos[k]; scn++; }
+  if (scn) for (let k = 0; k < 3; k++) sc[k] /= scn;
   for (const p of parts) {
     if (p.family !== "glass") continue;
     const clips = parts.filter((c) => String(c.id).startsWith(`${p.id}c`) && Array.isArray(c.pos)); // prefix: robust to count/naming
@@ -62,22 +67,23 @@ function fixGlassOrientation(parts: any[]): void {
     const ordered = clips.slice().sort((a: any, b: any) => (+String(a.id).match(/c(\d+)$/)?.[1]! || 0) - (+String(b.id).match(/c(\d+)$/)?.[1]! || 0));
     if (ordered.length === 4) p.quad = ordered.map((c: any) => c.pos);
 
-    // Per-corner clamp orientation. The solver leaves all clips at one orientation, so 3 of 4 grip the wrong
-    // way. The glashalter is a two-jaw fork (asset-derived native frame): the grip points along local
-    // [-1,-1,0] (fork body) and the slot/glass-normal is local Z. Orient each clamp so its grip points
-    // INWARD (toward the face centre) and its slot axis aligns with the face NORMAL.
-    const cc = clips.map((c: any) => c.pos as V3);
-    const c0 = cc[0];
-    const near = cc.slice(1).map((c) => ({ v: _sub(c, c0), d: Math.hypot(...(_sub(c, c0) as V3)) })).sort((a, b) => a.d - b.d);
-    const N = _nrm(_cross(near[0].v, near[1].v));                       // face normal (same for all 4 clips)
-    // Native clamp frame (calibrated against real USM glashalter orientations): grip points along local
-    // [-1,-1,0] (maps to inward), and local -Z maps to the face normal (the disk seats against the glass).
-    const u1 = _nrm([-1, -1, 0]), u2: V3 = [0, 0, -1], u3 = _cross(u1, u2);
-    for (const c of clips) {
-      const I = _nrm(_sub(ctr, c.pos as V3));                           // inward (toward face centre)
-      const t1 = I, t2 = N, t3 = _cross(t1, t2);                        // target frame
-      const colk = (k: number): V3 => [u1[k] * t1[0] + u2[k] * t2[0] + u3[k] * t3[0], u1[k] * t1[1] + u2[k] * t2[1] + u3[k] * t3[1], u1[k] * t1[2] + u2[k] * t2[2] + u3[k] * t3[2]];
-      c.quat = quatFromBasis(colk(0), colk(1), colk(2)).map((x) => +x.toFixed(6));
+    // Per-corner clamp orientation. The solver leaves all clips at one orientation, so 3 of 4 grip wrong.
+    // The glashalter is a corner fork; its two flat jaws lie along the corner's two edges and the chrome
+    // disk faces the room. Read straight off real USM clips (decomposed in the corner's edge frame, exact
+    // integer mapping): native X -> -eB, native Y -> -eA, native Z -> -N(outward), where eA/eB are the two
+    // edges leaving the corner (toward the next/prev corner) and N is the room-facing normal. A handedness
+    // swap keeps the rotation proper regardless of the quad's winding.
+    if (ordered.length === 4) {
+      for (let i = 0; i < 4; i++) {
+        const C = ordered[i].pos as V3;
+        const eA = _nrm(_sub(ordered[(i + 1) % 4].pos, C)), eB = _nrm(_sub(ordered[(i + 3) % 4].pos, C));
+        let N = _nrm(_cross(eA, eB));
+        if (_dot(N, _sub(C, sc)) < 0) N = [-N[0], -N[1], -N[2]];                 // outward (disk faces the room)
+        const tZ: V3 = [-N[0], -N[1], -N[2]];
+        let cX: V3 = [-eB[0], -eB[1], -eB[2]], cY: V3 = [-eA[0], -eA[1], -eA[2]]; // native X->-eB, Y->-eA
+        if (_dot(_cross(cX, cY), tZ) < 0) { const t = cX; cX = cY; cY = t; }     // keep it a proper rotation
+        ordered[i].quat = quatFromBasis(cX, cY, tZ).map((x) => +x.toFixed(6));
+      }
     }
   }
 }
