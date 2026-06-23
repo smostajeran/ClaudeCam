@@ -108,22 +108,42 @@ class ClaudeCadUI:
                     args=(self.session, text, self, self.cad, self.dispatcher),
                     daemon=True,
                 ).start()
+        elif action == "save_key":
+            self._save_key(data.get("key", ""))
         elif action == "discard":
             self._discard()
 
+    def _send_config(self):
+        self._send("config", {"has_key": config.has_api_key(), "env": config.key_from_env()})
+
     def _greet(self):
         self.reset_chat()
-        if not config.get_api_key():
-            self.system(
-                "Welcome to ClaudeCad. No API key is configured yet — set ANTHROPIC_API_KEY "
-                "or create ~/.claudecad/config.json, then reopen this panel. See the README."
-            )
-        else:
+        self._send_config()
+        if config.has_api_key():
             self.system(
                 "Hi! I'm ClaudeCad. Describe the part you'd like to design — for example "
                 "'a 100x60x20 mm enclosure with a 30 mm hole in the lid'. I'll ask questions "
                 "if I need to, sketch it parametrically, and check with you before finishing."
             )
+        else:
+            self.system(
+                "Welcome to ClaudeCad. Add your Anthropic API key in Settings (the gear icon, "
+                "top right) to get started."
+            )
+
+    def _save_key(self, key):
+        if config.key_from_env():
+            self.system(
+                "Note: ANTHROPIC_API_KEY is set in your environment and takes precedence. "
+                "I'll still save this key, but the environment value will be used until it's unset."
+            )
+        try:
+            config.save_api_key(key)
+            self.session.client = None  # rebuild the client with the new key
+            self._send_config()
+            self.system("API key saved. You're ready to design — describe a part to begin.")
+        except Exception as exc:
+            self.system("Could not save the API key: {}".format(exc))
 
     def _discard(self):
         try:

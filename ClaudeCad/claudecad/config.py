@@ -23,13 +23,17 @@ CMD_TOOLTIP = "Open the ClaudeCad AI design assistant"
 PANEL_ID = "SolidScriptsAddinsPanel"
 
 
+def _config_path():
+    return os.path.join(os.path.expanduser("~"), ".claudecad", "config.json")
+
+
 def get_api_key():
     """Return the Anthropic API key, or ``None`` if it is not configured."""
     key = os.environ.get("ANTHROPIC_API_KEY")
     if key:
         return key.strip()
     try:
-        cfg = os.path.join(os.path.expanduser("~"), ".claudecad", "config.json")
+        cfg = _config_path()
         if os.path.isfile(cfg):
             with open(cfg, "r", encoding="utf-8") as fh:
                 data = json.load(fh)
@@ -39,3 +43,38 @@ def get_api_key():
     except Exception:
         pass
     return None
+
+
+def has_api_key():
+    return bool(get_api_key())
+
+
+def key_from_env():
+    """True when the key comes from the environment (overrides the saved file)."""
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+
+def save_api_key(key):
+    """Persist the API key to ``~/.claudecad/config.json`` (owner-readable only)."""
+    key = (key or "").strip()
+    if not key:
+        raise ValueError("The API key is empty.")
+
+    cfg = _config_path()
+    os.makedirs(os.path.dirname(cfg), exist_ok=True)
+
+    data = {}
+    if os.path.isfile(cfg):
+        try:
+            with open(cfg, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:
+            data = {}
+
+    data["api_key"] = key
+    with open(cfg, "w", encoding="utf-8") as fh:
+        json.dump(data, fh)
+    try:
+        os.chmod(cfg, 0o600)
+    except Exception:
+        pass

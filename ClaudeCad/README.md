@@ -42,14 +42,14 @@ The Claude network call runs on a background thread so Fusion stays responsive; 
 
    `lib/` is git-ignored. If the SDK is missing, the panel tells you exactly this.
 
-3. **Provide your Anthropic API key** (either one):
-   - set the `ANTHROPIC_API_KEY` environment variable, **or**
-   - create `~/.claudecad/config.json`:
-     ```json
-     { "api_key": "sk-ant-..." }
-     ```
+3. In Fusion: **Utilities → Add-Ins → Scripts and Add-Ins**, select **ClaudeCad**, click **Run**. The chat panel opens (also re-openable from the **Add-Ins** panel button).
 
-4. In Fusion: **Utilities → Add-Ins → Scripts and Add-Ins**, select **ClaudeCad**, click **Run**. The chat panel opens (also re-openable from the **Add-Ins** panel button).
+4. **Provide your Anthropic API key.** Easiest: click the **gear icon** (top-right of the panel), paste your key, and **Save** — it's stored locally in `~/.claudecad/config.json` (owner-readable only). If no key is set, the Settings screen opens automatically.
+
+   Alternatively, set the `ANTHROPIC_API_KEY` environment variable (this takes precedence over the saved key), or create `~/.claudecad/config.json` yourself:
+   ```json
+   { "api_key": "sk-ant-..." }
+   ```
 
 ## Example prompts
 

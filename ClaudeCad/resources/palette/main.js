@@ -12,8 +12,25 @@
     var composer = document.getElementById("composer");
     var approveBtn = document.getElementById("approveBtn");
     var discardBtn = document.getElementById("discardBtn");
+    var settingsBtn = document.getElementById("settingsBtn");
+    var settingsEl = document.getElementById("settings");
+    var apiKeyEl = document.getElementById("apiKey");
+    var keyHintEl = document.getElementById("keyHint");
+    var saveKeyBtn = document.getElementById("saveKeyBtn");
+    var closeSettingsBtn = document.getElementById("closeSettingsBtn");
 
     var busy = false;
+    var hasKey = false;
+
+    function openSettings() {
+        settingsEl.classList.remove("hidden");
+        apiKeyEl.focus();
+    }
+
+    function closeSettings() {
+        settingsEl.classList.add("hidden");
+        apiKeyEl.value = "";
+    }
 
     function sendData(action, payload) {
         try {
@@ -70,6 +87,25 @@
         }
     });
 
+    settingsBtn.addEventListener("click", function () {
+        if (settingsEl.classList.contains("hidden")) {
+            openSettings();
+        } else {
+            closeSettings();
+        }
+    });
+
+    closeSettingsBtn.addEventListener("click", closeSettings);
+
+    saveKeyBtn.addEventListener("click", function () {
+        var key = apiKeyEl.value.trim();
+        if (!key) {
+            return;
+        }
+        sendData("save_key", { key: key });
+        closeSettings();
+    });
+
     // Receive messages from the Python add-in.
     window.fusionJavaScriptHandler = {
         handle: function (action, data) {
@@ -92,6 +128,19 @@
                 case "reset":
                     messagesEl.innerHTML = "";
                     setStatus(false, "");
+                    break;
+                case "config":
+                    hasKey = !!d.has_key;
+                    if (d.env) {
+                        keyHintEl.textContent = "An API key is currently set via the ANTHROPIC_API_KEY environment variable, which takes precedence over a saved key.";
+                    } else {
+                        keyHintEl.innerHTML = "Stored locally in <code>~/.claudecad/config.json</code> (owner-readable only).";
+                    }
+                    if (!hasKey) {
+                        openSettings();
+                    } else {
+                        closeSettings();
+                    }
                     break;
             }
             return "OK";
