@@ -99,6 +99,14 @@ def _strip_orphan_tool_uses(messages):
                 and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in nxt_content)
             )
             if not followed:
+                # Drop the orphaned tool_use blocks (and the now-moot thinking that
+                # preceded them) but keep any text so the model still sees what it said.
+                # Drop the whole message only if nothing usable remains.
+                kept = [b for b in content if isinstance(b, dict) and b.get("type") == "text"]
+                if kept:
+                    repaired = dict(message)
+                    repaired["content"] = kept
+                    result.append(repaired)
                 i += 1
                 continue
         result.append(message)
@@ -139,6 +147,8 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         while alive():
             # Repair any orphaned tool_use left by a previously interrupted turn.
             chat.messages[:] = _strip_orphan_tool_uses(chat.messages)
+            if not alive():
+                return  # Discard happened between the loop check and the request
             response = api.create_message(
                 api_key=key,
                 model=config.MODEL,
@@ -163,14 +173,16 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
                 if block.get("type") == "text" and (block.get("text") or "").strip():
                     ui.assistant(chat, block["text"])
 
+            # Note truncation whether or not tool calls were emitted.
+            if response.get("stop_reason") == "max_tokens":
+                ui.system_for(chat, "Heads up: the response hit the length limit and may be cut off.")
+
             # Execute tool calls whenever they're present — even if the response stopped on
             # max_tokens — so every tool_use is always paired with a tool_result. Breaking
             # on stop_reason here was what left an orphaned tool_use (the 400) when a big
             # batch of tool calls hit the length limit.
             tool_use_blocks = [b for b in content if b.get("type") == "tool_use"]
             if not tool_use_blocks:
-                if response.get("stop_reason") == "max_tokens":
-                    ui.system_for(chat, "Heads up: the response hit the length limit and may be cut off.")
                 break
 
             tool_results = []
