@@ -309,6 +309,72 @@ TOOLS = [
         },
     },
     {
+        "name": "loft",
+        "description": "Create a body by lofting through two or more profiles (one per sketch, in order). Use for tapered/blended shapes. Sketches are usually on offset planes at different heights.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sketch_ids": {"type": "array", "items": {"type": "string"}, "description": "Sketch ids in loft order (>=2)."},
+                "operation": {"type": "string", "enum": ["new", "join", "cut", "intersect"], "description": "Default 'new'."},
+            },
+            "required": ["sketch_ids"],
+        },
+    },
+    {
+        "name": "sweep",
+        "description": "Sweep a profile along a path to make pipes/handles/rails. Give the sketch holding the profile and a separate sketch holding the path curve.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "profile_sketch_id": {"type": "string", "description": "Sketch with the closed profile."},
+                "path_sketch_id": {"type": "string", "description": "Sketch with the path curve."},
+                "operation": {"type": "string", "enum": ["new", "join", "cut", "intersect"], "description": "Default 'new'."},
+            },
+            "required": ["profile_sketch_id", "path_sketch_id"],
+        },
+    },
+    {
+        "name": "mesh_to_solid",
+        "description": "Convert an imported mesh body (from inspect_model) into an editable solid body, where the Fusion version supports it.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"mesh_index": {"type": "integer", "description": "Which mesh body. Default 0."}},
+        },
+    },
+    {
+        "name": "add_thread",
+        "description": "Add a standard (metric) modeled thread to a cylindrical face — e.g. tap a hole (internal) or thread a shaft (external). Get the cylindrical face index from list_faces.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Default 0."},
+                "face_index": {"type": "integer", "description": "A cylindrical face from list_faces."},
+                "internal": {"type": "boolean", "description": "True for a tapped hole, false for an external (shaft) thread. Default true."},
+            },
+            "required": ["face_index"],
+        },
+    },
+    {
+        "name": "get_mass_properties",
+        "description": "Report mass, volume, surface area and centre of mass for a body (uses its assigned material's density).",
+        "input_schema": {
+            "type": "object",
+            "properties": {"body_index": {"type": "integer", "description": "Default 0."}},
+        },
+    },
+    {
+        "name": "set_material",
+        "description": "Assign a physical material to a body (e.g. 'Aluminum', 'ABS Plastic', 'Steel') so mass properties and appearance are realistic.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Default 0."},
+                "name": {"type": "string", "description": "Material name (partial match, case-insensitive)."},
+            },
+            "required": ["name"],
+        },
+    },
+    {
         "name": "get_design_summary",
         "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
@@ -377,6 +443,18 @@ def execute(name, tool_input, cad):
                                 float(ti.get("center_x", 0.0)), float(ti.get("center_y", 0.0)))
     if name == "export_model":
         return cad.export_model(ti.get("format", "step"), ti.get("filename"))
+    if name == "loft":
+        return cad.loft(list(ti["sketch_ids"]), ti.get("operation", "new"))
+    if name == "sweep":
+        return cad.sweep(ti["profile_sketch_id"], ti["path_sketch_id"], ti.get("operation", "new"))
+    if name == "mesh_to_solid":
+        return cad.mesh_to_solid(int(ti.get("mesh_index", 0)))
+    if name == "add_thread":
+        return cad.add_thread(int(ti.get("body_index", 0)), int(ti["face_index"]), bool(ti.get("internal", True)))
+    if name == "get_mass_properties":
+        return cad.get_mass_properties(int(ti.get("body_index", 0)))
+    if name == "set_material":
+        return cad.set_material(int(ti.get("body_index", 0)), ti["name"])
     if name == "get_design_summary":
         return cad.get_design_summary()
 

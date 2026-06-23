@@ -685,6 +685,117 @@ class CadBuilder:
         mgr.execute(options)
         return "Exported the model to {}".format(path)
 
+    # -- advanced features ---------------------------------------------------
+    def loft(self, sketch_ids, operation="new"):
+        comp = self._comp()
+        op = _OPERATIONS.get((operation or "new").lower())
+        if op is None:
+            raise ValueError("Unknown operation '{}'.".format(operation))
+        if not sketch_ids or len(sketch_ids) < 2:
+            raise ValueError("Loft needs at least two profile sketches.")
+        lofts = comp.features.loftFeatures
+        lin = lofts.createInput(op)
+        for sid in sketch_ids:
+            sk = self._sketch(sid)
+            if sk.profiles.count == 0:
+                raise RuntimeError("Sketch {} has no closed profile to loft.".format(sid))
+            lin.loftSections.add(sk.profiles.item(0))
+        self._remember(lofts.add(lin))
+        return "Lofted a body through {} profiles ({}).".format(len(sketch_ids), operation)
+
+    def sweep(self, profile_sketch_id, path_sketch_id, operation="new"):
+        comp = self._comp()
+        op = _OPERATIONS.get((operation or "new").lower())
+        if op is None:
+            raise ValueError("Unknown operation '{}'.".format(operation))
+        psk = self._sketch(profile_sketch_id)
+        if psk.profiles.count == 0:
+            raise RuntimeError("Profile sketch {} has no closed profile.".format(profile_sketch_id))
+        path_sk = self._sketch(path_sketch_id)
+        if path_sk.sketchCurves.count == 0:
+            raise RuntimeError("Path sketch {} has no curve to sweep along.".format(path_sketch_id))
+        path = comp.features.createPath(path_sk.sketchCurves.item(0), True)
+        sweeps = comp.features.sweepFeatures
+        sin = sweeps.createInput(psk.profiles.item(0), path, op)
+        self._remember(sweeps.add(sin))
+        return "Swept profile from {} along the path in {} ({}).".format(profile_sketch_id, path_sketch_id, operation)
+
+    def mesh_to_solid(self, mesh_index=0):
+        comp = self._comp()
+        meshes = comp.meshBodies
+        if meshes.count == 0:
+            raise RuntimeError("There are no mesh bodies to convert.")
+        if mesh_index < 0 or mesh_index >= meshes.count:
+            raise ValueError("mesh_index {} out of range ({} mesh bodies).".format(mesh_index, meshes.count))
+        feats = getattr(comp.features, "meshToBRepFeatures", None)
+        if not feats:
+            raise RuntimeError(
+                "Mesh-to-solid conversion isn't exposed by the Fusion API in this version. "
+                "Workaround: in Fusion, use the Mesh tab > BRep Conversion, then I can edit the result."
+            )
+        col = adsk.core.ObjectCollection.create()
+        col.add(meshes.item(mesh_index))
+        feats.add(feats.createInput(col))
+        self._record_start()  # body set changed
+        return "Converted mesh [{}] to a solid body.".format(mesh_index)
+
+    def add_thread(self, body_index, face_index, internal=True):
+        comp = self._comp()
+        body = self._brep_body(body_index)
+        if face_index < 0 or face_index >= body.faces.count:
+            raise ValueError("face_index {} out of range.".format(face_index))
+        face = body.faces.item(face_index)
+        cyl = adsk.core.Cylinder.cast(face.geometry)
+        if not cyl:
+            raise RuntimeError("Face [{}] is not cylindrical; threads need a cylindrical face.".format(face_index))
+
+        threads = comp.features.threadFeatures
+        query = threads.threadDataQuery
+        thread_type = query.defaultMetricThreadType
+        diameter_cm = cyl.radius * 2.0
+        rec = query.recommendedThreadData(diameter_cm, internal, thread_type)
+        # rec: (bool ok, threadSize, threadDesignation, threadClass)
+        if not rec or not rec[0]:
+            raise RuntimeError("No standard thread recommendation for this diameter.")
+        info = threads.createThreadInfo(internal, thread_type, rec[2], rec[3])
+        faces = adsk.core.ObjectCollection.create()
+        faces.add(face)
+        tin = threads.createInput(faces, info)
+        tin.isModeled = True
+        self._remember(threads.add(tin))
+        return "Added a modeled {} thread ({}) to face [{}].".format(
+            "internal" if internal else "external", rec[2], face_index
+        )
+
+    def get_mass_properties(self, body_index=0):
+        body = self._brep_body(body_index)
+        pp = body.physicalProperties
+        com = pp.centerOfMass
+        return (
+            "Body [{}] '{}': mass {:.2f} g, volume {:.2f} cm^3, surface area {:.2f} cm^2, "
+            "centre of mass at {} mm.".format(
+                body_index, body.name, pp.mass * 1000.0, pp.volume, pp.area, self._fmt_pt(com)
+            )
+        )
+
+    def set_material(self, body_index, name):
+        body = self._brep_body(body_index)
+        libs = self.app.materialLibraries
+        target = None
+        for i in range(libs.count):
+            mats = libs.item(i).materials
+            for j in range(mats.count):
+                m = mats.item(j)
+                if name.lower() in m.name.lower():
+                    target = m
+                    break
+            if target:
+                break
+        if not target:
+            raise ValueError("No material matching '{}' found in the material libraries.".format(name))
+        body.material = target
+        return "Set body [{}] material to '{}'.".format(body_index, target.name)
+
     def capture_view(self):
         """Fit the camera and return a PNG of the active viewport as image content blocks."""
         viewport = self.app.activeViewport

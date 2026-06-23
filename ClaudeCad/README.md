@@ -89,6 +89,12 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   circular / rectangular patterns, and N-sided polygons.
 - **Editing existing models:** `change_parameter` (resize), `cut_hole` on a chosen face,
   `combine_bodies` (boolean join/cut/intersect), and `move_body` (reposition).
+- **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
+- **Threads:** `add_thread` taps a cylindrical face (hole or shaft) with a standard metric thread.
+- **Material + mass:** `set_material` assigns a physical material; `get_mass_properties` reports
+  mass / volume / surface area / centre of mass.
+- **Mesh → solid:** `mesh_to_solid` converts an imported mesh to an editable body where the
+  Fusion version supports it.
 - **Export:** `export_model` writes STEP / STL / IGES / F3D to your home folder.
 - **3D placement:** sketches can be created on an **offset** construction plane so parts are
   positioned at the right height/location and assemble together rather than overlapping at
