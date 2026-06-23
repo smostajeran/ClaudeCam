@@ -163,13 +163,18 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
                 if block.get("type") == "text" and (block.get("text") or "").strip():
                     ui.assistant(chat, block["text"])
 
-            if response.get("stop_reason") != "tool_use":
+            # Execute tool calls whenever they're present — even if the response stopped on
+            # max_tokens — so every tool_use is always paired with a tool_result. Breaking
+            # on stop_reason here was what left an orphaned tool_use (the 400) when a big
+            # batch of tool calls hit the length limit.
+            tool_use_blocks = [b for b in content if b.get("type") == "tool_use"]
+            if not tool_use_blocks:
+                if response.get("stop_reason") == "max_tokens":
+                    ui.system_for(chat, "Heads up: the response hit the length limit and may be cut off.")
                 break
 
             tool_results = []
-            for block in content:
-                if block.get("type") != "tool_use":
-                    continue
+            for block in tool_use_blocks:
                 if not alive():
                     return
                 ui.status(chat, True, "Building: {}…".format(block.get("name")))
