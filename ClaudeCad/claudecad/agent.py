@@ -29,7 +29,10 @@ Follow this workflow:
    fillet_edges / chamfer_edges / cut_hole act on specific edges/faces you found with
    list_edges / list_faces; combine_bodies does booleans (join/cut/intersect) and move_body
    repositions a body. export_model writes STEP/STL/IGES/F3D to the user's home folder when
-   they ask to export.
+   they ask to export. For shapes extrude/revolve can't make, use loft (blend through
+   profiles on offset planes) or sweep (profile along a path sketch). add_thread taps a
+   cylindrical face (a hole or shaft). set_material + get_mass_properties give realistic
+   mass/volume/centre-of-mass. mesh_to_solid converts an imported mesh where supported.
 4a. POSITION parts in a single coherent coordinate system so they assemble correctly —
    do NOT leave parts floating apart. Decide an origin and where each part sits, then place
    it there: sketch on an offset plane (create_sketch offset=...) for parts at a height (a
