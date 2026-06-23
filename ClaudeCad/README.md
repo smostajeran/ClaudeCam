@@ -90,6 +90,11 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **3D placement:** sketches can be created on an **offset** construction plane so parts are
   positioned at the right height/location and assemble together rather than overlapping at
   the origin.
+- **Read-back / inspection:** `inspect_model` reports units, parameters, every solid body
+  (size, face/edge counts, volume) and every **mesh body** (size + triangle count), so Claude
+  can see what already exists — its own work, geometry you added, and imported meshes — instead
+  of building blind. `list_faces` / `list_edges` enumerate a body's faces/edges (type, size,
+  location) for targeting. Meshes are detected but aren't parametric, so they can't be edited.
 - **Vision:** `capture_view` screenshots the viewport so Claude can *see* the model and
   self-correct before asking you to approve.
 

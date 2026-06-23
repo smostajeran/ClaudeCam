@@ -390,6 +390,156 @@ class CadBuilder:
             ", ".join(params) if params else "none",
         )
 
+    # -- read-back / inspection ---------------------------------------------
+    def _mm(self, cm):
+        return cm / MM  # centimetres -> millimetres
+
+    def _fmt_pt(self, point):
+        return "({:.1f}, {:.1f}, {:.1f})".format(self._mm(point.x), self._mm(point.y), self._mm(point.z))
+
+    def _bbox_dims(self, bbox):
+        mn, mx = bbox.minPoint, bbox.maxPoint
+        return (self._mm(mx.x - mn.x), self._mm(mx.y - mn.y), self._mm(mx.z - mn.z))
+
+    def _brep_body(self, index):
+        comp = self._comp()
+        if comp.bRepBodies.count == 0:
+            raise RuntimeError("There are no solid bodies in the model.")
+        if index < 0 or index >= comp.bRepBodies.count:
+            raise ValueError("body_index {} out of range (model has {} solid bodies).".format(index, comp.bRepBodies.count))
+        return comp.bRepBodies.item(index)
+
+    @staticmethod
+    def _surface_kind(geometry):
+        for label, cls in (
+            ("plane", adsk.core.Plane), ("cylinder", adsk.core.Cylinder),
+            ("sphere", adsk.core.Sphere), ("cone", adsk.core.Cone), ("torus", adsk.core.Torus),
+        ):
+            try:
+                if cls.cast(geometry):
+                    return label
+            except Exception:
+                pass
+        return "surface"
+
+    @staticmethod
+    def _curve_kind(geometry):
+        for label, cls in (
+            ("line", adsk.core.Line3D), ("arc", adsk.core.Arc3D),
+            ("circle", adsk.core.Circle3D), ("ellipse", adsk.core.Ellipse3D),
+        ):
+            try:
+                if cls.cast(geometry):
+                    return label
+            except Exception:
+                pass
+        return "curve"
+
+    def inspect_model(self):
+        """Report a structured read-back of the active document so Claude can see what
+        already exists (its own work, the user's geometry, and imported meshes)."""
+        design = self._design()
+        comp = design.rootComponent
+        lines = []
+        try:
+            lines.append("Length units: {}".format(design.fusionUnitsManager.defaultLengthUnits))
+        except Exception:
+            pass
+
+        ups = design.userParameters
+        if ups.count:
+            params = []
+            for i in range(ups.count):
+                p = ups.item(i)
+                params.append("{} = {} ({:.3g} {})".format(p.name, p.expression, self._mm(p.value), "mm"))
+            lines.append("User parameters: " + "; ".join(params))
+        else:
+            lines.append("User parameters: none")
+
+        lines.append("Solid bodies: {}".format(comp.bRepBodies.count))
+        for i in range(comp.bRepBodies.count):
+            b = comp.bRepBodies.item(i)
+            dx, dy, dz = self._bbox_dims(b.boundingBox)
+            try:
+                vol = " volume {:.2f} cm^3".format(b.volume)
+            except Exception:
+                vol = ""
+            lines.append(
+                "  [{}] '{}' — size {:.1f} x {:.1f} x {:.1f} mm, faces {}, edges {}{}, visible {}".format(
+                    i, b.name, dx, dy, dz, b.faces.count, b.edges.count, vol, b.isVisible
+                )
+            )
+
+        meshes = comp.meshBodies
+        lines.append("Mesh bodies: {}".format(meshes.count))
+        for i in range(meshes.count):
+            m = meshes.item(i)
+            try:
+                dx, dy, dz = self._bbox_dims(m.boundingBox)
+                size = "size {:.1f} x {:.1f} x {:.1f} mm".format(dx, dy, dz)
+            except Exception:
+                size = "size unknown"
+            tri = ""
+            try:
+                tri = ", {} triangles".format(m.displayMesh.triangleCount)
+            except Exception:
+                pass
+            lines.append("  [{}] '{}' (mesh — not parametric; can't be edited by these tools) — {}{}".format(
+                i, m.name, size, tri
+            ))
+
+        lines.append("Sketches: {}".format(comp.sketches.count))
+        return "\n".join(lines)
+
+    def list_faces(self, body_index=0, limit=80):
+        body = self._brep_body(body_index)
+        total = body.faces.count
+        rows = []
+        for i in range(min(total, limit)):
+            f = body.faces.item(i)
+            kind = self._surface_kind(f.geometry)
+            try:
+                loc = self._fmt_pt(f.pointOnFace)
+            except Exception:
+                loc = self._fmt_pt(f.boundingBox.minPoint)
+            normal = ""
+            if kind == "plane":
+                try:
+                    n = adsk.core.Plane.cast(f.geometry).normal
+                    normal = " normal ({:.2f}, {:.2f}, {:.2f})".format(n.x, n.y, n.z)
+                except Exception:
+                    pass
+            try:
+                area = " area {:.1f} mm^2".format(f.area / (MM * MM))
+            except Exception:
+                area = ""
+            rows.append("  [{}] {}{} at {} mm{}".format(i, kind, area, loc, normal))
+        header = "Body [{}] '{}' has {} faces".format(body_index, body.name, total)
+        if total > limit:
+            header += " (showing first {})".format(limit)
+        return header + ":\n" + "\n".join(rows)
+
+    def list_edges(self, body_index=0, limit=80):
+        body = self._brep_body(body_index)
+        total = body.edges.count
+        rows = []
+        for i in range(min(total, limit)):
+            e = body.edges.item(i)
+            kind = self._curve_kind(e.geometry)
+            try:
+                loc = self._fmt_pt(e.pointOnEdge)
+            except Exception:
+                loc = self._fmt_pt(e.boundingBox.minPoint)
+            try:
+                length = " length {:.1f} mm".format(self._mm(e.length))
+            except Exception:
+                length = ""
+            rows.append("  [{}] {}{} near {} mm".format(i, kind, length, loc))
+        header = "Body [{}] '{}' has {} edges".format(body_index, body.name, total)
+        if total > limit:
+            header += " (showing first {})".format(limit)
+        return header + ":\n" + "\n".join(rows)
+
     def capture_view(self):
         """Fit the camera and return a PNG of the active viewport as image content blocks."""
         viewport = self.app.activeViewport
