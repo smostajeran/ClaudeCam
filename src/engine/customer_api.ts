@@ -53,6 +53,11 @@ function fixGlassOrientation(parts: any[]): void {
     // opening. The clip corners are seated on the real face, so the clip CENTROID is the true face centre.
     const ctr: V3 = [0, 0, 0]; for (const c of clips) for (let k = 0; k < 3; k++) ctr[k] += c.pos[k] / clips.length;
     p.pos = ctr.map((x) => +x.toFixed(5));
+    // The iOS client draws glass from part.quad (the razor-thin glass mesh can fail MeshResource.generate,
+    // so it falls back to a primitive that uses the quad). The solver's quad is the stale laid-flat one, so
+    // overwrite it with the clip-corner rectangle (the real face plane), ordered by clip index to stay cyclic.
+    const ordered = clips.slice().sort((a: any, b: any) => (+String(a.id).match(/c(\d+)$/)?.[1]! || 0) - (+String(b.id).match(/c(\d+)$/)?.[1]! || 0));
+    if (ordered.length === 4) p.quad = ordered.map((c: any) => c.pos);
   }
 }
 
