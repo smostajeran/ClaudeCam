@@ -139,7 +139,6 @@ class ClaudeCadUI:
             )
         try:
             config.save_api_key(key)
-            self.session.client = None  # rebuild the client with the new key
             self._send_config()
             self.system("API key saved. You're ready to design — describe a part to begin.")
         except Exception as exc:

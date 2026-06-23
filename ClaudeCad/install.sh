@@ -15,14 +15,13 @@ case "$(uname -s)" in
         ;;
 esac
 
-PY="${PYTHON:-python3}"
-
 echo "Source:      $SRC"
 echo "Destination: $DEST"
 
 if [ "$SRC" != "$DEST" ]; then
     mkdir -p "$DEST"
-    # Copy everything except VCS/build cruft.
+    # Copy everything except VCS/build cruft. No third-party packages are needed —
+    # ClaudeCad talks to the Claude API using Python's standard library only.
     (cd "$SRC" && find . \
         -path ./.git -prune -o \
         -name __pycache__ -prune -o \
@@ -31,9 +30,6 @@ if [ "$SRC" != "$DEST" ]; then
         cp "$SRC/$f" "$DEST/$f"
     done
 fi
-
-echo "Installing the anthropic SDK into $DEST/lib ..."
-"$PY" -m pip install --upgrade anthropic -t "$DEST/lib"
 
 echo
 echo "Done. In Fusion: Utilities > Add-Ins > Scripts and Add-Ins > select 'ClaudeCad' > Run."

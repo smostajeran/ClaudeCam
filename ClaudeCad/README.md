@@ -17,6 +17,7 @@ You describe what you want; Claude analyzes the requirement, asks clarifying que
 |-------|----------------|
 | `ClaudeCad.py` | Fusion entry point (`run`/`stop`); sets up `sys.path`. |
 | `claudecad/agent.py` | Claude conversation + tool loop (`claude-opus-4-8`, adaptive thinking). Runs on a worker thread. |
+| `claudecad/api.py` | Stdlib-only (`urllib`) client for the Anthropic Messages API — no packages to install. |
 | `claudecad/tools.py` | Tool schemas exposed to Claude and dispatch to the CAD builder. |
 | `claudecad/cad.py` | Fusion CAD operations (parameters, sketches, rectangles, circles, lines, extrudes) + session reset. |
 | `claudecad/dispatcher.py` | Marshals CAD/UI calls onto Fusion's main thread (the API is main-thread only). |
@@ -40,28 +41,19 @@ Get the `ClaudeCad/` folder onto your machine (clone the repo, or download the b
   powershell -ExecutionPolicy Bypass -File install.ps1
   ```
 
-The script copies the add-in into Fusion's AddIns folder and installs the `anthropic` SDK into `lib/`. Then in Fusion: **Utilities → Add-Ins → Scripts and Add-Ins → select `ClaudeCad` → Run**, click the **gear icon**, and paste your API key.
+The script copies the add-in into Fusion's AddIns folder. **No packages to install** — ClaudeCad calls the Claude API using Python's standard library only. Then in Fusion: **Utilities → Add-Ins → Scripts and Add-Ins → select `ClaudeCad` → Run**, click the **gear icon**, and paste your API key.
 
 ### Manual install
 
-1. **Copy the add-in** into your Fusion add-ins folder (or load it from here):
+1. **Copy the add-in** into your Fusion add-ins folder:
    - Windows: `%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\`
    - macOS: `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/`
 
-   The folder, the `.py`, and the `.manifest` must all be named `ClaudeCad`.
+   The folder, the `.py`, and the `.manifest` must all be named `ClaudeCad`. There are **no dependencies to install**.
 
-2. **Install the Anthropic SDK into the add-in's `lib/` folder** (Fusion's Python can't see your system packages):
+2. In Fusion: **Utilities → Add-Ins → Scripts and Add-Ins**, select **ClaudeCad**, click **Run**. The chat panel opens (also re-openable from the **Add-Ins** panel button).
 
-   ```bash
-   cd ClaudeCad
-   python -m pip install anthropic -t lib
-   ```
-
-   `lib/` is git-ignored. If the SDK is missing, the panel tells you exactly this.
-
-3. In Fusion: **Utilities → Add-Ins → Scripts and Add-Ins**, select **ClaudeCad**, click **Run**. The chat panel opens (also re-openable from the **Add-Ins** panel button).
-
-4. **Provide your Anthropic API key.** Easiest: click the **gear icon** (top-right of the panel), paste your key, and **Save** — it's stored locally in `~/.claudecad/config.json` (owner-readable only). If no key is set, the Settings screen opens automatically.
+3. **Provide your Anthropic API key.** Easiest: click the **gear icon** (top-right of the panel), paste your key, and **Save** — it's stored locally in `~/.claudecad/config.json` (owner-readable only). If no key is set, the Settings screen opens automatically.
 
    Alternatively, set the `ANTHROPIC_API_KEY` environment variable (this takes precedence over the saved key), or create `~/.claudecad/config.json` yourself:
    ```json
