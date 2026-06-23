@@ -24,6 +24,20 @@ export interface FaceSlot {
 const SHEET_FAMILIES = ["panel", "glass"]; // an open tube-bounded face takes a sheet panel (solid/perforated/biblio) OR a glass leaf
 const len = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+// How far (metres) to pull each drop-target quad in from the bounding tubes, so a face's ghost/collider
+// clears its neighbours and leaves room to aim. ~2.5 cm reads clearly as "inside the opening".
+const SLOT_INSET_M = 0.025;
+// Shrink a 4-corner rectangle toward its own plane-centre by `m` on every side (move each corner inward
+// along both of its edges). Keeps the rectangle centred and square; just smaller.
+function insetQuad(quad: number[][], m: number): number[][] {
+  const sub = (a: number[], b: number[]) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const unit = (v: number[]) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+  return quad.map((p, k) => {
+    const e1 = unit(sub(quad[(k + 1) % 4], p)), e2 = unit(sub(quad[(k + 3) % 4], p)); // the two edges leaving this corner
+    return [p[0] + m * (e1[0] + e2[0]), p[1] + m * (e1[1] + e2[1]), p[2] + m * (e1[2] + e2[2])];
+  });
+}
+
 // All open (panel-less) tube-bounded faces in a solved scene. `placement` supplies world positions for
 // the output quad; the config graph (`xml`) supplies topology + dock occupancy for the openness test.
 export function openFaceSlots(xml: string, placement: any): FaceSlot[] {
@@ -65,7 +79,14 @@ export function openFaceSlots(xml: string, placement: any): FaceSlot[] {
         if (!edgeTubes.every((t) => inwardBlechIndex(t, ctr) != null)) continue;
 
         const e0 = Math.round(len(cpos.get(v)!, cpos.get(n1)!)), e1 = Math.round(len(cpos.get(n1)!, cpos.get(w)!));
-        const quad = cyc.map((id) => wpos.get(id) ?? posToRK(cpos.get(id)!));
+        const cornerQuad = cyc.map((id) => wpos.get(id) ?? posToRK(cpos.get(id)!));
+        // The ghost mesh AND its tap collider are this quad, so a corner-to-corner quad makes every face's
+        // hitbox reach the bounding tubes — adjacent faces share an edge with no gap, and a near (front)
+        // face's box overlaps the foreshortened face behind it, stealing its taps. Inset the quad toward
+        // its own centre by SLOT_INSET_M so each ghost sits INSIDE the opening with clearance on all sides
+        // (esp. left/right). corners (the placement key) is untouched, so visual == hitbox and placement is
+        // unchanged — only the drop-target shrinks.
+        const quad = insetQuad(cornerQuad, SLOT_INSET_M);
         out.push({ slotId: "face:" + key, kind: "face", corners: cyc, quad, dims: [e0, e1], accepts: SHEET_FAMILIES });
       }
     }
