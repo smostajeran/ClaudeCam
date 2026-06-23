@@ -375,6 +375,41 @@ TOOLS = [
         },
     },
     {
+        "name": "get_selection",
+        "description": "Read what the user has currently selected (clicked) in the Fusion viewport — faces, edges, or bodies. Use this when the user says 'this edge', 'the face I picked', 'these', etc., then act on the selection.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "fillet_selection",
+        "description": "Round the edges the user has selected in the Fusion viewport.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"radius": _LENGTH},
+            "required": ["radius"],
+        },
+    },
+    {
+        "name": "chamfer_selection",
+        "description": "Bevel the edges the user has selected in the Fusion viewport.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"distance": _LENGTH},
+            "required": ["distance"],
+        },
+    },
+    {
+        "name": "cut_hole_selection",
+        "description": "Cut a round hole, centred, in the flat face the user has selected in the Fusion viewport. Through-all unless depth is given.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "diameter": _LENGTH,
+                "depth": {"type": ["string", "number"], "description": "Blind-hole depth. Omit for through-all."},
+            },
+            "required": ["diameter"],
+        },
+    },
+    {
         "name": "get_design_summary",
         "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
@@ -455,6 +490,14 @@ def execute(name, tool_input, cad):
         return cad.get_mass_properties(int(ti.get("body_index", 0)))
     if name == "set_material":
         return cad.set_material(int(ti.get("body_index", 0)), ti["name"])
+    if name == "get_selection":
+        return cad.get_selection()
+    if name == "fillet_selection":
+        return cad.fillet_selection(ti["radius"])
+    if name == "chamfer_selection":
+        return cad.chamfer_selection(ti["distance"])
+    if name == "cut_hole_selection":
+        return cad.cut_hole_selection(ti["diameter"], ti.get("depth"))
     if name == "get_design_summary":
         return cad.get_design_summary()
 

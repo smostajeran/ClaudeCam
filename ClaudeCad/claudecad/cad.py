@@ -582,14 +582,18 @@ class CadBuilder:
         return "Chamfered {} edge(s) of body [{}] by {}.".format(edges.count, body_index, self._length(distance))
 
     def cut_hole(self, body_index, face_index, diameter, depth=None, x_offset=0.0, y_offset=0.0):
-        comp = self._comp()
         body = self._brep_body(body_index)
         if face_index < 0 or face_index >= body.faces.count:
             raise ValueError("face_index {} out of range (body has {} faces).".format(face_index, body.faces.count))
         face = body.faces.item(face_index)
-        if not adsk.core.Plane.cast(face.geometry):
-            raise RuntimeError("Face [{}] is not planar; cut_hole needs a flat face.".format(face_index))
+        r_mm = self._cut_hole_on_face(face, diameter, depth, x_offset, y_offset)
+        depth_note = self._length(depth) if depth else "through all"
+        return "Cut a {:g} mm hole through face [{}] of body [{}] ({}).".format(r_mm, face_index, body_index, depth_note)
 
+    def _cut_hole_on_face(self, face, diameter, depth=None, x_offset=0.0, y_offset=0.0):
+        if not adsk.core.Plane.cast(face.geometry):
+            raise RuntimeError("That face is not planar; a hole needs a flat face.")
+        comp = self._comp()
         sketch = comp.sketches.add(face)
         center_sketch = sketch.modelToSketchSpace(face.pointOnFace)
         center = adsk.core.Point3D.create(
@@ -602,13 +606,77 @@ class CadBuilder:
         ext = comp.features.extrudeFeatures
         ext_input = ext.createInput(profile, adsk.fusion.FeatureOperations.CutFeatureOperation)
         if depth is not None and not (isinstance(depth, (int, float)) and float(depth) == 0.0):
-            # negative distance cuts into the body (opposite the outward face normal)
             ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString("-(" + self._length(depth) + ")"))
         else:
             ext_input.setAllExtent(adsk.fusion.ExtentDirections.NegativeExtentDirection)
         self._remember(ext.add(ext_input))
+        return r_mm
+
+    # -- viewport selection (pick in Fusion, act in chat) --------------------
+    def _selected_entities(self):
+        sels = self.app.userInterface.activeSelections
+        return [sels.item(i).entity for i in range(sels.count)]
+
+    def _selected_edges(self):
+        edges = adsk.core.ObjectCollection.create()
+        for e in self._selected_entities():
+            if adsk.fusion.BRepEdge.cast(e):
+                edges.add(e)
+        return edges
+
+    def get_selection(self):
+        ents = self._selected_entities()
+        if not ents:
+            return "Nothing is selected in Fusion. Click the faces/edges/bodies you mean in the viewport, then ask again."
+        rows = []
+        for k, e in enumerate(ents):
+            if adsk.fusion.BRepFace.cast(e):
+                kind = "face ({})".format(self._surface_kind(e.geometry))
+            elif adsk.fusion.BRepEdge.cast(e):
+                kind = "edge ({}, {:.1f} mm)".format(self._curve_kind(e.geometry), self._mm(e.length))
+            elif adsk.fusion.BRepBody.cast(e):
+                kind = "body '{}'".format(e.name)
+            else:
+                kind = type(e).__name__
+            rows.append("  [{}] {}".format(k, kind))
+        return "Current Fusion selection ({}):\n".format(len(ents)) + "\n".join(rows)
+
+    def fillet_selection(self, radius):
+        edges = self._selected_edges()
+        if edges.count == 0:
+            raise RuntimeError("Select one or more edges in Fusion first, then try again.")
+        comp = self._comp()
+        fillets = comp.features.filletFeatures
+        fin = fillets.createInput()
+        fin.addConstantRadiusEdgeSet(edges, adsk.core.ValueInput.createByString(self._length(radius)), True)
+        self._remember(fillets.add(fin))
+        return "Filleted {} selected edge(s) with radius {}.".format(edges.count, self._length(radius))
+
+    def chamfer_selection(self, distance):
+        edges = self._selected_edges()
+        if edges.count == 0:
+            raise RuntimeError("Select one or more edges in Fusion first, then try again.")
+        comp = self._comp()
+        chamfers = comp.features.chamferFeatures
+        cin = chamfers.createInput(edges, True)
+        cin.setToEqualDistance(adsk.core.ValueInput.createByString(self._length(distance)))
+        self._remember(chamfers.add(cin))
+        return "Chamfered {} selected edge(s) by {}.".format(edges.count, self._length(distance))
+
+    def cut_hole_selection(self, diameter, depth=None):
+        face = None
+        for e in self._selected_entities():
+            f = adsk.fusion.BRepFace.cast(e)
+            if f and adsk.core.Plane.cast(f.geometry):
+                face = f
+                break
+        if not face:
+            raise RuntimeError("Select a flat face in Fusion first, then try again.")
+        r_mm = self._cut_hole_on_face(face, diameter, depth, 0.0, 0.0)
         depth_note = self._length(depth) if depth else "through all"
-        return "Cut a {:g} mm hole through face [{}] of body [{}] ({}).".format(r_mm, face_index, body_index, depth_note)
+        return "Cut a {:g} mm hole in the selected face ({}).".format(r_mm, depth_note)
+
+
 
     def combine_bodies(self, target_index, tool_indices, operation="join"):
         comp = self._comp()
