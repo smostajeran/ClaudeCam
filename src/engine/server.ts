@@ -327,16 +327,14 @@ function withSlotOptions(payload: any): any {
     const [e0, e1] = s.dims, W = e0 * 10, H = e1 * 10;   // bay edge cm -> panel id mm
     // `material` tells the client how to render each sheet: solid metal, fine "mesh" perforation, or
     // round-hole "perforated". (Acoustic = any of these + a felt pad; that's a feature toggle, not yet wired.)
-    const canAcoustic = has("vlies", e0, e1);   // a felt pad exists at this size -> offer the acoustic combo
+    // One perforated product (mesh and perforated are the same panel — prefer "Perforated"). Acoustic is the
+    // same panel + a felt pad, offered only where a vlies pad exists at this size.
+    const canAcoustic = has("vlies", e0, e1);
     const opts: Array<{ part: string; family: string; label: string; material: string; acoustic?: boolean }> = [];
-    if (has("blech", e0, e1)) opts.push({ part: `metal-panel-${W}x${H}`, family: "panel", label: "Metal panel", material: "metal" });
-    if (has("perfblech", e0, e1)) {
-      opts.push({ part: `mesh-panel-${W}x${H}`, family: "panel", label: "Mesh panel", material: "mesh" });
-      if (canAcoustic) opts.push({ part: `mesh-panel-${W}x${H}`, family: "panel", label: "Mesh + acoustic", material: "mesh", acoustic: true });
-    }
+    if (has("blech", e0, e1)) opts.push({ part: `metal-panel-${W}x${H}`, family: "panel", label: "Metal", material: "metal" });
     if (has("lochblech", e0, e1)) {
-      opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated panel", material: "perforated" });
-      if (canAcoustic) opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated + acoustic", material: "perforated", acoustic: true });
+      opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated", material: "perforated" });
+      if (canAcoustic) opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated + Acoustic", material: "perforated", acoustic: true });
     }
     if (has("glas", e0, e1)) opts.push({ part: `glass-${W}x${H}`, family: "glass", label: "Glass", material: "glass" });
     s.options = opts;   // [] when nothing has a mesh at this size -> client shows no placeable material
@@ -367,11 +365,13 @@ function candidateTypes(partId: string): string[] {
   if ((m = partId.match(/^tube-(\d+)$/))) return [`rohr${m[1]}`];
   if ((m = partId.match(/^metal-panel-(\d+)x(\d+)$/))) return [`blech${m[1]}_${m[2]}`, `blech${m[2]}_${m[1]}`];
   if ((m = partId.match(/^glass-(\d+)x(\d+)$/))) return [`glas${m[1]}_${m[2]}`, `glas${m[2]}_${m[1]}`];
-  if ((m = partId.match(/^mesh-panel-(\d+)x(\d+)$/))) return [`perfblech${m[1]}_${m[2]}`, `perfblech${m[2]}_${m[1]}`];               // fine-perforation "mesh" sheet
-  if ((m = partId.match(/^perforated-metal-panel-(\d+)x(\d+)$/))) return [`lochblech${m[1]}_${m[2]}`, `lochblech${m[2]}_${m[1]}`]; // round-hole "perforated" sheet
+  // "Mesh" and "Perforated" are the SAME product (a holed metal panel); we prefer "Perforated" and back it
+  // with lochblech (round holes). typeForPart normalises the legacy `mesh-panel-*` id to this one.
+  if ((m = partId.match(/^perforated-metal-panel-(\d+)x(\d+)$/))) return [`lochblech${m[1]}_${m[2]}`, `lochblech${m[2]}_${m[1]}`];
   return [];
 }
 function typeForPart(xml: string, partId: string): string | null {
+  partId = partId.replace(/^mesh-panel-/, "perforated-metal-panel-");   // legacy alias: mesh == perforated
   for (const p of parseConfig(xml).parts) if (identity(p.type).part === partId) return p.type;
   for (const t of candidateTypes(partId)) if (identity(t).part === partId) return t;
   return null;
