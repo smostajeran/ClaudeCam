@@ -305,6 +305,26 @@ function vertexNormals(pos: number[][], tri: number[]): number[][] {
   return n.map((v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; });
 }
 
+// Attach the exact droppable options to each open face slot. A tube-bounded bay takes a panel that
+// spans the WHOLE opening (not "anything that fits within" it), so the only real choice is the material —
+// the size is fixed by the face's own dims. We emit one ready-to-place one52 id per material that has a
+// mesh at exactly this size, so the client renders these directly and can never offer a mismatched size.
+function withSlotOptions(payload: any): any {
+  const idx = meshIndex();
+  const has = (kind: string, e0: number, e1: number) =>
+    (idx[kind] ?? []).some(([a, b]: number[]) => (a === e0 * 10 && b === e1 * 10) || (a === e1 * 10 && b === e0 * 10));
+  for (const s of payload?.slots ?? []) {
+    if (s.kind !== "face" || !Array.isArray(s.dims) || s.dims.length < 2) continue;
+    const [e0, e1] = s.dims, W = e0 * 10, H = e1 * 10;   // bay edge cm -> panel id mm
+    const opts: Array<{ part: string; family: string; label: string }> = [];
+    if (has("blech", e0, e1)) opts.push({ part: `metal-panel-${W}x${H}`, family: "panel", label: "Metal panel" });
+    if (has("perfblech", e0, e1)) opts.push({ part: `acoustic-perforated-panel-${W}x${H}`, family: "panel", label: "Acoustic panel" });
+    if (has("glas", e0, e1)) opts.push({ part: `glass-${W}x${H}`, family: "glass", label: "Glass" });
+    s.options = opts;   // [] when nothing has a mesh at this size -> client shows no placeable material
+  }
+  return payload;
+}
+
 // re-solve + re-classify the session config; returns { placement, payload } (IP-safe) or null on solver failure.
 function resolveConfig(cfgPath: string): { placement: any; payload: any } | null {
   const r = spawnSync(process.execPath, ["src/engine/solve.ts", cfgPath], { cwd: ROOT, encoding: "utf8", timeout: 120000, env: { ...process.env, USE_STORED_MATES: "1" } });
@@ -315,7 +335,7 @@ function resolveConfig(cfgPath: string): { placement: any; payload: any } | null
   const cf = join(ROOT, "out", "conflicts.json");
   const conflicts = existsSync(cf) ? JSON.parse(readFileSync(cf, "utf8")) : null;
   const xml = existsSync(cfgPath) ? readFileSync(cfgPath, "utf8") : undefined;
-  const payload = customerPayload(placement, conflicts, xml);
+  const payload = withSlotOptions(customerPayload(placement, conflicts, xml));
   recordPartTypes(placement, payload);
   return { placement, payload };
 }
@@ -464,7 +484,7 @@ const server = createServer(async (req, res) => {
       }
       const placement = JSON.parse(readFileSync(pf, "utf8"));
       const conflicts = existsSync(cf) ? JSON.parse(readFileSync(cf, "utf8")) : null;
-      const payload = customerPayload(placement, conflicts, cfgXml);
+      const payload = withSlotOptions(customerPayload(placement, conflicts, cfgXml));
       recordPartTypes(placement, payload);
       return send(res, 200, JSON.stringify(payload));
     }
