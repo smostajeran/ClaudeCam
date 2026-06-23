@@ -368,6 +368,9 @@ function candidateTypes(partId: string): string[] {
   // "Mesh" and "Perforated" are the SAME product (a holed metal panel); we prefer "Perforated" and back it
   // with lochblech (round holes). typeForPart normalises the legacy `mesh-panel-*` id to this one.
   if ((m = partId.match(/^perforated-metal-panel-(\d+)x(\d+)$/))) return [`lochblech${m[1]}_${m[2]}`, `lochblech${m[2]}_${m[1]}`];
+  // Glass clamps (glashalter) are added alongside a glass placement; they only register in PART_TYPE when a
+  // scene already contains glass, so resolve them here too (id -> internal type) for /api/part-mesh.
+  if (partId === "glass-clamp-standard") return ["glashalter_std"];
   return [];
 }
 function typeForPart(xml: string, partId: string): string | null {
@@ -518,7 +521,7 @@ const server = createServer(async (req, res) => {
       const qp = new URLSearchParams((req.url ?? "").split("?")[1] ?? "");
       const part = qp.get("part") ?? "";
       const acoustic = qp.get("acoustic") === "1";   // request the felt-backed (Akustik) variant of this panel
-      const type = PART_TYPE.get(part);
+      const type = PART_TYPE.get(part) ?? candidateTypes(part)[0];   // fall back to the id->type map for parts not yet learned (e.g. clamps in a clean scene)
       if (!type) return send(res, 404, JSON.stringify({ error: "unknown part — solve a scene containing it first", part }));
       try {
         const m = loadMesh(type) as any;
