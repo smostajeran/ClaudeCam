@@ -525,6 +525,15 @@ const server = createServer(async (req, res) => {
         if (!m.positions) return send(res, 404, JSON.stringify({ error: "no mesh for part", part }));
         let nativePos = m.positions as number[][];
         let tris = m.triangles as number[];
+        // Glass .3d authoring is inconsistent (some landscape, some portrait), so the same one52 size can
+        // load either orientation. Normalize EVERY glass to a portrait frame (short edge -> local X, long
+        // edge -> local Y, in its X-Y plane) so the client's per-face quat (which aligns short->short,
+        // long->long edge) is always correct. 90° about Z: (x,y,z) -> (-y, x, z).
+        if (/^glas\d/.test(type)) {
+          let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
+          for (const v of nativePos) { if (v[0] < xmin) xmin = v[0]; if (v[0] > xmax) xmax = v[0]; if (v[1] < ymin) ymin = v[1]; if (v[1] > ymax) ymax = v[1]; }
+          if (xmax - xmin > ymax - ymin) nativePos = nativePos.map((v) => [-v[1], v[0], v[2]]);   // landscape -> portrait
+        }
         // Acoustic panel = the sheet PLUS a felt (vlies) pad authored to sit inside its lip tray. The bare
         // sheet alone leaves an acoustic panel looking hollow, so when the acoustic variant is requested we
         // merge the matching vlies{L}_{W} pad into the same mesh (same native frame -> it lands in the tray;
