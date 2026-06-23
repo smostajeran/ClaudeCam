@@ -56,9 +56,41 @@ function fixGlassOrientation(parts: any[]): void {
   }
 }
 
+const _dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+function _qrot(q: number[], v: V3): V3 {
+  const [x, y, z, w] = q; const tx = 2 * (y * v[2] - z * v[1]), ty = 2 * (z * v[0] - x * v[2]), tz = 2 * (x * v[1] - y * v[0]);
+  return [v[0] + w * tx + (y * tz - z * ty), v[1] + w * ty + (z * tx - x * tz), v[2] + w * tz + (x * ty - y * tx)];
+}
+const _qmul = (a: number[], b: number[]): number[] => [
+  a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+  a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+  a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+  a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+];
+// Solid/perforated panels (metal-panel, perforated-metal-panel) are an asymmetric tray: the flat metal
+// face is on local -Y (asset-derived: it covers the full area; the +Y end is just the open lip rim), and
+// the lip should tuck INWARD. The solver seats the lip either way per face, so make it consistent: if a
+// panel's flat face points toward the structure interior, flip it 180° about local X (swaps flat<->lip,
+// keeps the panel in its plane). Glass/shelves/hardware are untouched.
+const FLAT_FACE_LOCAL: V3 = [0, -1, 0];
+const FLIP_X180 = [1, 0, 0, 0]; // 180° about local X
+function fixPanelLip(parts: any[]): void {
+  const panels = parts.filter((p) => /^(metal-panel|perforated-metal-panel)-/.test(String(p.part)) && Array.isArray(p.pos) && Array.isArray(p.quat));
+  if (panels.length < 2) return;
+  const ctr: V3 = [0, 0, 0]; let n = 0;
+  for (const p of parts) if (Array.isArray(p.pos)) { for (let k = 0; k < 3; k++) ctr[k] += p.pos[k]; n++; }
+  for (let k = 0; k < 3; k++) ctr[k] /= n || 1;
+  for (const p of panels) {
+    const flatWorld = _qrot(p.quat, FLAT_FACE_LOCAL);
+    const outward = _nrm(_sub(p.pos as V3, ctr));
+    if (_dot(flatWorld, outward) < 0) p.quat = _qmul(p.quat, FLIP_X180).map((x) => +x.toFixed(6)); // flat face inward -> flip
+  }
+}
+
 export function customerPayload(placement: any, conflicts: any, configXml?: string): any {
   const rk = placementToRK(placement); // { meta, parts, catalog } — already IP-safe
   fixGlassOrientation(rk.parts);        // override the solver's locked glass quat with a per-face one from its clips
+  fixPanelLip(rk.parts);                // make every panel's lip tuck inward (flat metal face outward)
 
   // Bill of materials: aggregate the placed parts by one52 part id.
   // Acoustic panels carry the Akustik feature in the config (the solver drops it from the placement, so we
