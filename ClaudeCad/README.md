@@ -17,7 +17,7 @@ You describe what you want; Claude analyzes the requirement, asks clarifying que
 |-------|----------------|
 | `ClaudeCad.py` | Fusion entry point (`run`/`stop`); sets up `sys.path`. |
 | `claudecad/agent.py` | Claude conversation + tool loop (`claude-opus-4-8`, adaptive thinking). Runs on a worker thread. |
-| `claudecad/api.py` | Stdlib-only (`urllib`) client for the Anthropic Messages API — no packages to install. |
+| `claudecad/api.py` | Minimal Claude Messages API client built on `urllib` (Python standard library) — no third-party packages. |
 | `claudecad/tools.py` | Tool schemas exposed to Claude and dispatch to the CAD builder. |
 | `claudecad/cad.py` | Fusion CAD operations (parameters, sketches, rectangles, circles, lines, extrudes) + session reset. |
 | `claudecad/dispatcher.py` | Marshals CAD/UI calls onto Fusion's main thread (the API is main-thread only). |
@@ -25,6 +25,8 @@ You describe what you want; Claude analyzes the requirement, asks clarifying que
 | `resources/palette/` | The chat UI (HTML/CSS/JS). |
 
 The Claude network call runs on a background thread so Fusion stays responsive; CAD operations and UI updates are marshalled back to the main thread via a registered Fusion custom event.
+
+**No dependencies.** ClaudeCad calls the Claude API directly with Python's standard library (`urllib`), so there is nothing to `pip install`. This sidesteps a common Fusion problem: the `anthropic` SDK pulls in compiled wheels (notably `pydantic-core`) whose binaries are built for your system Python's version/ABI and fail to import inside Fusion's bundled interpreter.
 
 ## Install
 
@@ -41,19 +43,21 @@ Get the `ClaudeCad/` folder onto your machine (clone the repo, or download the b
   powershell -ExecutionPolicy Bypass -File install.ps1
   ```
 
-The script copies the add-in into Fusion's AddIns folder. **No packages to install** — ClaudeCad calls the Claude API using Python's standard library only. Then in Fusion: **Utilities → Add-Ins → Scripts and Add-Ins → select `ClaudeCad` → Run**, click the **gear icon**, and paste your API key.
+The script copies the add-in into Fusion's AddIns folder. There is **no dependency install step** — ClaudeCad uses only Python's standard library. Then in Fusion: **Utilities → Add-Ins → Scripts and Add-Ins → select `ClaudeCad` → Run**, click the **gear icon**, and paste your API key.
 
 ### Manual install
 
-1. **Copy the add-in** into your Fusion add-ins folder:
+1. **Copy the add-in** into your Fusion add-ins folder (or load it from here):
    - Windows: `%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\`
    - macOS: `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/`
 
-   The folder, the `.py`, and the `.manifest` must all be named `ClaudeCad`. There are **no dependencies to install**.
+   The folder, the `.py`, and the `.manifest` must all be named `ClaudeCad`.
 
-2. In Fusion: **Utilities → Add-Ins → Scripts and Add-Ins**, select **ClaudeCad**, click **Run**. The chat panel opens (also re-openable from the **Add-Ins** panel button).
+2. **No dependencies to install.** ClaudeCad talks to the Claude API using only Python's standard library, so there is nothing to `pip install` — skip straight to running the add-in.
 
-3. **Provide your Anthropic API key.** Easiest: click the **gear icon** (top-right of the panel), paste your key, and **Save** — it's stored locally in `~/.claudecad/config.json` (owner-readable only). If no key is set, the Settings screen opens automatically.
+3. In Fusion: **Utilities → Add-Ins → Scripts and Add-Ins**, select **ClaudeCad**, click **Run**. The chat panel opens (also re-openable from the **Add-Ins** panel button).
+
+4. **Provide your Anthropic API key.** Easiest: click the **gear icon** (top-right of the panel), paste your key, and **Save** — it's stored locally in `~/.claudecad/config.json` (owner-readable only). If no key is set, the Settings screen opens automatically.
 
    Alternatively, set the `ANTHROPIC_API_KEY` environment variable (this takes precedence over the saved key), or create `~/.claudecad/config.json` yourself:
    ```json

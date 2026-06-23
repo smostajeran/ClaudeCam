@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Install ClaudeCad into Fusion 360's AddIns folder and vendor the anthropic SDK.
+# Install ClaudeCad into Fusion 360's AddIns folder.
+# No dependencies to install — ClaudeCad talks to the Claude API using only the
+# Python standard library.
 # Usage:  bash install.sh   (run from inside the ClaudeCad folder)
 set -euo pipefail
 
@@ -32,5 +34,5 @@ if [ "$SRC" != "$DEST" ]; then
 fi
 
 echo
-echo "Done. In Fusion: Utilities > Add-Ins > Scripts and Add-Ins > select 'ClaudeCad' > Run."
+echo "Done — no dependencies to install. In Fusion: Utilities > Add-Ins > Scripts and Add-Ins > select 'ClaudeCad' > Run."
 echo "Then click the gear icon in the panel and paste your Anthropic API key."

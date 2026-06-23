@@ -1,8 +1,9 @@
 """ClaudeCad — a Fusion 360 add-in that turns a chat conversation into parametric CAD.
 
-This file is the thin entry point Fusion loads. It puts the add-in folder (and the
-vendored ``lib/`` directory that holds the ``anthropic`` SDK) on ``sys.path`` and
-delegates to the :mod:`claudecad` package.
+This file is the thin entry point Fusion loads. It puts the add-in folder on
+``sys.path`` and delegates to the :mod:`claudecad` package. There are no
+third-party dependencies — ClaudeCad calls the Claude API with the standard
+library only.
 """
 
 import os
@@ -12,9 +13,8 @@ import traceback
 import adsk.core
 
 ADDIN_DIR = os.path.dirname(os.path.realpath(__file__))
-for _path in (ADDIN_DIR, os.path.join(ADDIN_DIR, "lib")):
-    if _path not in sys.path:
-        sys.path.insert(0, _path)
+if ADDIN_DIR not in sys.path:
+    sys.path.insert(0, ADDIN_DIR)
 
 from claudecad import addin
 
