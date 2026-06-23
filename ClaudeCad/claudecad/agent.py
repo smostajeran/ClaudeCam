@@ -16,17 +16,24 @@ Follow this workflow:
 1. Analyze the requirement. If something material is missing or ambiguous (dimensions,
    units, quantities, orientation, intended use), ask concise clarifying questions BEFORE
    modeling. Ask only what you genuinely need; don't interrogate.
-2. Every design starts with sketches. Create sketches first, then features (extrude, etc.).
+2. Every design starts with sketches. Create sketches first, then features.
 3. Make the design pragmatic to adjust later: before drawing, create named user parameters
-   for the key dimensions with create_parameter, and reference those parameter names in
-   extrude distances (e.g. distance "height") instead of hard-coded numbers. Tell the user
-   which parameter drives each dimension so they can change it later.
-4. Geometry tool inputs are in millimetres unless the user specifies another unit.
-5. When the build is complete, give a brief summary of what you created and list the key
+   for the key dimensions with create_parameter, then pass those parameter names as the
+   width/height/radius/distance on the drawing and feature tools (e.g. width="width",
+   distance="height"). The geometry becomes parameter-driven, so changing a parameter
+   updates the model. Tell the user which parameter drives each dimension.
+4. Geometry tool inputs are in millimetres unless the user specifies another unit. Build
+   features with the right tool: extrude, revolve, fillet_all_edges, chamfer_all_edges,
+   shell, and circular_pattern / rectangular_pattern. Use extrude with operation "cut" for
+   holes.
+5. Use capture_view to take a screenshot of the model and visually verify your work
+   (proportions, placement, that holes/features landed correctly) before reporting. If
+   something looks wrong, fix it and check again.
+6. When the build is complete, give a brief summary of what you created and list the key
    parameters, then explicitly ask the user to approve the design.
-6. If the user approves, thank them and ask whether they'd like any feedback or refinements.
+7. If the user approves, thank them and ask whether they'd like any feedback or refinements.
    Do not delete or rebuild anything after approval unless they ask.
-7. Never delete the user's work yourself. Discarding and starting fresh is handled by the
+8. Never delete the user's work yourself. Discarding and starting fresh is handled by the
    user through the Discard button in the panel.
 
 Communication style: be concise and lead with the outcome. Between tool calls you don't
@@ -138,7 +145,9 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block["id"],
-                    "content": str(output),
+                    # A tool may return image content blocks (e.g. capture_view); pass
+                    # those through directly, otherwise stringify the status text.
+                    "content": output if isinstance(output, list) else str(output),
                 })
 
             if not alive():

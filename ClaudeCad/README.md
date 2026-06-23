@@ -78,9 +78,22 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck.
 - Note: all chats build into the one active Fusion document (geometry is shared); chat isolation is about the *conversation*, not separate 3D models.
 
+## What Claude can build
+
+- **Parameters** that drive the model (`create_parameter`).
+- **Sketches** with rectangles, circles, lines. Width/height/radius accept a parameter
+  expression (e.g. `"width"`, `"2 * wall"`), so the sketch is **parameter-driven** —
+  change the parameter and the part updates.
+- **Features:** extrude (incl. cut for holes), revolve, fillet-all-edges,
+  chamfer-all-edges, shell (hollow / open box), and circular / rectangular patterns.
+- **Vision:** `capture_view` screenshots the viewport so Claude can *see* the model and
+  self-correct before asking you to approve.
+
 ## Notes & limitations
 
 - Tool geometry inputs are **millimetres** (Fusion's internal unit is cm; the add-in converts).
-- The current tool set covers parameters, sketches, rectangles/circles/lines, and extrudes — enough for a wide range of prismatic parts. The architecture is built to extend: add a method to `cad.py`, a schema to `tools.py`, and a branch to `tools.execute`.
+- Fillet/chamfer/shell act on **all edges / the top face** of the most recent body (no
+  per-edge selection yet). The architecture is built to extend: add a method to `cad.py`,
+  a schema to `tools.py`, and a branch to `tools.execute`.
 - **Discard & start over** deletes the timeline features and parameters created during the session (rolling back to where the session began) — it does not touch pre-existing geometry.
 - Requires an active Fusion design in **parametric** (timeline) mode.

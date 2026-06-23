@@ -1,14 +1,16 @@
 """Tool schemas exposed to Claude, and the dispatcher from tool name to CadBuilder."""
 
+_LENGTH = {"type": ["string", "number"], "description": "Millimetres, or a parameter expression like 'width' or '2 * wall'."}
+
 TOOLS = [
     {
         "name": "create_parameter",
         "description": (
             "Create a named user parameter that drives the model, so the design can be "
             "adjusted later by editing one value. Create parameters for the KEY dimensions "
-            "BEFORE drawing, and reference their names in extrude distances (e.g. distance "
-            "'height'). 'expression' is a value with units like '40 mm', or an expression "
-            "referencing other parameters like '2 * width'."
+            "BEFORE drawing, then reference their names in the drawing/feature tools (e.g. "
+            "width='width', distance='height'). 'expression' is a value with units like "
+            "'40 mm', or an expression like '2 * width'."
         ),
         "input_schema": {
             "type": "object",
@@ -23,7 +25,7 @@ TOOLS = [
     },
     {
         "name": "create_sketch",
-        "description": "Create a new sketch on a construction plane. Every design starts with sketches. Returns a sketch id (e.g. 's1') used by the drawing and extrude tools.",
+        "description": "Create a new sketch on a construction plane. Every design starts with sketches. Returns a sketch id (e.g. 's1') used by the drawing and feature tools.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -34,13 +36,13 @@ TOOLS = [
     },
     {
         "name": "draw_rectangle",
-        "description": "Draw a rectangle in a sketch, centred at (center_x, center_y). All values are millimetres.",
+        "description": "Draw a rectangle in a sketch, centred at (center_x, center_y). Pass width/height as parameter expressions to make the rectangle adjustable later.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "sketch_id": {"type": "string"},
-                "width": {"type": "number", "description": "Width in mm (X)."},
-                "height": {"type": "number", "description": "Height in mm (Y)."},
+                "width": _LENGTH,
+                "height": _LENGTH,
                 "center_x": {"type": "number", "description": "Centre X in mm. Default 0."},
                 "center_y": {"type": "number", "description": "Centre Y in mm. Default 0."},
             },
@@ -49,12 +51,12 @@ TOOLS = [
     },
     {
         "name": "draw_circle",
-        "description": "Draw a circle in a sketch. All values are millimetres.",
+        "description": "Draw a circle in a sketch. Pass radius as a parameter expression to make it adjustable later.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "sketch_id": {"type": "string"},
-                "radius": {"type": "number", "description": "Radius in mm."},
+                "radius": _LENGTH,
                 "center_x": {"type": "number", "description": "Centre X in mm. Default 0."},
                 "center_y": {"type": "number", "description": "Centre Y in mm. Default 0."},
             },
@@ -68,35 +70,102 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "sketch_id": {"type": "string"},
-                "x1": {"type": "number"},
-                "y1": {"type": "number"},
-                "x2": {"type": "number"},
-                "y2": {"type": "number"},
+                "x1": {"type": "number"}, "y1": {"type": "number"},
+                "x2": {"type": "number"}, "y2": {"type": "number"},
             },
             "required": ["sketch_id", "x1", "y1", "x2", "y2"],
         },
     },
     {
         "name": "extrude",
-        "description": (
-            "Extrude a closed profile of a sketch into a 3D feature. 'distance' should be a "
-            "parameter-driven expression like 'height' or a value with units like '20 mm' "
-            "(prefer referencing a parameter so the model stays adjustable). Use operation "
-            "'cut' to remove material (e.g. holes) and 'join' to add to an existing body."
-        ),
+        "description": "Extrude a closed profile of a sketch. Prefer a parameter expression for distance (e.g. 'height'). Use operation 'cut' for holes, 'join' to add to a body.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "sketch_id": {"type": "string"},
-                "distance": {
-                    "type": ["string", "number"],
-                    "description": "Expression like 'height' or '20 mm'. A bare number is treated as mm.",
-                },
+                "distance": _LENGTH,
                 "operation": {"type": "string", "enum": ["new", "join", "cut", "intersect"], "description": "Default 'new'."},
                 "profile_index": {"type": "integer", "description": "Which profile in the sketch to extrude. Default 0."},
             },
             "required": ["sketch_id", "distance"],
         },
+    },
+    {
+        "name": "revolve",
+        "description": "Revolve a closed profile around the X, Y or Z construction axis to make a rotationally-symmetric body.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sketch_id": {"type": "string"},
+                "axis": {"type": "string", "enum": ["x", "y", "z"], "description": "Axis of revolution. Default 'z'."},
+                "angle": {"type": ["string", "number"], "description": "Degrees (default 360) or an expression like '180 deg'."},
+                "operation": {"type": "string", "enum": ["new", "join", "cut", "intersect"], "description": "Default 'new'."},
+                "profile_index": {"type": "integer", "description": "Default 0."},
+            },
+            "required": ["sketch_id"],
+        },
+    },
+    {
+        "name": "fillet_all_edges",
+        "description": "Round (fillet) ALL edges of the most recently created body with a constant radius.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"radius": _LENGTH},
+            "required": ["radius"],
+        },
+    },
+    {
+        "name": "chamfer_all_edges",
+        "description": "Bevel (chamfer) ALL edges of the most recently created body by an equal distance.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"distance": _LENGTH},
+            "required": ["distance"],
+        },
+    },
+    {
+        "name": "shell",
+        "description": "Hollow out the most recent body to a wall thickness. By default the top face is removed (open box); set remove_top false for a fully enclosed shell.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "thickness": _LENGTH,
+                "remove_top": {"type": "boolean", "description": "Remove the top face to leave an opening. Default true."},
+            },
+            "required": ["thickness"],
+        },
+    },
+    {
+        "name": "circular_pattern",
+        "description": "Pattern the most recent feature in a circle about the X, Y or Z axis.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "count": {"type": "integer", "description": "Total number of copies."},
+                "axis": {"type": "string", "enum": ["x", "y", "z"], "description": "Default 'z'."},
+                "angle": {"type": "number", "description": "Total angle in degrees. Default 360."},
+            },
+            "required": ["count"],
+        },
+    },
+    {
+        "name": "rectangular_pattern",
+        "description": "Pattern the most recent feature in a grid along X (and optionally Y).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "count_x": {"type": "integer"},
+                "spacing_x": {"type": "number", "description": "Spacing in mm along X."},
+                "count_y": {"type": "integer", "description": "Default 1."},
+                "spacing_y": {"type": "number", "description": "Spacing in mm along Y. Default 0."},
+            },
+            "required": ["count_x", "spacing_x"],
+        },
+    },
+    {
+        "name": "capture_view",
+        "description": "Take a screenshot of the current Fusion 3D viewport and look at it. Use this to visually check your work and self-correct (proportions, placement, missing features).",
+        "input_schema": {"type": "object", "properties": {}},
     },
     {
         "name": "get_design_summary",
@@ -107,35 +176,40 @@ TOOLS = [
 
 
 def execute(name, tool_input, cad):
-    """Run a tool against the CadBuilder. Returns a status string; raises on failure."""
+    """Run a tool against the CadBuilder. Returns a status string, or (for capture_view)
+    a list of content blocks. Raises on failure."""
     ti = tool_input or {}
 
     if name == "create_parameter":
         return cad.create_parameter(ti["name"], ti["expression"], ti.get("unit", "mm"), ti.get("comment", ""))
-
     if name == "create_sketch":
         return cad.create_sketch(ti.get("plane", "xy"), ti.get("name"))
-
     if name == "draw_rectangle":
-        return cad.draw_rectangle(
-            ti["sketch_id"], float(ti["width"]), float(ti["height"]),
-            float(ti.get("center_x", 0.0)), float(ti.get("center_y", 0.0)),
-        )
-
+        return cad.draw_rectangle(ti["sketch_id"], ti["width"], ti["height"],
+                                  float(ti.get("center_x", 0.0)), float(ti.get("center_y", 0.0)))
     if name == "draw_circle":
-        return cad.draw_circle(
-            ti["sketch_id"], float(ti["radius"]),
-            float(ti.get("center_x", 0.0)), float(ti.get("center_y", 0.0)),
-        )
-
+        return cad.draw_circle(ti["sketch_id"], ti["radius"],
+                               float(ti.get("center_x", 0.0)), float(ti.get("center_y", 0.0)))
     if name == "draw_line":
         return cad.draw_line(ti["sketch_id"], float(ti["x1"]), float(ti["y1"]), float(ti["x2"]), float(ti["y2"]))
-
     if name == "extrude":
-        distance = ti["distance"]
-        distance = distance if isinstance(distance, str) else "{:g} mm".format(float(distance))
-        return cad.extrude(ti["sketch_id"], distance, ti.get("operation", "new"), int(ti.get("profile_index", 0)))
-
+        return cad.extrude(ti["sketch_id"], ti["distance"], ti.get("operation", "new"), int(ti.get("profile_index", 0)))
+    if name == "revolve":
+        return cad.revolve(ti["sketch_id"], ti.get("axis", "z"), ti.get("angle", 360),
+                           ti.get("operation", "new"), int(ti.get("profile_index", 0)))
+    if name == "fillet_all_edges":
+        return cad.fillet_all_edges(ti["radius"])
+    if name == "chamfer_all_edges":
+        return cad.chamfer_all_edges(ti["distance"])
+    if name == "shell":
+        return cad.shell(ti["thickness"], bool(ti.get("remove_top", True)))
+    if name == "circular_pattern":
+        return cad.circular_pattern(int(ti["count"]), ti.get("axis", "z"), float(ti.get("angle", 360)))
+    if name == "rectangular_pattern":
+        return cad.rectangular_pattern(int(ti["count_x"]), float(ti["spacing_x"]),
+                                       int(ti.get("count_y", 1)), float(ti.get("spacing_y", 0.0)))
+    if name == "capture_view":
+        return cad.capture_view()
     if name == "get_design_summary":
         return cad.get_design_summary()
 
