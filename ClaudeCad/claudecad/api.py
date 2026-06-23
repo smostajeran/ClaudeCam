@@ -7,11 +7,22 @@ so ClaudeCad talks to the Messages API directly.
 """
 
 import json
+import time
 import urllib.error
 import urllib.request
 
 API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
+
+_RETRYABLE_CODES = {408, 409, 429, 500, 502, 503, 504, 529}
+_MAX_ATTEMPTS = 3
+
+
+def _error_message(detail):
+    try:
+        return json.loads(detail)["error"]["message"]
+    except Exception:
+        return detail[:400]
 
 
 class APIError(Exception):
@@ -23,7 +34,8 @@ def create_message(api_key, model, max_tokens, system, messages, tools=None, thi
 
     The returned dict has the usual shape: ``{"content": [...blocks...], "stop_reason": ...}``.
     Content blocks are plain dicts and can be appended directly to ``messages`` for the
-    next request (this preserves thinking blocks for tool-use continuation).
+    next request (this preserves thinking blocks for tool-use continuation). Transient
+    failures (429 / 5xx / network) are retried with exponential backoff.
     """
     body = {
         "model": model,
@@ -35,27 +47,28 @@ def create_message(api_key, model, max_tokens, system, messages, tools=None, thi
         body["tools"] = tools
     if thinking:
         body["thinking"] = thinking
+    data = json.dumps(body).encode("utf-8")
 
-    request = urllib.request.Request(API_URL, data=json.dumps(body).encode("utf-8"), method="POST")
-    request.add_header("content-type", "application/json")
-    request.add_header("x-api-key", api_key)
-    request.add_header("anthropic-version", ANTHROPIC_VERSION)
-
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", "replace")
-        message = detail[:400]
+    for attempt in range(_MAX_ATTEMPTS):
+        last = _MAX_ATTEMPTS - 1
+        request = urllib.request.Request(API_URL, data=data, method="POST")
+        request.add_header("content-type", "application/json")
+        request.add_header("x-api-key", api_key)
+        request.add_header("anthropic-version", ANTHROPIC_VERSION)
         try:
-            message = json.loads(detail)["error"]["message"]
-        except Exception:
-            pass
-        raise APIError("HTTP {}: {}".format(exc.code, message))
-    except urllib.error.URLError as exc:
-        raise APIError("Network error: {} (check your internet connection / proxy).".format(exc.reason))
-
-    if payload.get("type") == "error":
-        raise APIError(payload.get("error", {}).get("message", "Unknown API error."))
-
-    return payload
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            if payload.get("type") == "error":
+                raise APIError(payload.get("error", {}).get("message", "Unknown API error."))
+            return payload
+        except urllib.error.HTTPError as exc:
+            message = _error_message(exc.read().decode("utf-8", "replace"))
+            if exc.code in _RETRYABLE_CODES and attempt < last:
+                time.sleep(2 ** attempt)
+                continue
+            raise APIError("HTTP {}: {}".format(exc.code, message))
+        except urllib.error.URLError as exc:
+            if attempt < last:
+                time.sleep(2 ** attempt)
+                continue
+            raise APIError("Network error: {} (check your internet connection / proxy).".format(exc.reason))

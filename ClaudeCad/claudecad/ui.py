@@ -288,6 +288,9 @@ class _IncomingHandler(adsk.core.HTMLEventHandler):
     def notify(self, args):
         try:
             self._owner.on_html_event(args.action, args.data)
-        except Exception:
-            pass
+        except Exception as exc:
+            try:
+                self._owner.system("Something went wrong handling that action: {}".format(exc))
+            except Exception:
+                pass
         args.returnData = "OK"

@@ -73,26 +73,43 @@ def save_github_token(token):
     token = (token or "").strip()
     if not token:
         raise ValueError("The token is empty.")
-    cfg = _config_path()
-    os.makedirs(os.path.dirname(cfg), exist_ok=True)
-    data = {}
-    if os.path.isfile(cfg):
-        try:
-            with open(cfg, "r", encoding="utf-8") as fh:
-                data = json.load(fh)
-        except Exception:
-            data = {}
+    data = _load_config()
     data["github_token"] = token
-    with open(cfg, "w", encoding="utf-8") as fh:
-        json.dump(data, fh)
-    try:
-        os.chmod(cfg, 0o600)
-    except Exception:
-        pass
+    _save_config(data)
 
 
 def _config_path():
     return os.path.join(os.path.expanduser("~"), ".claudecad", "config.json")
+
+
+def _load_config():
+    cfg = _config_path()
+    if os.path.isfile(cfg):
+        try:
+            with open(cfg, "r", encoding="utf-8") as fh:
+                return json.load(fh)
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_config(data):
+    """Write the config with owner-only permissions from the moment it's created.
+
+    Opening with os.open(..., 0o600) avoids the brief window where a freshly created file
+    sits at the default umask before a later chmod; we also chmod to tighten an existing file.
+    """
+    cfg = _config_path()
+    os.makedirs(os.path.dirname(cfg), exist_ok=True)
+    fd = os.open(cfg, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+    finally:
+        try:
+            os.chmod(cfg, 0o600)
+        except Exception:
+            pass
 
 
 def get_api_key():
@@ -127,22 +144,6 @@ def save_api_key(key):
     key = (key or "").strip()
     if not key:
         raise ValueError("The API key is empty.")
-
-    cfg = _config_path()
-    os.makedirs(os.path.dirname(cfg), exist_ok=True)
-
-    data = {}
-    if os.path.isfile(cfg):
-        try:
-            with open(cfg, "r", encoding="utf-8") as fh:
-                data = json.load(fh)
-        except Exception:
-            data = {}
-
+    data = _load_config()
     data["api_key"] = key
-    with open(cfg, "w", encoding="utf-8") as fh:
-        json.dump(data, fh)
-    try:
-        os.chmod(cfg, 0o600)
-    except Exception:
-        pass
+    _save_config(data)

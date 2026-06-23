@@ -27,6 +27,9 @@ class Chat:
         self.generation += 1
 
 
+MAX_CHATS = 20  # soft cap; the oldest chat is evicted past this to bound memory
+
+
 class ChatManager:
     def __init__(self):
         self._chats = []
@@ -38,6 +41,9 @@ class ChatManager:
         self._counter += 1
         chat = Chat("chat-{}".format(self._counter), "Chat {}".format(self._counter))
         self._chats.append(chat)
+        # Bound memory over a long session: drop the oldest chat (never the new one).
+        while len(self._chats) > MAX_CHATS:
+            self._chats.pop(0)
         self.active = chat
         return chat
 
