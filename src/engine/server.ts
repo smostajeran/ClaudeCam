@@ -291,14 +291,16 @@ function recordPartTypes(placement: any, payload: any) {
 // pos+quat seats them edge-/face-on. Rotate y->z so they stand on their faces. Anchored on a trailing
 // digit so clips/hinges (glashalter, glasscharnier) are NOT caught. Feet/connectors need no correction.
 function meshCorrect(type: string, v: number[]): number[] {
-  // Every .3d source mesh is authored Z-up (CAD convention); RealityKit is Y-up. Rotate the whole
-  // catalogue the same way (y <- z) so tubes, sheets, glass AND leveling feet all stand correctly.
-  // Symmetric balls are unaffected by the rotation, so applying it globally is safe.
-  const c = [v[0], -v[2], v[1]];
-  // Leveling feet (hallerfuss) are authored stem-up, so after the frame fix they read upside-down.
-  // Flip 180° about X (a body of revolution, so this just swaps cap<->floor) -> net [x, z, -y].
-  if (/fuss/i.test(type)) return [c[0], -c[1], -c[2]];
-  return c;
+  // Source .3d frames are NOT uniform, so the correction is per-family (an allow-list — default is raw):
+  //  • Tubes (rohr) + the flat metal sheets (blech/perf/loch/kurz/biblio) are authored Z-up; rotate y<-z so
+  //    they stand on their faces in RealityKit's Y-up world. Verified flush on every face orientation.
+  //  • Leveling feet (hallerfuss) need that PLUS a 180° flip (authored stem-up) -> [x, z, -y].
+  //  • Glass, glashalter clips, hardware and ball connectors are authored in / symmetric about the Y-up
+  //    frame already and their solved quat assumes the RAW mesh — correcting glass stands it 90° on edge
+  //    (perpendicular to the opening). So they stay as-is.
+  if (/^(rohr|blech|perfblech|lochblech|kurzblech|biblioblech)\d/.test(type)) return [v[0], -v[2], v[1]];
+  if (/fuss/i.test(type)) return [v[0], v[2], -v[1]];
+  return v;
 }
 // smooth per-vertex normals (average of incident face normals) so the client can light the mesh
 function vertexNormals(pos: number[][], tri: number[]): number[][] {
