@@ -29,6 +29,15 @@ _OPERATIONS = {
 
 
 class CadBuilder:
+    """CAD operations against the one active Fusion document.
+
+    NOTE: a single CadBuilder is shared by all chats (there is one Fusion document). Its
+    sketch-id registry and timeline marker are therefore global, so Discard in one chat
+    rolls back geometry and clears sketch ids that an in-flight turn in another chat may
+    still reference (it would then see "Unknown sketch id"). This is acceptable because the
+    document itself is shared; chat isolation is about the conversation, not the geometry.
+    """
+
     def __init__(self, app):
         self.app = app
         self._sketches = {}
@@ -321,7 +330,7 @@ class CadBuilder:
                 plane = adsk.fusion.Plane.cast(face.geometry)
                 if not plane:
                     continue
-                if plane.normal.z <= 0.5:  # roughly upward-facing
+                if plane.normal.z <= 0.5:  # skip faces that aren't roughly upward-facing
                     continue
                 z = face.boundingBox.maxPoint.z
                 if best_z is None or z > best_z:
@@ -395,6 +404,22 @@ class CadBuilder:
     def _mm(self, cm):
         return cm / MM  # centimetres -> millimetres
 
+    def _format_param_value(self, param):
+        """Format a parameter's evaluated value using its own unit.
+
+        Fusion stores internal values in cm (length) and radians (angle) regardless of the
+        parameter's display unit, so convert per unit rather than always treating it as mm.
+        """
+        unit = (param.unit or "").lower()
+        try:
+            if unit in ("mm", "cm", "m", "in", "inch", "ft", "foot", "feet"):
+                return "{:.4g} mm".format(self._mm(param.value))
+            if unit in ("deg", "degree", "degrees", "rad", "radian", "radians"):
+                return "{:.4g} deg".format(math.degrees(param.value))
+            return "{:.4g}{}".format(param.value, " " + param.unit if param.unit else "")
+        except Exception:
+            return str(getattr(param, "value", "?"))
+
     def _fmt_pt(self, point):
         return "({:.1f}, {:.1f}, {:.1f})".format(self._mm(point.x), self._mm(point.y), self._mm(point.z))
 
@@ -452,7 +477,7 @@ class CadBuilder:
             params = []
             for i in range(ups.count):
                 p = ups.item(i)
-                params.append("{} = {} ({:.3g} {})".format(p.name, p.expression, self._mm(p.value), "mm"))
+                params.append("{} = {} ({})".format(p.name, p.expression, self._format_param_value(p)))
             lines.append("User parameters: " + "; ".join(params))
         else:
             lines.append("User parameters: none")
@@ -600,7 +625,15 @@ class CadBuilder:
             center_sketch.x + float(x_offset) * MM, center_sketch.y + float(y_offset) * MM, 0.0
         )
         r_expr, r_mm = self._resolve(diameter, default_seed=10.0)
-        sketch.sketchCurves.sketchCircles.addByCenterRadius(center, (r_mm / 2.0) * MM)
+        circle = sketch.sketchCurves.sketchCircles.addByCenterRadius(center, (r_mm / 2.0) * MM)
+        if r_expr:
+            try:
+                dim = sketch.sketchDimensions.addRadialDimension(
+                    circle, adsk.core.Point3D.create(center.x + (r_mm / 2.0 + 6.0) * MM, center.y, 0.0)
+                )
+                dim.parameter.expression = "(" + r_expr + ") / 2"
+            except Exception:
+                pass
 
         profile = sketch.profiles.item(0)
         ext = comp.features.extrudeFeatures

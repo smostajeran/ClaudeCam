@@ -122,4 +122,5 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   per-edge selection yet). The architecture is built to extend: add a method to `cad.py`,
   a schema to `tools.py`, and a branch to `tools.execute`.
 - **Discard & start over** deletes the timeline features and parameters created during the session (rolling back to where the session began) — it does not touch pre-existing geometry.
+- All chats share the one active Fusion document (and one CAD builder), so Discard in one chat rolls back the shared geometry and sketch ids — chat isolation is about the conversation, not separate models.
 - Requires an active Fusion design in **parametric** (timeline) mode.

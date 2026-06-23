@@ -77,7 +77,7 @@ def update(timeout=120):
     if not marker:
         raise RuntimeError("The update archive did not contain the ClaudeCad add-in.")
 
-    dest = config.addin_dir()
+    dest = os.path.normpath(config.addin_dir())
     count = 0
     for name in names:
         if not name.startswith(marker) or name.endswith("/"):
@@ -85,7 +85,10 @@ def update(timeout=120):
         rel = name[len(marker):]
         if not rel:
             continue
-        target = os.path.join(dest, *rel.split("/"))
+        target = os.path.normpath(os.path.join(dest, *rel.split("/")))
+        # Refuse any entry that would write outside the add-in directory (zip-slip).
+        if target != dest and not target.startswith(dest + os.sep):
+            continue
         os.makedirs(os.path.dirname(target), exist_ok=True)
         with archive.open(name) as src, open(target, "wb") as out:
             shutil.copyfileobj(src, out)
