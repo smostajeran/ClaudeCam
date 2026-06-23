@@ -560,7 +560,9 @@ const server = createServer(async (req, res) => {
           const uv = positions.map((v: number[]) => [+v[0].toFixed(5), +v[2].toFixed(5)]);
           let ux0 = 1e9, ux1 = -1e9, uz0 = 1e9, uz1 = -1e9;
           for (const u of uv) { if (u[0] < ux0) ux0 = u[0]; if (u[0] > ux1) ux1 = u[0]; if (u[1] < uz0) uz0 = u[1]; if (u[1] > uz1) uz1 = u[1]; }
-          perforation = { uv, size: [+(ux1 - ux0).toFixed(4), +(uz1 - uz0).toFixed(4)], pitch: 0.0075, holeDia: 0.0045, margin: 0 };   // 0 = holes overlap to the lip, no solid band
+          // Client render hints for the staggered round-hole material (45deg checkerboard);
+          // margin 0 = holes run to the lip. Render params only — payload stays geometry-only.
+          perforation = { uv, size: [+(ux1 - ux0).toFixed(4), +(uz1 - uz0).toFixed(4)], pitch: 0.0055, holeDia: 0.0045, pattern: "staggered", margin: 0 };
         }
         return send(res, 200, JSON.stringify({ part, units: "m", verts: positions.length, tris: (tris.length / 3) | 0, padTriStart, ...(perforation ? { perforation } : {}), positions, normals, triangles: tris }));
       } catch (e: any) { return send(res, 500, JSON.stringify({ error: String(e?.message ?? e), part })); }
