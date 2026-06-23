@@ -16,3 +16,8 @@ database.xml
 # proprietary like .pxpz — German types, article lists, previews). Keep OUT of the repo.
 K4_*/
 *_config.px5
+
+# raw mesh export binaries (full scenes; we ship only one52-keyed trays + parametric render hints)
+*.3ds
+*.vux
+*.vuh
