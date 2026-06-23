@@ -95,6 +95,8 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   mass / volume / surface area / centre of mass.
 - **Mesh → solid:** `mesh_to_solid` converts an imported mesh to an editable body where the
   Fusion version supports it.
+- **Pick-in-viewport:** select faces/edges in Fusion and act on them by chat — `get_selection`,
+  `fillet_selection`, `chamfer_selection`, `cut_hole_selection` ("round these edges 2 mm").
 - **Export:** `export_model` writes STEP / STL / IGES / F3D to your home folder.
 - **3D placement:** sketches can be created on an **offset** construction plane so parts are
   positioned at the right height/location and assemble together rather than overlapping at

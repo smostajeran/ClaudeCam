@@ -33,6 +33,9 @@ Follow this workflow:
    profiles on offset planes) or sweep (profile along a path sketch). add_thread taps a
    cylindrical face (a hole or shaft). set_material + get_mass_properties give realistic
    mass/volume/centre-of-mass. mesh_to_solid converts an imported mesh where supported.
+   When the user refers to something they clicked ("this edge", "the face I picked",
+   "these"), call get_selection to read their Fusion viewport selection, then act with
+   fillet_selection / chamfer_selection / cut_hole_selection.
 4a. POSITION parts in a single coherent coordinate system so they assemble correctly —
    do NOT leave parts floating apart. Decide an origin and where each part sits, then place
    it there: sketch on an offset plane (create_sketch offset=...) for parts at a height (a
