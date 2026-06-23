@@ -83,6 +83,11 @@ function meshCandidates(name: string): string[] {
   const gm = name.match(/^glas(\d+)_(\d+)/i); if (gm) c.push(`glas${gm[1]}x${gm[2]}`);
   const gt = name.match(/^glastuer_(?:links|rechts)(\d+)_(\d+)/i); if (gt) c.push(`glas${gt[1]}x${gt[2]}`);  // glass door leaf -> glass slab
   const am = name.match(/^(perfblech|biblioblech|ausziehtablar|schraegtablar|klapptuer|einschubtuer|kurzblech|lochblech)(\d+)_(\d+)/i); if (am) c.push(`${am[1]}${am[2]}x${am[3]}`);
+  // A panel sheet exists on disk in only ONE dimension order/separator (perfblech350x750.3d, blech350_750.3d,
+  // lochblech750_350.3d, …), but the placed type may be the other order. Try all four label forms so any
+  // non-square sheet resolves regardless of how the solver named it.
+  const sm = name.match(/^(blech|perfblech|lochblech|kurzblech|biblioblech)(\d+)[_x](\d+)$/i);
+  if (sm) { const [, st, a, b] = sm; c.push(`${st}${a}_${b}`, `${st}${b}_${a}`, `${st}${a}x${b}`, `${st}${b}x${a}`); }
   if (/^tuerelement/i.test(name)) { const t = name.match(/(\d+)_(\d+)/); if (t) c.push(`klapptuer${t[1]}x${t[2]}`); }
   // VCML-computed geometry names (geometryrepresentation StrReplace maps; literal geomMap can't see them)
   if (/^einschubtuer\d/.test(name)) c.push("einschubtuer");   // slide-in door, single-size variant -> einschubtuer.3d
@@ -139,7 +144,8 @@ function meshIndex() {
   const skip = /_export|_perf|ggw|gww|dummy/i;
   const kinds: Array<{ kind: string; re: RegExp; pair: boolean }> = [
     { kind: "blech", re: /^blech(\d+)_(\d+)\.3d$/i, pair: true },
-    { kind: "perfblech", re: /^perfblech(\d+)x(\d+)\.3d$/i, pair: true },     // perforated / acoustic panel
+    { kind: "perfblech", re: /^perfblech(\d+)x(\d+)\.3d$/i, pair: true },     // fine-perforation "mesh" panel
+    { kind: "lochblech", re: /^lochblech(\d+)_(\d+)\.3d$/i, pair: true },     // round-hole "perforated" panel
     { kind: "biblioblech", re: /^biblioblech(\d+)x(\d+)\.3d$/i, pair: true }, // library (Biblio) panel
     { kind: "glas", re: /^glas(\d+)x(\d+)\.3d$/i, pair: true },
     { kind: "tablar", re: /^tablar(\d+)_(\d+)\.3d$/i, pair: true },           // intermediate shelf (Zwischentablar)
@@ -316,10 +322,13 @@ function withSlotOptions(payload: any): any {
   for (const s of payload?.slots ?? []) {
     if (s.kind !== "face" || !Array.isArray(s.dims) || s.dims.length < 2) continue;
     const [e0, e1] = s.dims, W = e0 * 10, H = e1 * 10;   // bay edge cm -> panel id mm
-    const opts: Array<{ part: string; family: string; label: string }> = [];
-    if (has("blech", e0, e1)) opts.push({ part: `metal-panel-${W}x${H}`, family: "panel", label: "Metal panel" });
-    if (has("perfblech", e0, e1)) opts.push({ part: `acoustic-perforated-panel-${W}x${H}`, family: "panel", label: "Acoustic panel" });
-    if (has("glas", e0, e1)) opts.push({ part: `glass-${W}x${H}`, family: "glass", label: "Glass" });
+    // `material` tells the client how to render each sheet: solid metal, fine "mesh" perforation, or
+    // round-hole "perforated". (Acoustic = any of these + a felt pad; that's a feature toggle, not yet wired.)
+    const opts: Array<{ part: string; family: string; label: string; material: string }> = [];
+    if (has("blech", e0, e1)) opts.push({ part: `metal-panel-${W}x${H}`, family: "panel", label: "Metal panel", material: "metal" });
+    if (has("perfblech", e0, e1)) opts.push({ part: `mesh-panel-${W}x${H}`, family: "panel", label: "Mesh panel", material: "mesh" });
+    if (has("lochblech", e0, e1)) opts.push({ part: `perforated-metal-panel-${W}x${H}`, family: "panel", label: "Perforated panel", material: "perforated" });
+    if (has("glas", e0, e1)) opts.push({ part: `glass-${W}x${H}`, family: "glass", label: "Glass", material: "glass" });
     s.options = opts;   // [] when nothing has a mesh at this size -> client shows no placeable material
   }
   return payload;
@@ -348,7 +357,8 @@ function candidateTypes(partId: string): string[] {
   if ((m = partId.match(/^tube-(\d+)$/))) return [`rohr${m[1]}`];
   if ((m = partId.match(/^metal-panel-(\d+)x(\d+)$/))) return [`blech${m[1]}_${m[2]}`, `blech${m[2]}_${m[1]}`];
   if ((m = partId.match(/^glass-(\d+)x(\d+)$/))) return [`glas${m[1]}_${m[2]}`, `glas${m[2]}_${m[1]}`];
-  if ((m = partId.match(/^acoustic-perforated-panel-(\d+)x(\d+)$/))) return [`perfblech${m[1]}_${m[2]}`, `perfblech${m[2]}_${m[1]}`];
+  if ((m = partId.match(/^mesh-panel-(\d+)x(\d+)$/))) return [`perfblech${m[1]}_${m[2]}`, `perfblech${m[2]}_${m[1]}`];               // fine-perforation "mesh" sheet
+  if ((m = partId.match(/^perforated-metal-panel-(\d+)x(\d+)$/))) return [`lochblech${m[1]}_${m[2]}`, `lochblech${m[2]}_${m[1]}`]; // round-hole "perforated" sheet
   return [];
 }
 function typeForPart(xml: string, partId: string): string | null {
