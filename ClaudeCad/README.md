@@ -27,6 +27,23 @@ The Claude network call runs on a background thread so Fusion stays responsive; 
 
 ## Install
 
+### Quick install (recommended)
+
+Get the `ClaudeCad/` folder onto your machine (clone the repo, or download the branch ZIP and unzip), then from a terminal **inside the `ClaudeCad/` folder** run:
+
+- **macOS:**
+  ```bash
+  bash install.sh
+  ```
+- **Windows (PowerShell):**
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File install.ps1
+  ```
+
+The script copies the add-in into Fusion's AddIns folder and installs the `anthropic` SDK into `lib/`. Then in Fusion: **Utilities → Add-Ins → Scripts and Add-Ins → select `ClaudeCad` → Run**, click the **gear icon**, and paste your API key.
+
+### Manual install
+
 1. **Copy the add-in** into your Fusion add-ins folder (or load it from here):
    - Windows: `%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\`
    - macOS: `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/`
