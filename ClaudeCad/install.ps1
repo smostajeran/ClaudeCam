@@ -13,6 +13,8 @@ Write-Host "Destination: $dest"
 
 if ($src -ne $dest) {
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    # Copy everything except VCS/build cruft. No third-party packages are needed —
+    # ClaudeCad talks to the Claude API using Python's standard library only.
     Get-ChildItem -Path $src -Recurse -File |
         Where-Object { $_.FullName -notmatch "\\\.git\\" -and $_.FullName -notmatch "\\__pycache__\\" } |
         ForEach-Object {

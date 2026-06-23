@@ -74,7 +74,14 @@ class ClaudeCadUI:
 
     # -- messages to the palette (safe from any thread) ----------------------
     def _send(self, action, payload):
+        # Capture the generation when the update is scheduled. A UI update fired by a
+        # worker just before Discard can still be dispatched on the main thread *after*
+        # the chat is cleared; suppressing it here keeps stale output out of the panel.
+        gen = self.session.generation
+
         def do():
+            if self.session.generation != gen:
+                return
             if self.palette:
                 self.palette.sendInfoToHTML(action, json.dumps(payload))
         self.dispatcher.run(do)
@@ -139,18 +146,19 @@ class ClaudeCadUI:
             )
         try:
             config.save_api_key(key)
-            self.session.client = None  # rebuild the client with the new key
             self._send_config()
             self.system("API key saved. You're ready to design — describe a part to begin.")
         except Exception as exc:
             self.system("Could not save the API key: {}".format(exc))
 
     def _discard(self):
+        # Cancel any in-flight turn first (bumps the session generation) so a worker
+        # still waiting on Claude can't repopulate the model or the chat after we clear.
+        self.session.reset()
         try:
             self.cad.reset()
         except Exception as exc:
             self.system("Could not fully clear the model: {}".format(exc))
-        self.session.reset()
         self.reset_chat()
         self.system("Workspace cleared. Describe your next design and we'll start fresh.")
 

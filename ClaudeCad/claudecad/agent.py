@@ -2,6 +2,7 @@
 
 ``run_turn`` runs on a background thread. CAD tool execution and all UI updates are
 marshalled to Fusion's main thread through the dispatcher held by the UI object.
+The Messages API is called via :mod:`claudecad.api` (standard library only).
 """
 
 from . import api
@@ -35,15 +36,23 @@ sentences — not shorthand.
 
 
 class Session:
-    """Holds the running conversation history for one design session."""
+    """Holds the running conversation.
+
+    ``generation`` is bumped on every reset. An in-flight :func:`run_turn` captures the
+    generation it started under and aborts the moment it changes, so a turn that is still
+    waiting on Claude when the user clicks Discard can't post stale output or touch the
+    freshly-cleared model.
+    """
 
     def __init__(self):
         self.messages = []
         self.busy = False
+        self.generation = 0
 
     def reset(self):
         self.messages = []
         self.busy = False
+        self.generation += 1
 
 
 def run_turn(session, user_text, ui, cad, dispatcher):
@@ -55,33 +64,44 @@ def run_turn(session, user_text, ui, cad, dispatcher):
     key = config.get_api_key()
     if not key:
         ui.system(
-            "No Anthropic API key found. Set the ANTHROPIC_API_KEY environment variable, "
-            "or create ~/.claudecad/config.json containing {\"api_key\": \"sk-ant-...\"}, "
-            "then reopen ClaudeCad."
+            "No Anthropic API key configured. Open Settings (the gear icon, top right) and "
+            "paste your key, then try again."
         )
         return
+
+    gen = session.generation
+
+    def alive():
+        return session.generation == gen
 
     session.busy = True
     ui.status(True, "Thinking…")
     try:
         session.messages.append({"role": "user", "content": user_text})
 
-        while True:
+        while alive():
             response = api.create_message(
                 api_key=key,
                 model=config.MODEL,
                 max_tokens=config.MAX_TOKENS,
                 system=SYSTEM_PROMPT,
+                messages=session.messages,
                 tools=tools.TOOLS,
                 thinking={"type": "adaptive"},
-                messages=session.messages,
             )
             content = response.get("content", [])
+
+            # Guard immediately before mutating shared state: Discard may have bumped
+            # the generation while we were waiting on Claude.
+            if not alive():
+                return
             # Preserve the full response (including thinking blocks) in history.
             session.messages.append({"role": "assistant", "content": content})
 
             for block in content:
-                if block.get("type") == "text" and block.get("text", "").strip():
+                if not alive():
+                    return
+                if block.get("type") == "text" and (block.get("text") or "").strip():
                     ui.assistant(block["text"])
 
             if response.get("stop_reason") != "tool_use":
@@ -91,30 +111,45 @@ def run_turn(session, user_text, ui, cad, dispatcher):
             for block in content:
                 if block.get("type") != "tool_use":
                     continue
-                ui.status(True, "Building: {}…".format(block["name"]))
+                if not alive():
+                    return
+                ui.status(True, "Building: {}…".format(block.get("name")))
                 try:
                     output = dispatcher.run(
                         lambda b=block: tools.execute(b["name"], b.get("input", {}), cad)
                     )
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block["id"],
-                        "content": str(output),
-                    })
                 except Exception as exc:
+                    # Tool ran on the main thread; Discard may have fired meanwhile.
+                    if not alive():
+                        return
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block["id"],
                         "content": "Error: {}".format(exc),
                         "is_error": True,
                     })
+                    continue
+                if not alive():
+                    return
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block["id"],
+                    "content": str(output),
+                })
 
+            if not alive():
+                return
             session.messages.append({"role": "user", "content": tool_results})
 
     except api.APIError as exc:
-        ui.system("Something went wrong talking to Claude: {}".format(exc))
+        if alive():
+            ui.system("Claude API error: {}".format(exc))
     except Exception as exc:
-        ui.system("Something went wrong: {}".format(exc))
+        if alive():
+            ui.system("Something went wrong: {}".format(exc))
     finally:
-        session.busy = False
-        ui.status(False, "")
+        # Only touch shared state if this turn is still the current one; otherwise a
+        # discarded worker would clear the status/busy flag of a turn that started after it.
+        if alive():
+            session.busy = False
+            ui.status(False, "")

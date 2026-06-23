@@ -1,15 +1,9 @@
-"""A tiny Claude API client built on the Python standard library only.
+"""Minimal Anthropic Messages API client using only the Python standard library.
 
-Fusion 360 ships its own bundled Python, into which third-party wheels (like the
-``anthropic`` SDK and its compiled ``pydantic-core`` dependency) often fail to
-import because of version/ABI mismatches. To avoid any dependency-install step,
-this module talks to the Claude Messages API directly over HTTPS with ``urllib``.
-
-It exposes a single function, :func:`create_message`, which mirrors the shape of
-``POST /v1/messages`` and returns the parsed JSON response as a plain ``dict``.
-Content blocks (text, thinking, tool_use) come back as dicts, so the agent loop
-can append them straight back into the conversation history unchanged — which
-preserves thinking-block signatures across tool-use turns.
+Fusion 360 ships a sandboxed Python where installing the official ``anthropic`` SDK
+is unreliable (it depends on compiled wheels such as ``pydantic-core`` whose ABI must
+match Fusion's interpreter). ``urllib`` is always available and needs nothing installed,
+so ClaudeCad talks to the Messages API directly.
 """
 
 import json
@@ -17,20 +11,19 @@ import urllib.error
 import urllib.request
 
 API_URL = "https://api.anthropic.com/v1/messages"
-API_VERSION = "2023-06-01"
+ANTHROPIC_VERSION = "2023-06-01"
 
 
 class APIError(Exception):
-    """Raised when the Claude API returns an error or is unreachable."""
+    pass
 
 
-def create_message(api_key, model, max_tokens, system, messages,
-                   tools=None, thinking=None, timeout=300):
-    """Call ``POST /v1/messages`` and return the parsed JSON response (a dict).
+def create_message(api_key, model, max_tokens, system, messages, tools=None, thinking=None, timeout=180):
+    """POST to /v1/messages and return the parsed response dict.
 
-    ``messages`` is the conversation history; each assistant turn should contain
-    the raw ``content`` list returned by a previous call so thinking blocks are
-    preserved. Raises :class:`APIError` on any HTTP or network failure.
+    The returned dict has the usual shape: ``{"content": [...blocks...], "stop_reason": ...}``.
+    Content blocks are plain dicts and can be appended directly to ``messages`` for the
+    next request (this preserves thinking blocks for tool-use continuation).
     """
     body = {
         "model": model,
@@ -43,37 +36,26 @@ def create_message(api_key, model, max_tokens, system, messages,
     if thinking:
         body["thinking"] = thinking
 
-    data = json.dumps(body).encode("utf-8")
-    request = urllib.request.Request(
-        API_URL,
-        data=data,
-        method="POST",
-        headers={
-            "content-type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": API_VERSION,
-        },
-    )
+    request = urllib.request.Request(API_URL, data=json.dumps(body).encode("utf-8"), method="POST")
+    request.add_header("content-type", "application/json")
+    request.add_header("x-api-key", api_key)
+    request.add_header("anthropic-version", ANTHROPIC_VERSION)
 
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = response.read().decode("utf-8")
-        return json.loads(payload)
+            payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        detail = _read_error(exc)
-        raise APIError("API request failed ({}): {}".format(exc.code, detail))
+        detail = exc.read().decode("utf-8", "replace")
+        message = detail[:400]
+        try:
+            message = json.loads(detail)["error"]["message"]
+        except Exception:
+            pass
+        raise APIError("HTTP {}: {}".format(exc.code, message))
     except urllib.error.URLError as exc:
-        raise APIError("Could not reach the Claude API: {}".format(exc.reason))
+        raise APIError("Network error: {} (check your internet connection / proxy).".format(exc.reason))
 
+    if payload.get("type") == "error":
+        raise APIError(payload.get("error", {}).get("message", "Unknown API error."))
 
-def _read_error(exc):
-    """Extract a human-readable message from an HTTPError body, if possible."""
-    try:
-        payload = exc.read().decode("utf-8")
-    except Exception:
-        return "no response body"
-    try:
-        data = json.loads(payload)
-        return data.get("error", {}).get("message", payload)
-    except Exception:
-        return payload
+    return payload

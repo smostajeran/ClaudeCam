@@ -22,7 +22,8 @@ echo "Destination: $DEST"
 
 if [ "$SRC" != "$DEST" ]; then
     mkdir -p "$DEST"
-    # Copy everything except VCS/build cruft.
+    # Copy everything except VCS/build cruft. No third-party packages are needed —
+    # ClaudeCad talks to the Claude API using Python's standard library only.
     (cd "$SRC" && find . \
         -path ./.git -prune -o \
         -name __pycache__ -prune -o \
