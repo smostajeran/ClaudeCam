@@ -45,9 +45,14 @@ function fixGlassOrientation(parts: any[]): void {
     if (p.family !== "glass") continue;
     const clips = parts.filter((c) => String(c.id).startsWith(`${p.id}c`) && Array.isArray(c.pos)); // prefix: robust to count/naming
     const dm = String(p.part).match(/(\d+)x(\d+)/);
-    if (clips.length < 3 || !dm) { console.warn(`[glass ${p.id}] ${clips.length} clip(s) — orientation NOT corrected (solver quat kept)`); continue; }
+    if (clips.length < 3 || !dm) { console.warn(`[glass ${p.id}] ${clips.length} clip(s) — pose NOT corrected (solver pose kept)`); continue; }
     const q = glassQuatFromCorners(clips.map((c: any) => c.pos), [+dm[1], +dm[2]]);
-    if (q) p.quat = q; else console.warn(`[glass ${p.id}] degenerate clip geometry (${clips.length} clips) — orientation NOT corrected`);
+    if (!q) { console.warn(`[glass ${p.id}] degenerate clip geometry (${clips.length} clips) — pose NOT corrected`); continue; }
+    p.quat = q;
+    // The solver sometimes lays a glass pane out flat (hinged on one edge), so its pos floats off the
+    // opening. The clip corners are seated on the real face, so the clip CENTROID is the true face centre.
+    const ctr: V3 = [0, 0, 0]; for (const c of clips) for (let k = 0; k < 3; k++) ctr[k] += c.pos[k] / clips.length;
+    p.pos = ctr.map((x) => +x.toFixed(5));
   }
 }
 
