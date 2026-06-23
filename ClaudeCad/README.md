@@ -17,6 +17,7 @@ You describe what you want; Claude analyzes the requirement, asks clarifying que
 |-------|----------------|
 | `ClaudeCad.py` | Fusion entry point (`run`/`stop`); sets up `sys.path`. |
 | `claudecad/agent.py` | Claude conversation + tool loop (`claude-opus-4-8`, adaptive thinking). Runs on a worker thread. |
+| `claudecad/chats.py` | Independent chat threads (`Chat` / `ChatManager`) — per-chat history, in-memory only. |
 | `claudecad/api.py` | Minimal Claude Messages API client built on `urllib` (Python standard library) — no third-party packages. |
 | `claudecad/tools.py` | Tool schemas exposed to Claude and dispatch to the CAD builder. |
 | `claudecad/cad.py` | Fusion CAD operations (parameters, sketches, rectangles, circles, lines, extrudes) + session reset. |
@@ -69,6 +70,13 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - "A 100×60×20 mm enclosure with 3 mm walls and a 30 mm hole centered in the lid."
 - "A mounting bracket: 80×40 mm base, 5 mm thick, with two 6 mm bolt holes 60 mm apart."
 - "A simple spur-gear blank, 50 mm diameter, 8 mm thick, 10 mm center bore."
+
+## Chats
+
+- Use the chat dropdown and **+ New** (above the message area) to keep separate conversation threads. Each chat has its own history and **never carries over** anything from another chat.
+- Chats live only in memory for the current Fusion session — nothing is written to disk, so when you restart Fusion you start fresh with a single empty chat.
+- While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck.
+- Note: all chats build into the one active Fusion document (geometry is shared); chat isolation is about the *conversation*, not separate 3D models.
 
 ## Notes & limitations
 

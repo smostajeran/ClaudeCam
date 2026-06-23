@@ -38,10 +38,8 @@ sentences — not shorthand.
 class Session:
     """Holds the running conversation.
 
-    ``generation`` is bumped on every reset. An in-flight :func:`run_turn` captures the
-    generation it started under and aborts the moment it changes, so a turn that is still
-    waiting on Claude when the user clicks Discard can't post stale output or touch the
-    freshly-cleared model.
+    Retained for backward compatibility; multi-chat sessions use
+    :class:`claudecad.chats.Chat`, which has the same attributes.
     """
 
     def __init__(self):
@@ -55,29 +53,35 @@ class Session:
         self.generation += 1
 
 
-def run_turn(session, user_text, ui, cad, dispatcher):
-    """Process one user message: call Claude, run any tool calls, surface replies."""
-    if session.busy:
-        ui.system("ClaudeCad is still working on the previous request — please wait.")
+def run_turn(chat, user_text, ui, cad, dispatcher):
+    """Process one user message in ``chat``: call Claude, run tool calls, surface replies.
+
+    Runs on a background thread. UI updates and CAD tool execution are marshalled to the
+    main thread by ``ui``/``dispatcher`` and are scoped to ``chat`` — output for a chat
+    that isn't currently shown is stored in that chat's transcript but not rendered.
+    """
+    if chat.busy:
+        ui.system_for(chat, "ClaudeCad is still working on the previous request — please wait.")
         return
 
     key = config.get_api_key()
     if not key:
-        ui.system(
+        ui.system_for(
+            chat,
             "No Anthropic API key configured. Open Settings (the gear icon, top right) and "
-            "paste your key, then try again."
+            "paste your key, then try again.",
         )
         return
 
-    gen = session.generation
+    gen = chat.generation
 
     def alive():
-        return session.generation == gen
+        return chat.generation == gen
 
-    session.busy = True
-    ui.status(True, "Thinking…")
+    chat.busy = True
+    ui.status(chat, True, "Thinking…")
     try:
-        session.messages.append({"role": "user", "content": user_text})
+        chat.messages.append({"role": "user", "content": user_text})
 
         while alive():
             response = api.create_message(
@@ -85,7 +89,7 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                 model=config.MODEL,
                 max_tokens=config.MAX_TOKENS,
                 system=SYSTEM_PROMPT,
-                messages=session.messages,
+                messages=chat.messages,
                 tools=tools.TOOLS,
                 thinking={"type": "adaptive"},
             )
@@ -96,13 +100,13 @@ def run_turn(session, user_text, ui, cad, dispatcher):
             if not alive():
                 return
             # Preserve the full response (including thinking blocks) in history.
-            session.messages.append({"role": "assistant", "content": content})
+            chat.messages.append({"role": "assistant", "content": content})
 
             for block in content:
                 if not alive():
                     return
                 if block.get("type") == "text" and (block.get("text") or "").strip():
-                    ui.assistant(block["text"])
+                    ui.assistant(chat, block["text"])
 
             if response.get("stop_reason") != "tool_use":
                 break
@@ -113,7 +117,7 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                     continue
                 if not alive():
                     return
-                ui.status(True, "Building: {}…".format(block.get("name")))
+                ui.status(chat, True, "Building: {}…".format(block.get("name")))
                 try:
                     output = dispatcher.run(
                         lambda b=block: tools.execute(b["name"], b.get("input", {}), cad)
@@ -139,17 +143,17 @@ def run_turn(session, user_text, ui, cad, dispatcher):
 
             if not alive():
                 return
-            session.messages.append({"role": "user", "content": tool_results})
+            chat.messages.append({"role": "user", "content": tool_results})
 
     except api.APIError as exc:
         if alive():
-            ui.system("Claude API error: {}".format(exc))
+            ui.system_for(chat, "Claude API error: {}".format(exc))
     except Exception as exc:
         if alive():
-            ui.system("Something went wrong: {}".format(exc))
+            ui.system_for(chat, "Something went wrong: {}".format(exc))
     finally:
         # Only touch shared state if this turn is still the current one; otherwise a
         # discarded worker would clear the status/busy flag of a turn that started after it.
         if alive():
-            session.busy = False
-            ui.status(False, "")
+            chat.busy = False
+            ui.status(chat, False, "")

@@ -24,7 +24,17 @@
         </div>
     </section>
 
+    <div class="chatbar">
+        <select id="chatSelect" class="chat-select" title="Switch chat" aria-label="Switch chat"></select>
+        <button id="newChatBtn" type="button" class="icon-btn" title="New chat" aria-label="New chat">+ New</button>
+    </div>
+
     <main id="messages" class="messages" aria-live="polite"></main>
+
+    <div id="working" class="working hidden">
+        <span class="dots"><span></span><span></span><span></span></span>
+        <span id="workingText" class="working-text">Working…</span>
+    </div>
 
     <div class="quick-actions">
         <button id="approveBtn" type="button" class="quick approve">Approve design</button>

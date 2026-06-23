@@ -18,6 +18,10 @@
     var keyHintEl = document.getElementById("keyHint");
     var saveKeyBtn = document.getElementById("saveKeyBtn");
     var closeSettingsBtn = document.getElementById("closeSettingsBtn");
+    var chatSelect = document.getElementById("chatSelect");
+    var newChatBtn = document.getElementById("newChatBtn");
+    var workingEl = document.getElementById("working");
+    var workingTextEl = document.getElementById("workingText");
 
     var busy = false;
     var hasKey = false;
@@ -50,9 +54,28 @@
 
     function setStatus(isBusy, text) {
         busy = isBusy;
-        statusEl.textContent = text || (isBusy ? "Working…" : "");
+        var label = text || (isBusy ? "Working…" : "");
+        statusEl.textContent = isBusy ? label : "";
+        workingTextEl.textContent = label || "Working…";
+        workingEl.classList.toggle("hidden", !isBusy);
         sendBtn.disabled = isBusy;
         approveBtn.disabled = isBusy;
+        if (isBusy) {
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+    }
+
+    function renderChats(chats) {
+        chatSelect.innerHTML = "";
+        (chats || []).forEach(function (c) {
+            var opt = document.createElement("option");
+            opt.value = c.id;
+            opt.textContent = c.title;
+            if (c.active) {
+                opt.selected = true;
+            }
+            chatSelect.appendChild(opt);
+        });
     }
 
     function submit(text) {
@@ -60,7 +83,8 @@
         if (!value || busy) {
             return;
         }
-        addMessage("user", value);
+        // Python echoes the user message back (so it lands in this chat's history),
+        // so we don't render it optimistically here.
         sendData("send", { text: value });
         inputEl.value = "";
     }
@@ -85,6 +109,14 @@
         if (window.confirm("Discard all work created in this session and start over?")) {
             sendData("discard", {});
         }
+    });
+
+    newChatBtn.addEventListener("click", function () {
+        sendData("new_chat", {});
+    });
+
+    chatSelect.addEventListener("change", function () {
+        sendData("switch_chat", { id: chatSelect.value });
     });
 
     settingsBtn.addEventListener("click", function () {
@@ -116,11 +148,8 @@
                 d = {};
             }
             switch (action) {
-                case "assistant":
-                    addMessage("assistant", d.text || "");
-                    break;
-                case "system":
-                    addMessage("system", d.text || "");
+                case "message":
+                    addMessage(d.role || "system", d.text || "");
                     break;
                 case "status":
                     setStatus(!!d.busy, d.text || "");
@@ -128,6 +157,9 @@
                 case "reset":
                     messagesEl.innerHTML = "";
                     setStatus(false, "");
+                    break;
+                case "chats":
+                    renderChats(d.chats);
                     break;
                 case "config":
                     hasKey = !!d.has_key;
@@ -147,6 +179,6 @@
         }
     };
 
-    // Tell the add-in the palette is ready for its greeting.
+    // Tell the add-in the palette is ready.
     sendData("ready", {});
 })();
