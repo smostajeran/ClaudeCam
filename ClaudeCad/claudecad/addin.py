@@ -1,10 +1,10 @@
-"""Add-in lifecycle: wire the dispatcher, CAD builder, session and UI together."""
+"""Add-in lifecycle: wire the dispatcher, CAD builder, chats and UI together."""
 
 import adsk.core
 
 from .cad import CadBuilder
+from .chats import ChatManager
 from .dispatcher import MainThreadDispatcher
-from .agent import Session
 from .ui import ClaudeCadUI
 
 _state = None
@@ -17,8 +17,8 @@ def start():
 
     dispatcher = MainThreadDispatcher(app)
     cad = CadBuilder(app)
-    session = Session()
-    ui_controller = ClaudeCadUI(app, ui, dispatcher, cad, session)
+    chats = ChatManager()  # in-memory only; nothing carries over across Fusion sessions
+    ui_controller = ClaudeCadUI(app, ui, dispatcher, cad, chats)
     ui_controller.setup()
 
     _state = (ui_controller, dispatcher)

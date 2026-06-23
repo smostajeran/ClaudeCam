@@ -17,6 +17,7 @@ You describe what you want; Claude analyzes the requirement, asks clarifying que
 |-------|----------------|
 | `ClaudeCad.py` | Fusion entry point (`run`/`stop`); sets up `sys.path`. |
 | `claudecad/agent.py` | Claude conversation + tool loop (`claude-opus-4-8`, adaptive thinking). Runs on a worker thread. |
+| `claudecad/chats.py` | Independent chat threads (`Chat` / `ChatManager`) — per-chat history, in-memory only. |
 | `claudecad/api.py` | Minimal Claude Messages API client built on `urllib` (Python standard library) — no third-party packages. |
 | `claudecad/tools.py` | Tool schemas exposed to Claude and dispatch to the CAD builder. |
 | `claudecad/cad.py` | Fusion CAD operations (parameters, sketches, rectangles, circles, lines, extrudes) + session reset. |
@@ -70,9 +71,35 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - "A mounting bracket: 80×40 mm base, 5 mm thick, with two 6 mm bolt holes 60 mm apart."
 - "A simple spur-gear blank, 50 mm diameter, 8 mm thick, 10 mm center bore."
 
+## Chats
+
+- Use the chat dropdown and **+ New** (above the message area) to keep separate conversation threads. Each chat has its own history and **never carries over** anything from another chat.
+- Chats live only in memory for the current Fusion session — nothing is written to disk, so when you restart Fusion you start fresh with a single empty chat.
+- While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck.
+- Note: all chats build into the one active Fusion document (geometry is shared); chat isolation is about the *conversation*, not separate 3D models.
+
+## What Claude can build
+
+- **Parameters** that drive the model (`create_parameter`).
+- **Sketches** with rectangles, circles, lines. Width/height/radius accept a parameter
+  expression (e.g. `"width"`, `"2 * wall"`), so the sketch is **parameter-driven** —
+  change the parameter and the part updates.
+- **Features:** extrude (incl. cut for holes), revolve, fillet-all-edges,
+  chamfer-all-edges, shell (hollow / open box), and circular / rectangular patterns.
+- **Vision:** `capture_view` screenshots the viewport so Claude can *see* the model and
+  self-correct before asking you to approve.
+
+## Updating
+
+- The current version shows next to the logo (and in **Settings**). It's read from the `VERSION` file and bumped on each change.
+- **Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`) and installs it over itself, then asks you to **Stop, then Run** the add-in (in Scripts and Add-Ins) to load the new code. Nothing reloads Python live, so the restart is required.
+- Self-update pulls from `smostajeran/ClaudeCam`. If that repo is private, add a `"github_token"` to `~/.claudecad/config.json` (or set `GITHUB_TOKEN`). Your API key and settings are untouched by an update.
+
 ## Notes & limitations
 
 - Tool geometry inputs are **millimetres** (Fusion's internal unit is cm; the add-in converts).
-- The current tool set covers parameters, sketches, rectangles/circles/lines, and extrudes — enough for a wide range of prismatic parts. The architecture is built to extend: add a method to `cad.py`, a schema to `tools.py`, and a branch to `tools.execute`.
+- Fillet/chamfer/shell act on **all edges / the top face** of the most recent body (no
+  per-edge selection yet). The architecture is built to extend: add a method to `cad.py`,
+  a schema to `tools.py`, and a branch to `tools.execute`.
 - **Discard & start over** deletes the timeline features and parameters created during the session (rolling back to where the session began) — it does not touch pre-existing geometry.
 - Requires an active Fusion design in **parametric** (timeline) mode.

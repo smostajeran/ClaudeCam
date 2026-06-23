@@ -16,17 +16,24 @@ Follow this workflow:
 1. Analyze the requirement. If something material is missing or ambiguous (dimensions,
    units, quantities, orientation, intended use), ask concise clarifying questions BEFORE
    modeling. Ask only what you genuinely need; don't interrogate.
-2. Every design starts with sketches. Create sketches first, then features (extrude, etc.).
+2. Every design starts with sketches. Create sketches first, then features.
 3. Make the design pragmatic to adjust later: before drawing, create named user parameters
-   for the key dimensions with create_parameter, and reference those parameter names in
-   extrude distances (e.g. distance "height") instead of hard-coded numbers. Tell the user
-   which parameter drives each dimension so they can change it later.
-4. Geometry tool inputs are in millimetres unless the user specifies another unit.
-5. When the build is complete, give a brief summary of what you created and list the key
+   for the key dimensions with create_parameter, then pass those parameter names as the
+   width/height/radius/distance on the drawing and feature tools (e.g. width="width",
+   distance="height"). The geometry becomes parameter-driven, so changing a parameter
+   updates the model. Tell the user which parameter drives each dimension.
+4. Geometry tool inputs are in millimetres unless the user specifies another unit. Build
+   features with the right tool: extrude, revolve, fillet_all_edges, chamfer_all_edges,
+   shell, and circular_pattern / rectangular_pattern. Use extrude with operation "cut" for
+   holes.
+5. Use capture_view to take a screenshot of the model and visually verify your work
+   (proportions, placement, that holes/features landed correctly) before reporting. If
+   something looks wrong, fix it and check again.
+6. When the build is complete, give a brief summary of what you created and list the key
    parameters, then explicitly ask the user to approve the design.
-6. If the user approves, thank them and ask whether they'd like any feedback or refinements.
+7. If the user approves, thank them and ask whether they'd like any feedback or refinements.
    Do not delete or rebuild anything after approval unless they ask.
-7. Never delete the user's work yourself. Discarding and starting fresh is handled by the
+8. Never delete the user's work yourself. Discarding and starting fresh is handled by the
    user through the Discard button in the panel.
 
 Communication style: be concise and lead with the outcome. Between tool calls you don't
@@ -38,10 +45,8 @@ sentences — not shorthand.
 class Session:
     """Holds the running conversation.
 
-    ``generation`` is bumped on every reset. An in-flight :func:`run_turn` captures the
-    generation it started under and aborts the moment it changes, so a turn that is still
-    waiting on Claude when the user clicks Discard can't post stale output or touch the
-    freshly-cleared model.
+    Retained for backward compatibility; multi-chat sessions use
+    :class:`claudecad.chats.Chat`, which has the same attributes.
     """
 
     def __init__(self):
@@ -55,29 +60,35 @@ class Session:
         self.generation += 1
 
 
-def run_turn(session, user_text, ui, cad, dispatcher):
-    """Process one user message: call Claude, run any tool calls, surface replies."""
-    if session.busy:
-        ui.system("ClaudeCad is still working on the previous request — please wait.")
+def run_turn(chat, user_text, ui, cad, dispatcher):
+    """Process one user message in ``chat``: call Claude, run tool calls, surface replies.
+
+    Runs on a background thread. UI updates and CAD tool execution are marshalled to the
+    main thread by ``ui``/``dispatcher`` and are scoped to ``chat`` — output for a chat
+    that isn't currently shown is stored in that chat's transcript but not rendered.
+    """
+    if chat.busy:
+        ui.system_for(chat, "ClaudeCad is still working on the previous request — please wait.")
         return
 
     key = config.get_api_key()
     if not key:
-        ui.system(
+        ui.system_for(
+            chat,
             "No Anthropic API key configured. Open Settings (the gear icon, top right) and "
-            "paste your key, then try again."
+            "paste your key, then try again.",
         )
         return
 
-    gen = session.generation
+    gen = chat.generation
 
     def alive():
-        return session.generation == gen
+        return chat.generation == gen
 
-    session.busy = True
-    ui.status(True, "Thinking…")
+    chat.busy = True
+    ui.status(chat, True, "Thinking…")
     try:
-        session.messages.append({"role": "user", "content": user_text})
+        chat.messages.append({"role": "user", "content": user_text})
 
         while alive():
             response = api.create_message(
@@ -85,7 +96,7 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                 model=config.MODEL,
                 max_tokens=config.MAX_TOKENS,
                 system=SYSTEM_PROMPT,
-                messages=session.messages,
+                messages=chat.messages,
                 tools=tools.TOOLS,
                 thinking={"type": "adaptive"},
             )
@@ -96,13 +107,13 @@ def run_turn(session, user_text, ui, cad, dispatcher):
             if not alive():
                 return
             # Preserve the full response (including thinking blocks) in history.
-            session.messages.append({"role": "assistant", "content": content})
+            chat.messages.append({"role": "assistant", "content": content})
 
             for block in content:
                 if not alive():
                     return
                 if block.get("type") == "text" and (block.get("text") or "").strip():
-                    ui.assistant(block["text"])
+                    ui.assistant(chat, block["text"])
 
             if response.get("stop_reason") != "tool_use":
                 break
@@ -113,7 +124,7 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                     continue
                 if not alive():
                     return
-                ui.status(True, "Building: {}…".format(block.get("name")))
+                ui.status(chat, True, "Building: {}…".format(block.get("name")))
                 try:
                     output = dispatcher.run(
                         lambda b=block: tools.execute(b["name"], b.get("input", {}), cad)
@@ -134,22 +145,24 @@ def run_turn(session, user_text, ui, cad, dispatcher):
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block["id"],
-                    "content": str(output),
+                    # A tool may return image content blocks (e.g. capture_view); pass
+                    # those through directly, otherwise stringify the status text.
+                    "content": output if isinstance(output, list) else str(output),
                 })
 
             if not alive():
                 return
-            session.messages.append({"role": "user", "content": tool_results})
+            chat.messages.append({"role": "user", "content": tool_results})
 
     except api.APIError as exc:
         if alive():
-            ui.system("Claude API error: {}".format(exc))
+            ui.system_for(chat, "Claude API error: {}".format(exc))
     except Exception as exc:
         if alive():
-            ui.system("Something went wrong: {}".format(exc))
+            ui.system_for(chat, "Something went wrong: {}".format(exc))
     finally:
         # Only touch shared state if this turn is still the current one; otherwise a
         # discarded worker would clear the status/busy flag of a turn that started after it.
         if alive():
-            session.busy = False
-            ui.status(False, "")
+            chat.busy = False
+            ui.status(chat, False, "")

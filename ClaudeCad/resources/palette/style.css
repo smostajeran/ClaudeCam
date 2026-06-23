@@ -36,6 +36,18 @@ body {
 
 .logo { font-weight: 600; letter-spacing: 0.2px; }
 
+.version {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 6px;
+}
+
+.settings-sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+}
+
 .status {
     flex: 1;
     text-align: right;
@@ -106,6 +118,31 @@ body {
     gap: 8px;
 }
 
+.chatbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.chat-select {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12.5px;
+}
+
+.chatbar .icon-btn {
+    font-size: 13px;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
 .messages {
     flex: 1;
     overflow-y: auto;
@@ -113,6 +150,42 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+/* Animated "working" indicator so it's clear Claude is active, not frozen. */
+.working {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 0;
+    color: var(--accent);
+    font-size: 12.5px;
+}
+
+.working.hidden { display: none; }
+
+.working-text { color: var(--muted); }
+
+.dots {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+    animation: cc-pulse 1.2s infinite ease-in-out;
+}
+
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes cc-pulse {
+    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
 }
 
 .msg {

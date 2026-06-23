@@ -10,12 +10,12 @@ from . import config
 
 
 class ClaudeCadUI:
-    def __init__(self, app, ui, dispatcher, cad, session):
+    def __init__(self, app, ui, dispatcher, cad, chats):
         self.app = app
         self.ui = ui
         self.dispatcher = dispatcher
         self.cad = cad
-        self.session = session
+        self.chats = chats
         self.palette = None
         self._handlers = []  # keep handler refs alive
 
@@ -73,30 +73,75 @@ class ClaudeCadUI:
             self.palette.isVisible = True
 
     # -- messages to the palette (safe from any thread) ----------------------
-    def _send(self, action, payload):
-        # Capture the generation when the update is scheduled. A UI update fired by a
-        # worker just before Discard can still be dispatched on the main thread *after*
-        # the chat is cleared; suppressing it here keeps stale output out of the panel.
-        gen = self.session.generation
+    def _emit(self, chat, role, text):
+        """Append a bubble to ``chat``'s transcript and render it if ``chat`` is shown.
+
+        The append happens on the main thread under a generation check, so a worker
+        whose turn was discarded can't repopulate a cleared chat or leak into it.
+        """
+        gen = chat.generation
 
         def do():
-            if self.session.generation != gen:
+            if chat.generation != gen:
                 return
-            if self.palette:
-                self.palette.sendInfoToHTML(action, json.dumps(payload))
+            chat.transcript.append({"role": role, "text": text})
+            if self.palette and self.chats.active is chat:
+                self.palette.sendInfoToHTML("message", json.dumps({"role": role, "text": text}))
         self.dispatcher.run(do)
 
-    def assistant(self, text):
-        self._send("assistant", {"text": text})
+    def assistant(self, chat, text):
+        self._emit(chat, "assistant", text)
+
+    def system_for(self, chat, text):
+        self._emit(chat, "system", text)
 
     def system(self, text):
-        self._send("system", {"text": text})
+        self._emit(self.chats.active, "system", text)
 
-    def status(self, busy, text):
-        self._send("status", {"busy": bool(busy), "text": text or ""})
+    def status(self, chat, busy, text):
+        gen = chat.generation
 
-    def reset_chat(self):
-        self._send("reset", {})
+        def do():
+            if chat.generation != gen:
+                return
+            if self.palette and self.chats.active is chat:
+                self.palette.sendInfoToHTML("status", json.dumps({"busy": bool(busy), "text": text or ""}))
+        self.dispatcher.run(do)
+
+    def _send_chats(self):
+        def do():
+            if self.palette:
+                self.palette.sendInfoToHTML("chats", json.dumps({"chats": self.chats.summary()}))
+        self.dispatcher.run(do)
+
+    def _show_chat(self, chat):
+        """Clear the panel and replay one chat's transcript (used on switch/new/open)."""
+        def do():
+            if not self.palette:
+                return
+            self.palette.sendInfoToHTML("reset", "{}")
+            for msg in chat.transcript:
+                self.palette.sendInfoToHTML("message", json.dumps({"role": msg["role"], "text": msg["text"]}))
+            self.palette.sendInfoToHTML(
+                "status", json.dumps({"busy": bool(chat.busy), "text": "Working…" if chat.busy else ""})
+            )
+        self.dispatcher.run(do)
+        self._send_chats()
+
+    def _greet(self, chat):
+        if config.has_api_key():
+            self.system_for(
+                chat,
+                "Hi! I'm ClaudeCad. Describe the part you'd like to design — for example "
+                "'a 100x60x20 mm enclosure with a 30 mm hole in the lid'. I'll ask questions "
+                "if I need to, sketch it parametrically, and check with you before finishing.",
+            )
+        else:
+            self.system_for(
+                chat,
+                "Welcome to ClaudeCad. Add your Anthropic API key in Settings (the gear icon, "
+                "top right) to get started.",
+            )
 
     # -- handling messages from the palette (runs on main thread) ------------
     def on_html_event(self, action, raw_data):
@@ -106,61 +151,95 @@ class ClaudeCadUI:
             data = {}
 
         if action == "ready":
-            self._greet()
+            self._send_config()
+            chat = self.chats.active
+            if not chat.transcript:
+                self._greet(chat)
+            self._show_chat(chat)
         elif action == "send":
             text = (data.get("text") or "").strip()
             if text:
+                chat = self.chats.active
+                if chat.busy:
+                    self.system_for(chat, "ClaudeCad is still working — please wait.")
+                    return
+                self._emit(chat, "user", text)  # render + store the user's message
                 threading.Thread(
                     target=agent.run_turn,
-                    args=(self.session, text, self, self.cad, self.dispatcher),
+                    args=(chat, text, self, self.cad, self.dispatcher),
                     daemon=True,
                 ).start()
+        elif action == "new_chat":
+            chat = self.chats.new_chat()
+            self._greet(chat)
+            self._show_chat(chat)
+        elif action == "switch_chat":
+            chat = self.chats.switch(data.get("id"))
+            if chat:
+                self._show_chat(chat)
         elif action == "save_key":
             self._save_key(data.get("key", ""))
         elif action == "discard":
             self._discard()
+        elif action == "update":
+            self._update()
 
     def _send_config(self):
-        self._send("config", {"has_key": config.has_api_key(), "env": config.key_from_env()})
+        def do():
+            if self.palette:
+                self.palette.sendInfoToHTML(
+                    "config",
+                    json.dumps({
+                        "has_key": config.has_api_key(),
+                        "env": config.key_from_env(),
+                        "version": config.get_version(),
+                    }),
+                )
+        self.dispatcher.run(do)
 
-    def _greet(self):
-        self.reset_chat()
-        self._send_config()
-        if config.has_api_key():
-            self.system(
-                "Hi! I'm ClaudeCad. Describe the part you'd like to design — for example "
-                "'a 100x60x20 mm enclosure with a 30 mm hole in the lid'. I'll ask questions "
-                "if I need to, sketch it parametrically, and check with you before finishing."
-            )
-        else:
-            self.system(
-                "Welcome to ClaudeCad. Add your Anthropic API key in Settings (the gear icon, "
-                "top right) to get started."
-            )
+    def _update(self):
+        chat = self.chats.active
+        self.system_for(chat, "Checking for updates…")
+
+        def work():
+            try:
+                from . import updater
+                message, updated, _version = updater.update()
+            except Exception as exc:
+                self.system_for(chat, "Update failed: {}".format(exc))
+                return
+            self.system_for(chat, message)
+            if updated:
+                self._send_config()  # refresh the version shown in the panel
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _save_key(self, key):
+        chat = self.chats.active
         if config.key_from_env():
-            self.system(
+            self.system_for(
+                chat,
                 "Note: ANTHROPIC_API_KEY is set in your environment and takes precedence. "
-                "I'll still save this key, but the environment value will be used until it's unset."
+                "I'll still save this key, but the environment value will be used until it's unset.",
             )
         try:
             config.save_api_key(key)
             self._send_config()
-            self.system("API key saved. You're ready to design — describe a part to begin.")
+            self.system_for(chat, "API key saved. You're ready to design — describe a part to begin.")
         except Exception as exc:
-            self.system("Could not save the API key: {}".format(exc))
+            self.system_for(chat, "Could not save the API key: {}".format(exc))
 
     def _discard(self):
-        # Cancel any in-flight turn first (bumps the session generation) so a worker
+        # Cancel any in-flight turn in this chat first (bumps the generation) so a worker
         # still waiting on Claude can't repopulate the model or the chat after we clear.
-        self.session.reset()
+        chat = self.chats.active
+        chat.reset()
         try:
             self.cad.reset()
         except Exception as exc:
-            self.system("Could not fully clear the model: {}".format(exc))
-        self.reset_chat()
-        self.system("Workspace cleared. Describe your next design and we'll start fresh.")
+            self.system_for(chat, "Could not fully clear the model: {}".format(exc))
+        self._show_chat(chat)
+        self.system_for(chat, "Workspace cleared. Describe your next design and we'll start fresh.")
 
 
 class _CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
