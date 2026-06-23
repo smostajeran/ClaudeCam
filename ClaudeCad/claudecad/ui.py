@@ -179,6 +179,8 @@ class ClaudeCadUI:
                 self._show_chat(chat)
         elif action == "save_key":
             self._save_key(data.get("key", ""))
+        elif action == "save_token":
+            self._save_token(data.get("token", ""))
         elif action == "discard":
             self._discard()
         elif action == "update":
@@ -192,10 +194,26 @@ class ClaudeCadUI:
                     json.dumps({
                         "has_key": config.has_api_key(),
                         "env": config.key_from_env(),
+                        "has_token": config.has_github_token(),
+                        "token_env": config.token_from_env(),
                         "version": config.get_version(),
                     }),
                 )
         self.dispatcher.run(do)
+
+    def _save_token(self, token):
+        chat = self.chats.active
+        if config.token_from_env():
+            self.system_for(
+                chat,
+                "Note: GITHUB_TOKEN is set in your environment and takes precedence over a saved token.",
+            )
+        try:
+            config.save_github_token(token)
+            self._send_config()
+            self.system_for(chat, "GitHub token saved. Updates can now reach a private repository.")
+        except Exception as exc:
+            self.system_for(chat, "Could not save the token: {}".format(exc))
 
     def _update(self):
         chat = self.chats.active

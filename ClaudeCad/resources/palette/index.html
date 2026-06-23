@@ -24,6 +24,13 @@
             <button id="closeSettingsBtn" type="button" class="quick">Close</button>
         </div>
         <hr class="settings-sep" />
+        <label for="ghToken">GitHub token <span class="hint">(only if updating from a private repo)</span></label>
+        <input id="ghToken" type="password" placeholder="github_pat_… / ghp_…" autocomplete="off" spellcheck="false" />
+        <div class="settings-actions">
+            <button id="saveTokenBtn" type="button" class="quick approve">Save token</button>
+        </div>
+
+        <hr class="settings-sep" />
         <p class="hint">ClaudeCad <span id="versionSettings">—</span></p>
         <div class="settings-actions">
             <button id="updateBtn" type="button" class="quick">Check for updates</button>

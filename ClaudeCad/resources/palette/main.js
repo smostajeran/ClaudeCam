@@ -25,6 +25,8 @@
     var versionEl = document.getElementById("version");
     var versionSettingsEl = document.getElementById("versionSettings");
     var updateBtn = document.getElementById("updateBtn");
+    var ghTokenEl = document.getElementById("ghToken");
+    var saveTokenBtn = document.getElementById("saveTokenBtn");
 
     var busy = false;
     var hasKey = false;
@@ -134,6 +136,15 @@
 
     updateBtn.addEventListener("click", function () {
         sendData("update", {});
+    });
+
+    saveTokenBtn.addEventListener("click", function () {
+        var token = ghTokenEl.value.trim();
+        if (!token) {
+            return;
+        }
+        sendData("save_token", { token: token });
+        ghTokenEl.value = "";
     });
 
     saveKeyBtn.addEventListener("click", function () {
