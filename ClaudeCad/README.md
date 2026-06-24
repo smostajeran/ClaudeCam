@@ -122,7 +122,7 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 ## Updating
 
 - The current version shows next to the logo (and in **Settings**). It's read from the `VERSION` file and bumped on each change.
-- **Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`) and installs it over itself, then asks you to **Stop, then Run** the add-in (in Scripts and Add-Ins) to load the new code. Nothing reloads Python live, so the restart is required.
+- **Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`), installs it over itself, and then **reloads itself in place** — it tears down and rebuilds the panel from the new code so you don't have to Stop/Run by hand. (The persistent main-thread event bridge is reused rather than re-registered, which is what makes the live reload safe.) If the in-place reload can't complete, it falls back to asking you to **Stop, then Run** the add-in manually. Note: the *first* update to a build that has this feature still needs a manual Stop/Run, because the old code (without auto-reload) is the one performing that update; auto-reload kicks in from then on.
 - Self-update pulls from `smostajeran/ClaudeCam` via the GitHub API. If that repo is **private**, paste a GitHub token (fine-grained PAT with **Contents: Read**) into the **GitHub token** field in Settings — or set `GITHUB_TOKEN` / add `"github_token"` to `~/.claudecad/config.json`. Otherwise make the repo public. Your API key and settings are untouched by an update.
 
 ## Notes & limitations

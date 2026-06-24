@@ -228,7 +228,17 @@ class ClaudeCadUI:
                 return
             self.system_for(chat, message)
             if updated:
-                self._send_config()  # refresh the version shown in the panel
+                # Reload the new code in place so the user doesn't have to Stop/Run by hand.
+                self.system_for(chat, "Reloading ClaudeCad with the new version…")
+                try:
+                    from . import addin
+                    self.dispatcher.run(addin.reload_in_place)
+                except Exception as exc:
+                    self.system_for(
+                        chat,
+                        "Auto-reload failed ({}). Please Stop, then Run ClaudeCad in "
+                        "Scripts and Add-Ins to load the update.".format(exc),
+                    )
 
         threading.Thread(target=work, daemon=True).start()
 
