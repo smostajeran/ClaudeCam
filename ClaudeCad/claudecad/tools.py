@@ -482,6 +482,41 @@ TOOLS = [
         },
     },
     {
+        "name": "drill_holes",
+        "description": (
+            "Drill one or more holes into a body by ABSOLUTE coordinates — the deterministic, "
+            "safe way to add dowel / shelf-pin / fastener holes (e.g. into cabinet panels). Each "
+            "hole is a cylinder from an entry point along an axis for a depth, boolean-cut from "
+            "the target body; there's no face-frame or plane guesswork. Get body_index and panel "
+            "positions from inspect_model. Pass numeric mm values (not parameter expressions). "
+            "Refuses a diameter too large for the body so it can't destroy a panel."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Which solid body to drill (from inspect_model)."},
+                "holes": {
+                    "type": "array",
+                    "description": "The holes to drill.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "x": {"type": "number", "description": "Entry-point X in mm (absolute)."},
+                            "y": {"type": "number", "description": "Entry-point Y in mm (absolute)."},
+                            "z": {"type": "number", "description": "Entry-point Z in mm (absolute)."},
+                            "axis": {"type": "string", "enum": ["x", "-x", "y", "-y", "z", "-z"],
+                                      "description": "Direction the hole goes from the entry point."},
+                            "depth": {"type": "number", "description": "Hole depth in mm."},
+                            "diameter": {"type": "number", "description": "Hole diameter in mm."},
+                        },
+                        "required": ["x", "y", "z", "axis", "depth", "diameter"],
+                    },
+                },
+            },
+            "required": ["body_index", "holes"],
+        },
+    },
+    {
         "name": "get_design_summary",
         "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
@@ -590,6 +625,8 @@ def execute(name, tool_input, cad):
             ti.get("back_groove"),
             bool(ti.get("parametric", False)),
         )
+    if name == "drill_holes":
+        return cad.drill_holes(int(ti["body_index"]), list(ti["holes"]))
     if name == "get_design_summary":
         return cad.get_design_summary()
 

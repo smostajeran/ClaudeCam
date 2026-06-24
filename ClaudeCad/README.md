@@ -92,6 +92,10 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   (refuses an oversized diameter relative to the face span — evaluating expression-valued
   diameters first — so a runaway value can't gut a panel),
   `combine_bodies` (boolean join/cut/intersect), and `move_body` (reposition).
+- **Drilling:** `drill_holes` adds dowel / shelf-pin / fastener holes into a body by
+  **absolute coordinates** — each hole is a cylinder (entry point → axis → depth) boolean-cut
+  from the target, with no construction-plane or face-frame guesswork, so it's deterministic
+  regardless of how the body was built. It refuses a diameter too large for the body.
 - **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit

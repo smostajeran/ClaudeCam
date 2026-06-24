@@ -102,7 +102,9 @@ Follow this workflow:
    tongue on its left and right edges that seats into a groove cut into each side panel, which
    squares the carcass — prefer this over a flush back unless the user asks for 'inset' or
    'overlay'. build_cabinet builds fixed geometry by default; only pass parametric=true if the
-   user explicitly wants named parameters (it's still being validated).
+   user explicitly wants named parameters (it's still being validated). To add dowel /
+   shelf-pin / fastener holes, prefer drill_holes (absolute coordinates + boolean cut) over
+   cut_hole — it's deterministic, won't be thrown off by a panel's frame; pass numeric mm.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.

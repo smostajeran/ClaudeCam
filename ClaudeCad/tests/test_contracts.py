@@ -259,6 +259,7 @@ SAMPLES = {
     "chamfer_selection": {"distance": 2},
     "cut_hole_selection": {"diameter": 6},
     "build_cabinet": {"width": 600, "height": 720, "depth": 580, "joinery": "screws"},
+    "drill_holes": {"body_index": 0, "holes": [{"x": 10, "y": 37, "z": 100, "axis": "x", "depth": 12, "diameter": 5}]},
     "get_design_summary": {},
 }
 
