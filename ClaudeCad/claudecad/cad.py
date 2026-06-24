@@ -831,10 +831,11 @@ class CadBuilder:
 
         feats = None
         for attr in ("meshToBRepFeatures", "convertMeshFeatures"):
-            feats = getattr(comp.features, attr, None)
-            if feats:
+            candidate = getattr(comp.features, attr, None)
+            if candidate is not None:
+                feats = candidate
                 break
-        if not feats:
+        if feats is None:
             raise RuntimeError(
                 "Mesh-to-solid conversion isn't exposed by the Fusion API in this version. "
                 "Workaround: in Fusion use the Mesh tab > BRep Conversion, then I can edit the result."
