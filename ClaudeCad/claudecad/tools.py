@@ -417,10 +417,11 @@ TOOLS = [
             "actually fit together — Left Side, Right Side, Bottom, Top, Back, and optional "
             "Shelves — and returns a cut list plus a joinery plan. Origin is the bottom-left-back "
             "corner; X=width, Y=depth, Z=height. Use this whenever the user asks for a cabinet, "
-            "carcass, box, or casework rather than building each panel by hand. Ask the user which "
-            "joinery method they want (screws / dowels / dado / auto) if they haven't said. Note: "
-            "panels are solid bodies and the joinery is a plan only — joint geometry (pocket holes, "
-            "dados) isn't cut yet."
+            "carcass, box, or casework rather than building each panel by hand. Do NOT guess the "
+            "joinery method: if the user hasn't explicitly chosen one, ask them (screws / dowels / "
+            "dado / auto) and wait for their answer before calling this tool. Note: panels are "
+            "solid bodies and the joinery is a plan only — joint geometry (pocket holes, dados) "
+            "isn't cut yet."
         ),
         "input_schema": {
             "type": "object",
@@ -434,7 +435,7 @@ TOOLS = [
                 "joinery": {
                     "type": "string",
                     "enum": ["screws", "dowels", "dado", "auto"],
-                    "description": "Joinery method to plan for. 'auto' picks a sound default. Default 'screws'.",
+                    "description": "Joinery method to plan for, as chosen by the user (ask first; don't guess). 'auto' picks a sound default only when the user explicitly asks you to choose.",
                 },
             },
             "required": ["width", "height", "depth"],
@@ -530,10 +531,17 @@ def execute(name, tool_input, cad):
     if name == "cut_hole_selection":
         return cad.cut_hole_selection(ti["diameter"], ti.get("depth"))
     if name == "build_cabinet":
+        joinery = ti.get("joinery")
+        if not joinery:
+            raise ValueError(
+                "No joinery method was provided. Ask the user which joinery they want "
+                "(screws / dowels / dado / auto) and wait for their answer before building — "
+                "do not guess."
+            )
         return cad.build_cabinet(
             float(ti["width"]), float(ti["height"]), float(ti["depth"]),
             float(ti.get("thickness", 18.0)), float(ti.get("back_thickness", 6.0)),
-            int(ti.get("shelves", 0)), ti.get("joinery", "screws"),
+            int(ti.get("shelves", 0)), joinery,
         )
     if name == "get_design_summary":
         return cad.get_design_summary()
