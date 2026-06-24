@@ -27,11 +27,12 @@ RISK = {
     "chamfer_selection": BUILD, "set_material": BUILD, "add_thread": BUILD,
     "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
+    "drill_holes": MODIFY,
     "export_model": EXPORT,
 }
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
-DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid"}
+DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid", "drill_holes"}
 
 # Tools that should be gated behind explicit user confirmation in a preview/approve UI.
 REQUIRES_CONFIRMATION = DESTRUCTIVE | {"export_model", "move_body", "combine_bodies", "build_cabinet"}
@@ -67,6 +68,8 @@ def summarize_call(name, tool_input):
         return "Convert mesh[{}] to a solid body".format(ti.get("mesh_index", 0))
     if name == "export_model":
         return "Export the model as {}".format((ti.get("format") or "step").upper())
+    if name == "drill_holes":
+        return "Drill {} hole(s) into body[{}]".format(len(ti.get("holes") or []), ti.get("body_index"))
     return name
 
 # Tools that act on the live viewport selection: get_selection must be read first.
@@ -76,7 +79,7 @@ REQUIRES_SELECTION = {"fillet_selection", "chamfer_selection", "cut_hole_selecti
 # indices/names are valid against the current model rather than guessed.
 REQUIRES_INSPECTION = {
     "cut_hole", "combine_bodies", "move_body", "fillet_edges", "chamfer_edges",
-    "add_thread", "mesh_to_solid", "change_parameter",
+    "add_thread", "mesh_to_solid", "change_parameter", "drill_holes",
 }
 
 # Calls that count as "inspecting" the model (any one satisfies REQUIRES_INSPECTION).
@@ -195,6 +198,15 @@ def validate(name, tool_input):
             _check_len("back_thickness", ti.get("back_thickness"))
         if ti.get("shelves") is not None:
             _check_count("shelves", ti.get("shelves"), 0, 50)
+    elif name == "drill_holes":
+        holes = ti.get("holes")
+        if not isinstance(holes, list) or not holes:
+            raise ValueError("drill_holes needs a non-empty 'holes' list.")
+        for i, h in enumerate(holes):
+            if not isinstance(h, dict):
+                raise ValueError("Hole {} must be an object.".format(i))
+            _check_len("hole {} diameter".format(i), h.get("diameter"))
+            _check_len("hole {} depth".format(i), h.get("depth"))
     elif name == "export_model":
         from . import util
         if util.export_extension(ti.get("format", "step")) is None:
