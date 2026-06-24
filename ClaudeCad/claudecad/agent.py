@@ -36,7 +36,10 @@ Follow this workflow:
    they ask to export. For shapes extrude/revolve can't make, use loft (blend through
    profiles on offset planes) or sweep (profile along a path sketch). add_thread taps a
    cylindrical face (a hole or shaft). set_material + get_mass_properties give realistic
-   mass/volume/centre-of-mass. mesh_to_solid converts an imported mesh where supported.
+   mass/volume/centre-of-mass — material names vary by install, so call list_materials to
+   find a valid name before set_material rather than guessing (set all_bodies on set_material
+   to apply one material to every body, e.g. all of a cabinet's panels). mesh_to_solid
+   converts an imported mesh where supported.
    For a cabinet / carcass / casework, use build_cabinet: from the overall size it creates
    the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) already
    positioned to fit, and returns a cut list + joinery plan. Do NOT call build_cabinet with

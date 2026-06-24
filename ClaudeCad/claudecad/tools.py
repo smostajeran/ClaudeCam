@@ -363,13 +363,35 @@ TOOLS = [
         },
     },
     {
-        "name": "set_material",
-        "description": "Assign a physical material to a body (e.g. 'Aluminum', 'ABS Plastic', 'Steel') so mass properties and appearance are realistic.",
+        "name": "list_materials",
+        "description": (
+            "List the physical materials actually available in this Fusion install's material "
+            "libraries (optionally filtered). Call this BEFORE set_material to pick a name that "
+            "really exists — material names vary by install, so don't guess (e.g. for casework "
+            "filter 'wood', 'oak', 'plywood', 'mdf')."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "body_index": {"type": "integer", "description": "Default 0."},
-                "name": {"type": "string", "description": "Material name (partial match, case-insensitive)."},
+                "filter_text": {"type": "string", "description": "Case-insensitive substring to filter material names, e.g. 'wood'. Omit to list all."},
+            },
+        },
+    },
+    {
+        "name": "set_material",
+        "description": (
+            "Assign a physical material to a body (e.g. 'Aluminum', 'ABS Plastic', 'Oak') so mass "
+            "properties and appearance are realistic. Names vary by install — if unsure, call "
+            "list_materials first to get a valid name. Matching prefers exact, then prefix, then "
+            "substring. Set all_bodies true to apply the same material to every body at once "
+            "(handy for a cabinet's panels)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Default 0. Ignored when all_bodies is true."},
+                "name": {"type": "string", "description": "Material name (from list_materials; matched case-insensitively)."},
+                "all_bodies": {"type": "boolean", "description": "Apply to every solid body. Default false."},
             },
             "required": ["name"],
         },
@@ -520,8 +542,10 @@ def execute(name, tool_input, cad):
         return cad.add_thread(int(ti.get("body_index", 0)), int(ti["face_index"]), bool(ti.get("internal", True)))
     if name == "get_mass_properties":
         return cad.get_mass_properties(int(ti.get("body_index", 0)))
+    if name == "list_materials":
+        return cad.list_materials(ti.get("filter_text", ""))
     if name == "set_material":
-        return cad.set_material(int(ti.get("body_index", 0)), ti["name"])
+        return cad.set_material(int(ti.get("body_index", 0)), ti["name"], bool(ti.get("all_bodies", False)))
     if name == "get_selection":
         return cad.get_selection()
     if name == "fillet_selection":

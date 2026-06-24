@@ -911,23 +911,99 @@ class CadBuilder:
             )
         )
 
-    def set_material(self, body_index, name):
-        body = self._brep_body(body_index)
-        libs = self.app.materialLibraries
-        target = None
+    def _iter_materials(self):
+        """Yield every Material across all loaded Fusion material libraries.
+
+        Appearance-only libraries (and any library whose materials can't be read) are
+        skipped rather than aborting the whole search.
+        """
+        try:
+            libs = self.app.materialLibraries
+        except Exception:
+            return
         for i in range(libs.count):
-            mats = libs.item(i).materials
+            try:
+                mats = libs.item(i).materials
+            except Exception:
+                continue
             for j in range(mats.count):
-                m = mats.item(j)
-                if name.lower() in m.name.lower():
-                    target = m
-                    break
-            if target:
+                try:
+                    yield mats.item(j)
+                except Exception:
+                    continue
+
+    def list_materials(self, filter_text="", limit=60):
+        q = (filter_text or "").strip().lower()
+        names, seen = [], set()
+        for m in self._iter_materials():
+            if q and q not in m.name.lower():
+                continue
+            if m.name in seen:
+                continue
+            seen.add(m.name)
+            names.append(m.name)
+            if len(names) >= limit:
                 break
+        if not names:
+            if q:
+                return "No materials match '{}'. Call list_materials with no filter to see what's available.".format(filter_text)
+            return "No materials are available in Fusion's material libraries on this install."
+        header = "Available materials{} ({}{}):".format(
+            " matching '{}'".format(filter_text) if q else "", len(names), "+" if len(names) >= limit else ""
+        )
+        return header + "\n  " + "\n  ".join(names)
+
+    def _find_material(self, name):
+        """Resolve a material name to a Material, preferring exact > prefix > substring."""
+        q = (name or "").strip().lower()
+        exact = prefix = contains = None
+        for m in self._iter_materials():
+            mn = m.name.lower()
+            if mn == q:
+                exact = m
+                break
+            if prefix is None and mn.startswith(q):
+                prefix = m
+            if contains is None and q in mn:
+                contains = m
+        return exact or prefix or contains
+
+    def set_material(self, body_index, name, all_bodies=False):
+        target = self._find_material(name)
         if not target:
-            raise ValueError("No material matching '{}' found in the material libraries.".format(name))
-        body.material = target
-        return "Set body [{}] material to '{}'.".format(body_index, target.name)
+            sample = []
+            for m in self._iter_materials():
+                sample.append(m.name)
+                if len(sample) >= 15:
+                    break
+            hint = (" Examples: " + ", ".join(sample) + ".") if sample else \
+                " No materials are available in this install's libraries."
+            raise ValueError("No material matching '{}'. Call list_materials to see valid names.{}".format(name, hint))
+
+        comp = self._comp()
+        if all_bodies:
+            bodies = [comp.bRepBodies.item(i) for i in range(comp.bRepBodies.count)]
+            if not bodies:
+                raise RuntimeError("There are no solid bodies to assign a material to.")
+        else:
+            bodies = [self._brep_body(body_index)]
+
+        applied = 0
+        for body in bodies:
+            try:
+                body.material = target
+                applied += 1
+            except Exception as exc:
+                if not all_bodies:
+                    raise RuntimeError(
+                        "Found material '{}' but couldn't assign it to body '{}' ({}). "
+                        "Paste this and I'll adapt it for your Fusion version.".format(target.name, body.name, exc)
+                    )
+        if applied == 0:
+            raise RuntimeError("Found material '{}' but couldn't assign it to any body.".format(target.name))
+        if all_bodies:
+            return "Set material '{}' on all {} bodies.".format(target.name, applied)
+        return "Set body [{}] '{}' material to '{}'.".format(body_index, bodies[0].name, target.name)
 
     # -- casework (cabinets) -------------------------------------------------
     def _box(self, name, x0, y0, z0, x1, y1, z1):

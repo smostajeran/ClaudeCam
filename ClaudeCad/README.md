@@ -96,8 +96,10 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   (screws / dowels / dado / auto). Panels are solid bodies and the joinery is a plan for now
   (joint geometry — pocket holes, dados — isn't cut yet).
 - **Threads:** `add_thread` taps a cylindrical face (hole or shaft) with a standard metric thread.
-- **Material + mass:** `set_material` assigns a physical material; `get_mass_properties` reports
-  mass / volume / surface area / centre of mass.
+- **Material + mass:** `list_materials` lists the materials actually available in your Fusion
+  install (so names aren't guessed); `set_material` assigns a physical material to a body (or
+  all bodies at once via `all_bodies`, handy for a cabinet's panels); `get_mass_properties`
+  reports mass / volume / surface area / centre of mass.
 - **Mesh → solid:** `mesh_to_solid` converts an imported mesh to an editable body where the
   Fusion version supports it.
 - **Pick-in-viewport:** select faces/edges in Fusion and act on them by chat — `get_selection`,
