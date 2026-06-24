@@ -929,6 +929,97 @@ class CadBuilder:
         body.material = target
         return "Set body [{}] material to '{}'.".format(body_index, target.name)
 
+    # -- casework (cabinets) -------------------------------------------------
+    def _box(self, name, x0, y0, z0, x1, y1, z1):
+        """Create a named, axis-aligned box body from corner (x0,y0,z0) to (x1,y1,z1) mm.
+
+        Every panel is built as its X-Y footprint sketched on an offset XY plane and
+        extruded up in Z, so there's no plane-orientation guesswork.
+        """
+        comp = self._comp()
+        if abs(z0) < 1e-9:
+            plane = comp.xYConstructionPlane
+        else:
+            pin = comp.constructionPlanes.createInput()
+            pin.setByOffset(comp.xYConstructionPlane, adsk.core.ValueInput.createByString("{:g} mm".format(z0)))
+            plane = comp.constructionPlanes.add(pin)
+        sketch = comp.sketches.add(plane)
+        sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+            adsk.core.Point3D.create(x0 * MM, y0 * MM, 0.0),
+            adsk.core.Point3D.create(x1 * MM, y1 * MM, 0.0),
+        )
+        ext = comp.features.extrudeFeatures
+        ext_input = ext.createInput(sketch.profiles.item(0), adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString("{:g} mm".format(z1 - z0)))
+        feature = ext.add(ext_input)
+        body = feature.bodies.item(0)
+        body.name = name
+        self._remember(feature)
+        return body
+
+    @staticmethod
+    def _joinery_plan(method, thickness, shelves):
+        m = (method or "screws").lower()
+        lines = []
+        if m == "screws":
+            lines.append("  Sides <-> Bottom/Top: 3-4 confirmat or pocket screws per joint + glue.")
+            lines.append("  Back: screwed/pinned to the rear edges + glue (or set in a groove).")
+            if shelves:
+                lines.append("  Shelves: shelf pins (adjustable) or screws through the sides (fixed).")
+        elif m == "dowels":
+            lines.append("  Sides <-> Bottom/Top: 3-4 x 8 mm dowels per joint + glue.")
+            lines.append("  Back: glued/pinned at the rear; shelves on dowels or pins.")
+        elif m in ("dado", "rabbet", "dado/rabbet"):
+            lines.append("  Bottom/Top sit in {:g} mm dados cut into the sides, glued.".format(thickness))
+            lines.append("  Back sits in a rear rabbet/groove, glued (keeps the carcass square).")
+            if shelves:
+                lines.append("  Shelves in dados (fixed) or on pins (adjustable).")
+        else:  # auto
+            lines.append("  Carcass (sides <-> bottom/top): screws + glue — sound for {:g} mm sheet goods.".format(thickness))
+            lines.append("  Back: in a groove, glued — adds rigidity and squares the box.")
+            if shelves:
+                lines.append("  Shelves: pins if adjustable, dados if fixed.")
+        lines.append("  (Plan only — joinery holes/dados aren't cut yet; say the word and I'll add them.)")
+        return "\n".join(lines)
+
+    def build_cabinet(self, width, height, depth, thickness=18.0, back_thickness=6.0, shelves=0, joinery="screws"):
+        W, H, D = float(width), float(height), float(depth)
+        T, BT = float(thickness), float(back_thickness)
+        if W <= 2 * T + 10 or H <= 2 * T + 10 or D <= BT + 10:
+            raise ValueError("Cabinet dimensions are too small for {:g} mm material.".format(T))
+        n_sh = max(0, int(shelves))
+
+        # Origin at the bottom-left-back corner: X=width, Y=depth, Z=height.
+        # Back sits between the sides at the rear; bottom/top/shelves stop at the back.
+        self._box("Left Side", 0, 0, 0, T, D, H)
+        self._box("Right Side", W - T, 0, 0, W, D, H)
+        self._box("Bottom", T, 0, 0, W - T, D - BT, T)
+        self._box("Top", T, 0, H - T, W - T, D - BT, H)
+        self._box("Back", T, D - BT, 0, W - T, D, H)
+
+        shelf_lines = []
+        if n_sh:
+            gap = (H - 2 * T) / (n_sh + 1)
+            for i in range(1, n_sh + 1):
+                z0 = T + gap * i - T / 2.0
+                self._box("Shelf {}".format(i), T, 0, z0, W - T, D - BT, z0 + T)
+            shelf_lines.append("  Shelf x{}: {:g} x {:g} x {:g} mm".format(n_sh, W - 2 * T, D - BT, T))
+
+        cut = [
+            "  Side x2: {:g} x {:g} x {:g} mm".format(D, H, T),
+            "  Bottom/Top x2: {:g} x {:g} x {:g} mm".format(W - 2 * T, D - BT, T),
+            "  Back x1: {:g} x {:g} x {:g} mm".format(W - 2 * T, H, BT),
+        ] + shelf_lines
+
+        return (
+            "Built a frameless cabinet {:g}(W) x {:g}(H) x {:g}(D) mm in {:g} mm material"
+            "{}.\nCut list:\n{}\nJoinery ({}):\n{}".format(
+                W, H, D, T,
+                " with {} shelf(es)".format(n_sh) if n_sh else "",
+                "\n".join(cut), joinery, self._joinery_plan(joinery, T, n_sh),
+            )
+        )
+
     def capture_view(self):
         """Fit the camera and return a PNG of the active viewport as image content blocks."""
         viewport = self.app.activeViewport

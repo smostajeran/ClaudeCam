@@ -90,6 +90,11 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Editing existing models:** `change_parameter` (resize), `cut_hole` on a chosen face,
   `combine_bodies` (boolean join/cut/intersect), and `move_body` (reposition).
 - **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
+- **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
+  the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
+  together — and returns a cut list plus a joinery plan for the method you choose
+  (screws / dowels / dado / auto). Panels are solid bodies and the joinery is a plan for now
+  (joint geometry — pocket holes, dados — isn't cut yet).
 - **Threads:** `add_thread` taps a cylindrical face (hole or shaft) with a standard metric thread.
 - **Material + mass:** `set_material` assigns a physical material; `get_mass_properties` reports
   mass / volume / surface area / centre of mass.

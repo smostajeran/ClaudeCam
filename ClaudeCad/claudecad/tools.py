@@ -410,6 +410,37 @@ TOOLS = [
         },
     },
     {
+        "name": "build_cabinet",
+        "description": (
+            "Build a frameless (Euro-style) cabinet carcass from its overall size, in one step. "
+            "This encodes casework domain knowledge: it creates the named panels positioned to "
+            "actually fit together — Left Side, Right Side, Bottom, Top, Back, and optional "
+            "Shelves — and returns a cut list plus a joinery plan. Origin is the bottom-left-back "
+            "corner; X=width, Y=depth, Z=height. Use this whenever the user asks for a cabinet, "
+            "carcass, box, or casework rather than building each panel by hand. Ask the user which "
+            "joinery method they want (screws / dowels / dado / auto) if they haven't said. Note: "
+            "panels are solid bodies and the joinery is a plan only — joint geometry (pocket holes, "
+            "dados) isn't cut yet."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "width": {"type": "number", "description": "Overall outside width in mm (X)."},
+                "height": {"type": "number", "description": "Overall outside height in mm (Z)."},
+                "depth": {"type": "number", "description": "Overall outside depth in mm (Y)."},
+                "thickness": {"type": "number", "description": "Panel/sheet thickness in mm. Default 18."},
+                "back_thickness": {"type": "number", "description": "Back panel thickness in mm. Default 6."},
+                "shelves": {"type": "integer", "description": "Number of evenly-spaced interior shelves. Default 0."},
+                "joinery": {
+                    "type": "string",
+                    "enum": ["screws", "dowels", "dado", "auto"],
+                    "description": "Joinery method to plan for. 'auto' picks a sound default. Default 'screws'.",
+                },
+            },
+            "required": ["width", "height", "depth"],
+        },
+    },
+    {
         "name": "get_design_summary",
         "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
@@ -498,6 +529,12 @@ def execute(name, tool_input, cad):
         return cad.chamfer_selection(ti["distance"])
     if name == "cut_hole_selection":
         return cad.cut_hole_selection(ti["diameter"], ti.get("depth"))
+    if name == "build_cabinet":
+        return cad.build_cabinet(
+            float(ti["width"]), float(ti["height"]), float(ti["depth"]),
+            float(ti.get("thickness", 18.0)), float(ti.get("back_thickness", 6.0)),
+            int(ti.get("shelves", 0)), ti.get("joinery", "screws"),
+        )
     if name == "get_design_summary":
         return cad.get_design_summary()
 
