@@ -219,6 +219,30 @@ body {
     max-width: 100%;
 }
 
+/* Rendered Markdown inside assistant/system bubbles. */
+.msg.assistant, .msg.system { white-space: normal; }
+.msg.assistant > div + div,
+.msg.system > div + div { margin-top: 6px; }
+.msg .md-h { font-weight: 600; margin: 8px 0 4px; }
+.msg ul, .msg ol { margin: 6px 0; padding-left: 20px; text-align: left; }
+.msg li { margin: 2px 0; }
+.msg code {
+    background: rgba(0, 0, 0, 0.28);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12.5px;
+}
+.msg pre {
+    background: rgba(0, 0, 0, 0.32);
+    padding: 8px 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 6px 0;
+    text-align: left;
+}
+.msg pre code { background: none; padding: 0; }
+
 .quick-actions {
     display: flex;
     gap: 8px;
