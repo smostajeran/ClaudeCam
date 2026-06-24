@@ -33,6 +33,22 @@ RISK = {
 # Operations that consume/alter existing geometry in a way worth a heads-up.
 DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid"}
 
+# Tools that should be gated behind explicit user confirmation in a preview/approve UI.
+REQUIRES_CONFIRMATION = DESTRUCTIVE | {"export_model", "move_body", "combine_bodies"}
+
+# Tools that act on the live viewport selection: get_selection must be read first.
+REQUIRES_SELECTION = {"fillet_selection", "chamfer_selection", "cut_hole_selection"}
+
+# Tools that edit existing geometry by index/name: an inspection must precede them so the
+# indices/names are valid against the current model rather than guessed.
+REQUIRES_INSPECTION = {
+    "cut_hole", "combine_bodies", "move_body", "fillet_edges", "chamfer_edges",
+    "add_thread", "mesh_to_solid", "change_parameter",
+}
+
+# Calls that count as "inspecting" the model (any one satisfies REQUIRES_INSPECTION).
+INSPECTION_TOOLS = {"inspect_model", "list_faces", "list_edges", "get_design_summary", "get_selection"}
+
 _MAX_MM = 100000.0  # 100 m — an upper bound on any single length input
 
 
@@ -42,6 +58,37 @@ def risk(name):
 
 def is_destructive(name):
     return name in DESTRUCTIVE
+
+
+def metadata(name):
+    """Full policy descriptor for a tool (risk + permission/safety flags)."""
+    return {
+        "name": name,
+        "risk_level": risk(name),
+        "destructive": name in DESTRUCTIVE,
+        "requires_confirmation": name in REQUIRES_CONFIRMATION,
+        "requires_selection": name in REQUIRES_SELECTION,
+        "requires_inspection": name in REQUIRES_INSPECTION,
+    }
+
+
+def check_prerequisites(name, tools_called):
+    """Enforce runtime ordering rules; raise ValueError (surfaced to the model) if unmet.
+
+    ``tools_called`` is the set of tool names already invoked in this conversation (and the
+    current batch). Selection edits need a prior get_selection; index/name edits need a prior
+    inspection so they don't act on guessed indices.
+    """
+    if name in REQUIRES_SELECTION and "get_selection" not in tools_called:
+        raise ValueError(
+            "'{}' acts on your Fusion viewport selection — call get_selection first to read "
+            "what's selected, then act on it.".format(name)
+        )
+    if name in REQUIRES_INSPECTION and tools_called.isdisjoint(INSPECTION_TOOLS):
+        raise ValueError(
+            "'{}' edits existing geometry — call inspect_model (or list_faces / list_edges) "
+            "first so the body/face/edge indices are valid for the current model, not guessed.".format(name)
+        )
 
 
 def _num(value):

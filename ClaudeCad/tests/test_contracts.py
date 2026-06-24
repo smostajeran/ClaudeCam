@@ -88,6 +88,41 @@ def test_destructive_classification():
     assert policy.risk("export_model") == policy.EXPORT
 
 
+def test_metadata_shape_and_flags():
+    m = policy.metadata("cut_hole")
+    assert m["risk_level"] == policy.MODIFY
+    assert m["requires_confirmation"] and m["requires_inspection"]
+    assert policy.metadata("fillet_selection")["requires_selection"]
+    assert not policy.metadata("inspect_model")["requires_confirmation"]
+
+
+# -- runtime ordering rules -------------------------------------------------
+
+def _blocked(name, called):
+    try:
+        policy.check_prerequisites(name, set(called))
+        return False
+    except ValueError:
+        return True
+
+
+def test_selection_edit_requires_prior_get_selection():
+    assert _blocked("fillet_selection", set())
+    assert not _blocked("fillet_selection", {"get_selection"})
+
+
+def test_index_edit_requires_prior_inspection():
+    assert _blocked("cut_hole", set())
+    assert _blocked("combine_bodies", {"draw_rectangle", "extrude"})
+    assert not _blocked("cut_hole", {"list_faces"})
+    assert not _blocked("combine_bodies", {"inspect_model"})
+
+
+def test_build_tools_have_no_prerequisites():
+    for name in ("create_sketch", "draw_circle", "extrude", "build_cabinet"):
+        assert not _blocked(name, set())
+
+
 # -- unit conversion --------------------------------------------------------
 
 def test_unit_conversion_roundtrip():

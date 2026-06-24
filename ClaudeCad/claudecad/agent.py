@@ -7,7 +7,22 @@ The Messages API is called via :mod:`claudecad.api` (standard library only).
 
 from . import api
 from . import config
+from . import policy
 from . import tools
+
+
+def _tool_names_in(messages):
+    """All tool names already invoked across the conversation (from assistant tool_use blocks)."""
+    names = set()
+    for msg in messages:
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+        content = msg.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name"):
+                    names.add(block["name"])
+    return names
 
 SYSTEM_PROMPT = """You are ClaudeCad, a CAD design assistant embedded inside Autodesk Fusion 360.
 You turn a user's natural-language requirements into parametric 3D models by calling CAD tools.
@@ -266,12 +281,17 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
             if not tool_use_blocks:
                 break
 
+            # Tools invoked so far this conversation + everything in this batch, used to
+            # enforce ordering rules (inspect-before-edit, selection-before-selection-edit).
+            called = _tool_names_in(chat.messages) | {b.get("name") for b in tool_use_blocks}
+
             tool_results = []
             for block in tool_use_blocks:
                 if not alive():
                     return
                 ui.status(chat, True, "Building: {}…".format(block.get("name")))
                 try:
+                    policy.check_prerequisites(block["name"], called)  # runtime safety rules
                     output = dispatcher.run(
                         lambda b=block: tools.execute(b["name"], b.get("input", {}), cad)
                     )
