@@ -682,13 +682,31 @@ class CadBuilder:
     def _cut_hole_on_face(self, face, diameter, depth=None, x_offset=0.0, y_offset=0.0):
         if not adsk.core.Plane.cast(face.geometry):
             raise RuntimeError("That face is not planar; a hole needs a flat face.")
+        r_expr, r_mm = self._resolve(diameter, default_seed=10.0)  # r_mm is the diameter seed
+
+        # Safety guard: refuse a hole that's too big for the face. A runaway diameter — e.g. a
+        # parameter expression that evaluates large (cab_w), or the wrong value — would gut the
+        # panel instead of drilling it. Compare the diameter to the face's smaller in-plane span.
+        bb = face.boundingBox
+        spans = sorted([
+            self._mm(bb.maxPoint.x - bb.minPoint.x),
+            self._mm(bb.maxPoint.y - bb.minPoint.y),
+            self._mm(bb.maxPoint.z - bb.minPoint.z),
+        ])
+        face_min = spans[1]  # smaller of the two in-plane extents (the thickness ~0 is spans[0])
+        if r_mm >= 0.95 * face_min:
+            raise ValueError(
+                "Hole diameter {:.1f} mm is too large for this face (~{:.1f} mm across). Refusing "
+                "to cut so the panel isn't destroyed — use a smaller diameter, or check you picked "
+                "the intended face and that 'diameter' isn't a parameter that evaluates large.".format(r_mm, face_min)
+            )
+
         comp = self._comp()
         sketch = self._own(comp.sketches.add(face))
         center_sketch = sketch.modelToSketchSpace(face.pointOnFace)
         center = adsk.core.Point3D.create(
             center_sketch.x + float(x_offset) * MM, center_sketch.y + float(y_offset) * MM, 0.0
         )
-        r_expr, r_mm = self._resolve(diameter, default_seed=10.0)
         circle = sketch.sketchCurves.sketchCircles.addByCenterRadius(center, (r_mm / 2.0) * MM)
         if r_expr:
             try:
@@ -1171,7 +1189,7 @@ class CadBuilder:
 
     def build_cabinet(self, width, height, depth, thickness=18.0, back_thickness=6.0,
                       shelves=0, joinery="screws", back_joint="groove", back_groove=None,
-                      parametric=True):
+                      parametric=False):
         W, H, D = float(width), float(height), float(depth)
         T, BT = float(thickness), float(back_thickness)
         if W <= 2 * T + 10 or H <= 2 * T + 10 or D <= BT + 10:

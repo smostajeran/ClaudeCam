@@ -101,8 +101,8 @@ Follow this workflow:
    Pay attention to the BACK panel: by default (back_joint='groove') the back is built with a
    tongue on its left and right edges that seats into a groove cut into each side panel, which
    squares the carcass — prefer this over a flush back unless the user asks for 'inset' or
-   'overlay'. The cabinet is parameter-driven (cab_w/cab_h/cab_d/cab_t/cab_back); to resize
-   one later, use change_parameter rather than rebuilding.
+   'overlay'. build_cabinet builds fixed geometry by default; only pass parametric=true if the
+   user explicitly wants named parameters (it's still being validated).
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.
