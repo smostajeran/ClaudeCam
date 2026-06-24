@@ -766,6 +766,71 @@ class CadBuilder:
         self._remember(ext.add(ext_input))
         return r_mm
 
+    _AXES = {
+        "x": (1.0, 0.0, 0.0), "-x": (-1.0, 0.0, 0.0),
+        "y": (0.0, 1.0, 0.0), "-y": (0.0, -1.0, 0.0),
+        "z": (0.0, 0.0, 1.0), "-z": (0.0, 0.0, -1.0),
+    }
+
+    def drill_holes(self, body_index, holes):
+        """Drill blind/through holes into one body by ABSOLUTE coordinates.
+
+        Each hole is built as an explicit cylinder between two 3D end-centres (via the
+        temporary BRep manager) and boolean-cut from the target body. Because the axis is
+        given by two absolute points, there's no construction-plane orientation or face-frame
+        guesswork — deterministic regardless of how the body was built. Refuses a diameter
+        too large for the body so it can't gut a panel.
+        """
+        body = self._brep_body(body_index)
+        dims = self._bbox_dims(body.boundingBox)
+        body_min = min(dims)
+        try:
+            tbm = adsk.fusion.TemporaryBRepManager.get()
+        except Exception as exc:
+            raise RuntimeError("Temporary BRep manager unavailable ({}); can't drill.".format(exc))
+        comp = self._comp()
+        drilled = 0
+        for i, h in enumerate(holes or []):
+            d = float(h["diameter"])
+            depth = float(h["depth"])
+            if d <= 0 or depth <= 0:
+                raise ValueError("Hole {}: diameter and depth must be greater than 0.".format(i))
+            if d >= 0.95 * body_min:
+                raise ValueError(
+                    "Hole {}: diameter {:g} mm is too large for this body (~{:.1f} mm thick); "
+                    "refusing so the panel isn't destroyed.".format(i, d, body_min)
+                )
+            unit = self._AXES.get((h.get("axis") or "z").lower())
+            if not unit:
+                raise ValueError("Hole {}: axis must be one of x, -x, y, -y, z, -z.".format(i))
+            x, y, z = float(h["x"]), float(h["y"]), float(h["z"])
+            p0 = adsk.core.Point3D.create(x * MM, y * MM, z * MM)
+            p1 = adsk.core.Point3D.create(
+                (x + unit[0] * depth) * MM, (y + unit[1] * depth) * MM, (z + unit[2] * depth) * MM
+            )
+            try:
+                cyl = tbm.createCylinderOrCone(p0, (d / 2.0) * MM, p1, (d / 2.0) * MM)
+                base = comp.features.baseFeatures.add()
+                base.startEdit()
+                tool = comp.bRepBodies.add(cyl, base)
+                base.finishEdit()
+                self._own(base)
+                col = adsk.core.ObjectCollection.create()
+                col.add(tool)
+                cin = comp.features.combineFeatures.createInput(body, col)
+                cin.operation = adsk.fusion.FeatureOperations.CutFeatureOperation
+                cin.isKeepToolBodies = False
+                self._remember(comp.features.combineFeatures.add(cin))
+                drilled += 1
+            except Exception as exc:
+                raise RuntimeError(
+                    "Hole {} at ({:g}, {:g}, {:g}) failed ({}). It may not intersect the body, or "
+                    "the API differs on your Fusion version — paste this and I'll adapt it.".format(i, x, y, z, exc)
+                )
+        if drilled == 0:
+            raise ValueError("No holes were given to drill.")
+        return "Drilled {} hole(s) into body [{}] '{}' by absolute coordinates.".format(drilled, body_index, body.name)
+
     # -- viewport selection (pick in Fusion, act in chat) --------------------
     def _selected_entities(self):
         sels = self.app.userInterface.activeSelections
