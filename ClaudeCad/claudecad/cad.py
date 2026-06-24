@@ -679,26 +679,65 @@ class CadBuilder:
         depth_note = self._length(depth) if depth else "through all"
         return "Cut a {:g} mm hole through face [{}] of body [{}] ({}).".format(r_mm, face_index, body_index, depth_note)
 
-    def _cut_hole_on_face(self, face, diameter, depth=None, x_offset=0.0, y_offset=0.0):
-        if not adsk.core.Plane.cast(face.geometry):
-            raise RuntimeError("That face is not planar; a hole needs a flat face.")
-        r_expr, r_mm = self._resolve(diameter, default_seed=10.0)  # r_mm is the diameter seed
+    def _face_min_span(self, face):
+        """Smaller of the face's two in-plane extents, in mm.
 
-        # Safety guard: refuse a hole that's too big for the face. A runaway diameter — e.g. a
-        # parameter expression that evaluates large (cab_w), or the wrong value — would gut the
-        # panel instead of drilling it. Compare the diameter to the face's smaller in-plane span.
+        Projects the face's edge vertices onto its own plane (u, v) axes so the result is
+        correct for rotated/angled faces, not just axis-aligned ones. Falls back to the world
+        axis-aligned bounding box if the plane/vertex query isn't available.
+        """
+        plane = adsk.core.Plane.cast(face.geometry)
+        try:
+            dirs = plane.getUVDirections()
+            u, v = dirs[-2], dirs[-1]  # binding may return (u, v) or (success, u, v)
+            origin = plane.origin
+            us, vs = [], []
+            edges = face.edges
+            for i in range(edges.count):
+                e = edges.item(i)
+                for vert in (e.startVertex, e.endVertex):
+                    p = vert.geometry
+                    dx, dy, dz = p.x - origin.x, p.y - origin.y, p.z - origin.z
+                    us.append(dx * u.x + dy * u.y + dz * u.z)
+                    vs.append(dx * v.x + dy * v.y + dz * v.z)
+            if us and vs:
+                return min(self._mm(max(us) - min(us)), self._mm(max(vs) - min(vs)))
+        except Exception:
+            pass
         bb = face.boundingBox
         spans = sorted([
             self._mm(bb.maxPoint.x - bb.minPoint.x),
             self._mm(bb.maxPoint.y - bb.minPoint.y),
             self._mm(bb.maxPoint.z - bb.minPoint.z),
         ])
-        face_min = spans[1]  # smaller of the two in-plane extents (the thickness ~0 is spans[0])
-        if r_mm >= 0.95 * face_min:
+        return spans[1]  # the thickness (~0) is spans[0]
+
+    def _cut_hole_on_face(self, face, diameter, depth=None, x_offset=0.0, y_offset=0.0):
+        if not adsk.core.Plane.cast(face.geometry):
+            raise RuntimeError("That face is not planar; a hole needs a flat face.")
+        r_expr, r_mm = self._resolve(diameter, default_seed=10.0)  # r_mm is the diameter seed
+
+        # Resolve the ACTUAL diameter for the guard. _resolve only seeds bare parameter names,
+        # so for a compound expression ("cab_w / 2") evaluate it to a real mm value — otherwise
+        # an expression that resolves large would slip past the seed-based check and gut the panel.
+        guard_d = r_mm
+        if r_expr:
+            try:
+                guard_d = self._mm(self._design().fusionUnitsManager.evaluateExpression(r_expr, "mm"))
+            except Exception:
+                raise ValueError(
+                    "Couldn't evaluate the hole diameter expression '{}' to a number to verify "
+                    "it's safe. Pass a numeric diameter in mm.".format(r_expr)
+                )
+
+        # Safety guard: refuse a hole that's too big for the face (>= 95% of its smaller in-plane
+        # span), so a runaway diameter can't gut the panel instead of drilling it.
+        face_min = self._face_min_span(face)
+        if guard_d >= 0.95 * face_min:
             raise ValueError(
                 "Hole diameter {:.1f} mm is too large for this face (~{:.1f} mm across). Refusing "
                 "to cut so the panel isn't destroyed — use a smaller diameter, or check you picked "
-                "the intended face and that 'diameter' isn't a parameter that evaluates large.".format(r_mm, face_min)
+                "the intended face and that 'diameter' isn't an expression that evaluates large.".format(guard_d, face_min)
             )
 
         comp = self._comp()
@@ -1196,9 +1235,10 @@ class CadBuilder:
             raise ValueError("Cabinet dimensions are too small for {:g} mm material.".format(T))
         n_sh = max(0, int(shelves))
 
-        # Parameter-driven by default: create named user parameters and reference them on the
-        # panels so the cabinet is adjustable later (change a parameter, the panels follow).
-        # Expressions are seeded from the current numbers, so the geometry is always built.
+        # Optional parametric mode (OFF by default): create named user parameters and
+        # reference them on the panels so the cabinet is adjustable later (change a parameter,
+        # the panels follow). Expressions are seeded from the current numbers, so the geometry
+        # is always built. Experimental until validated in Fusion.
         if parametric:
             self.create_parameter("cab_w", "{:g} mm".format(W), comment="Cabinet overall width")
             self.create_parameter("cab_h", "{:g} mm".format(H), comment="Cabinet overall height")

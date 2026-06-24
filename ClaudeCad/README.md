@@ -89,7 +89,8 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   fillet/chamfer (all edges **or** specific edges by index), shell (hollow / open box),
   circular / rectangular patterns, and N-sided polygons.
 - **Editing existing models:** `change_parameter` (resize), `cut_hole` on a chosen face
-  (refuses a diameter too large for the face, so a bad value can't gut a panel),
+  (refuses an oversized diameter relative to the face span — evaluating expression-valued
+  diameters first — so a runaway value can't gut a panel),
   `combine_bodies` (boolean join/cut/intersect), and `move_body` (reposition).
 - **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
