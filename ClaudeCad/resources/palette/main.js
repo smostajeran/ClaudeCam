@@ -27,6 +27,9 @@
     var updateBtn = document.getElementById("updateBtn");
     var ghTokenEl = document.getElementById("ghToken");
     var saveTokenBtn = document.getElementById("saveTokenBtn");
+    var approvalEl = document.getElementById("approval");
+    var approvePlanBtn = document.getElementById("approvePlanBtn");
+    var rejectPlanBtn = document.getElementById("rejectPlanBtn");
 
     var busy = false;
     var hasKey = false;
@@ -49,10 +52,89 @@
         }
     }
 
+    function escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    // Inline formatting on an already-escaped string: bold (**x**) and code (`x`).
+    // Single * and _ are intentionally left alone so expressions like "2 * width"
+    // and parameter names like "back_thickness" aren't mangled into italics.
+    function inlineMd(s) {
+        var parts = s.split(/(`[^`]+`)/g);
+        for (var i = 0; i < parts.length; i++) {
+            if (i % 2 === 1) {
+                parts[i] = "<code>" + parts[i].slice(1, -1) + "</code>";
+            } else {
+                parts[i] = parts[i].replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+            }
+        }
+        return parts.join("");
+    }
+
+    function renderBlocks(text) {
+        var lines = text.split("\n");
+        var out = "";
+        var listType = null;
+        function closeList() {
+            if (listType) { out += "</" + listType + ">"; listType = null; }
+        }
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].replace(/\s+$/, "");
+            var h = /^(#{1,6})\s+(.*)$/.exec(line);
+            var ul = /^\s*[-*]\s+(.*)$/.exec(line);
+            var ol = /^\s*\d+\.\s+(.*)$/.exec(line);
+            if (h) {
+                closeList();
+                out += '<div class="md-h">' + inlineMd(h[2]) + "</div>";
+            } else if (ul) {
+                if (listType !== "ul") { closeList(); out += "<ul>"; listType = "ul"; }
+                out += "<li>" + inlineMd(ul[1]) + "</li>";
+            } else if (ol) {
+                if (listType !== "ol") { closeList(); out += "<ol>"; listType = "ol"; }
+                out += "<li>" + inlineMd(ol[1]) + "</li>";
+            } else if (line === "") {
+                closeList();
+            } else {
+                closeList();
+                out += "<div>" + inlineMd(line) + "</div>";
+            }
+        }
+        closeList();
+        return out;
+    }
+
+    // Render a safe subset of Markdown to HTML. Input is escaped first, so the
+    // output never contains caller-supplied tags.
+    function renderMarkdown(text) {
+        var escaped = escapeHtml(text);
+        var chunks = escaped.split(/```/);
+        var html = "";
+        for (var i = 0; i < chunks.length; i++) {
+            if (i % 2 === 1) {
+                // Fenced code block; drop an optional language tag on the first line.
+                var code = chunks[i].replace(/^[^\n]*\n/, function (first) {
+                    return /^[A-Za-z0-9_+-]*\s*\n$/.test(first) ? "" : first;
+                });
+                code = code.replace(/^\n+/, "").replace(/\n+$/, "");
+                html += "<pre><code>" + code + "</code></pre>";
+            } else {
+                html += renderBlocks(chunks[i]);
+            }
+        }
+        return html;
+    }
+
     function addMessage(role, text) {
         var el = document.createElement("div");
         el.className = "msg " + role;
-        el.textContent = text;
+        if (role === "user") {
+            el.textContent = text;  // user text is plain; don't interpret markdown
+        } else {
+            el.innerHTML = renderMarkdown(text);
+        }
         messagesEl.appendChild(el);
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
@@ -120,6 +202,20 @@
         sendData("new_chat", {});
     });
 
+    function setApproval(pending) {
+        approvalEl.classList.toggle("hidden", !pending);
+    }
+
+    approvePlanBtn.addEventListener("click", function () {
+        setApproval(false);
+        sendData("approve_plan", {});
+    });
+
+    rejectPlanBtn.addEventListener("click", function () {
+        setApproval(false);
+        sendData("reject_plan", {});
+    });
+
     chatSelect.addEventListener("change", function () {
         sendData("switch_chat", { id: chatSelect.value });
     });
@@ -175,9 +271,13 @@
                 case "reset":
                     messagesEl.innerHTML = "";
                     setStatus(false, "");
+                    setApproval(false);
                     break;
                 case "chats":
                     renderChats(d.chats);
+                    break;
+                case "approval":
+                    setApproval(!!d.pending);
                     break;
                 case "config":
                     hasKey = !!d.has_key;

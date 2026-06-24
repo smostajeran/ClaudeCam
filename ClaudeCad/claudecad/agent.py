@@ -7,7 +7,60 @@ The Messages API is called via :mod:`claudecad.api` (standard library only).
 
 from . import api
 from . import config
+from . import policy
 from . import tools
+
+
+def _format_plan(tool_use_blocks):
+    """A readable plan for the approval prompt: one line per pending tool call, with the
+    ones that need confirmation marked."""
+    lines = ["I'd like to run these operations:"]
+    for b in tool_use_blocks:
+        mark = "  • {}".format(policy.summarize_call(b["name"], b.get("input", {})))
+        if policy.needs_confirmation(b["name"]):
+            mark += "  — needs your OK"
+        lines.append(mark)
+    lines.append("Approve to proceed, or Reject and tell me what to change.")
+    return "\n".join(lines)
+
+
+def _await_approval(chat, ui, plan, alive, timeout=600.0):
+    """Show the plan and block until the user approves/rejects in the panel.
+
+    Returns True (approved), False (rejected/timed out), or None (cancelled via Discard or
+    the turn is no longer current). Polls in short waits so Discard unblocks promptly, and
+    auto-rejects after ``timeout`` so a closed/reloaded panel can never hang the turn.
+    """
+    event = ui.request_approval(chat, plan)
+    waited = 0.0
+    step = 0.5
+    while not event.wait(step):
+        waited += step
+        if not alive():
+            ui.clear_approval(chat)
+            return None
+        if waited >= timeout:
+            ui.clear_approval(chat)
+            ui.system_for(chat, "No response to the approval request — skipping it for safety.")
+            return False
+    if not alive():
+        return None
+    decision = ui.take_approval(chat)
+    return bool(decision)
+
+
+def _tool_names_in(messages):
+    """All tool names already invoked across the conversation (from assistant tool_use blocks)."""
+    names = set()
+    for msg in messages:
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+        content = msg.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name"):
+                    names.add(block["name"])
+    return names
 
 SYSTEM_PROMPT = """You are ClaudeCad, a CAD design assistant embedded inside Autodesk Fusion 360.
 You turn a user's natural-language requirements into parametric 3D models by calling CAD tools.
@@ -48,7 +101,8 @@ Follow this workflow:
    Pay attention to the BACK panel: by default (back_joint='groove') the back is built with a
    tongue on its left and right edges that seats into a groove cut into each side panel, which
    squares the carcass — prefer this over a flush back unless the user asks for 'inset' or
-   'overlay'.
+   'overlay'. The cabinet is parameter-driven (cab_w/cab_h/cab_d/cab_t/cab_back); to resize
+   one later, use change_parameter rather than rebuilding.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.
@@ -98,6 +152,45 @@ class Session:
         self.messages = []
         self.busy = False
         self.generation += 1
+
+
+_MAX_TOOL_RESULT_CHARS = 6000
+
+
+def _compact_history(messages, keep_tail=6):
+    """Shrink older context in place to bound token growth over a long conversation.
+
+    For messages older than the most recent ``keep_tail``: replace screenshot image
+    blocks in tool results with a short placeholder (they were only needed for the turn
+    right after the capture), and truncate oversized text tool results. The recent tail
+    is left intact so the model still has full fidelity on what it's actively working on.
+    """
+    cutoff = max(0, len(messages) - keep_tail)
+    for i in range(cutoff):
+        msg = messages[i]
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if not isinstance(block, dict) or block.get("type") != "tool_result":
+                continue
+            inner = block.get("content")
+            if isinstance(inner, list):
+                new_inner = []
+                changed = False
+                for sub in inner:
+                    if isinstance(sub, dict) and sub.get("type") == "image":
+                        new_inner.append({"type": "text", "text": "[screenshot omitted to save context]"})
+                        changed = True
+                    else:
+                        new_inner.append(sub)
+                if changed:
+                    block["content"] = new_inner
+            elif isinstance(inner, str) and len(inner) > _MAX_TOOL_RESULT_CHARS:
+                block["content"] = inner[:_MAX_TOOL_RESULT_CHARS] + "\n…[truncated to save context]"
+    return messages
 
 
 def _strip_orphan_tool_uses(messages):
@@ -166,6 +259,14 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         )
         return
 
+    # Document-level guard: only one turn may mutate the shared Fusion design at a time.
+    # Taken non-blocking so a second chat is told to wait rather than silently queuing
+    # and interleaving tool calls into the same document.
+    lock = getattr(cad, "turn_lock", None)
+    if lock is not None and not lock.acquire(blocking=False):
+        ui.system_for(chat, "ClaudeCad is busy with another chat — please wait for it to finish.")
+        return
+
     gen = chat.generation
 
     def alive():
@@ -177,8 +278,9 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         chat.messages.append({"role": "user", "content": user_text})
 
         while alive():
-            # Repair any orphaned tool_use left by a previously interrupted turn.
+            # Repair orphaned tool_use from an interrupted turn, then compact old context.
             chat.messages[:] = _strip_orphan_tool_uses(chat.messages)
+            _compact_history(chat.messages)
             if not alive():
                 return  # Discard happened between the loop check and the request
             response = api.create_message(
@@ -217,12 +319,36 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
             if not tool_use_blocks:
                 break
 
+            # Tools invoked so far this conversation + everything in this batch, used to
+            # enforce ordering rules (inspect-before-edit, selection-before-selection-edit).
+            called = _tool_names_in(chat.messages) | {b.get("name") for b in tool_use_blocks}
+
+            # Preview -> approve -> execute: if this batch contains any tool that needs
+            # confirmation, present the plan and wait for the user's Approve/Reject before
+            # running ANYTHING in the batch. Declining returns errors so the model re-plans.
+            confirm_blocks = [b for b in tool_use_blocks if policy.needs_confirmation(b["name"])]
+            if confirm_blocks:
+                plan = _format_plan(tool_use_blocks)
+                approved = _await_approval(chat, ui, plan, alive)
+                if approved is None:
+                    return  # cancelled (Discard) or interrupted while waiting
+                if not approved:
+                    chat.messages.append({"role": "user", "content": [
+                        {"type": "tool_result", "tool_use_id": b["id"],
+                         "content": "The user declined this operation. Do not run it; ask what they'd like to change.",
+                         "is_error": True}
+                        for b in tool_use_blocks
+                    ]})
+                    ui.system_for(chat, "Declined. Tell me what you'd like to change and I'll revise the plan.")
+                    continue
+
             tool_results = []
             for block in tool_use_blocks:
                 if not alive():
                     return
                 ui.status(chat, True, "Building: {}…".format(block.get("name")))
                 try:
+                    policy.check_prerequisites(block["name"], called)  # runtime safety rules
                     output = dispatcher.run(
                         lambda b=block: tools.execute(b["name"], b.get("input", {}), cad)
                     )
@@ -263,3 +389,8 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         if alive():
             chat.busy = False
             ui.status(chat, False, "")
+        if lock is not None:
+            try:
+                lock.release()
+            except Exception:
+                pass

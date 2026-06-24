@@ -76,6 +76,7 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - Use the chat dropdown and **+ New** (above the message area) to keep separate conversation threads. Each chat has its own history and **never carries over** anything from another chat.
 - Chats live only in memory for the current Fusion session — nothing is written to disk, so when you restart Fusion you start fresh with a single empty chat.
 - While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck.
+- Assistant replies render **formatted Markdown** (headings, bold, bullet/numbered lists, inline and fenced code) rather than showing raw `**`/`#`/`-` characters. Expression-like text (`2 * width`) and parameter names (`back_thickness`) are left untouched.
 - Note: all chats build into the one active Fusion document (geometry is shared); chat isolation is about the *conversation*, not separate 3D models.
 
 ## What Claude can build
@@ -93,7 +94,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
   together — and returns a cut list plus a joinery plan for the method you choose
-  (screws / dowels / dado / auto). The **back panel** is handled properly: by default it's
+  (screws / dowels / dado / auto). It's **parameter-driven** (`cab_w`/`cab_h`/`cab_d`/`cab_t`/
+  `cab_back`), so you can resize a built cabinet by changing one parameter. The **back panel**
+  is handled properly: by default it's
   built with a tongue on its left and right edges that seats into a groove cut into each side
   (`back_joint='groove'`, which squares the carcass), with `inset` (flush) and `overlay`
   alternatives. Other joinery is a plan for now (pocket holes / dados aren't cut yet).
@@ -106,7 +109,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   Fusion version supports it.
 - **Pick-in-viewport:** select faces/edges in Fusion and act on them by chat — `get_selection`,
   `fillet_selection`, `chamfer_selection`, `cut_hole_selection` ("round these edges 2 mm").
-- **Export:** `export_model` writes STEP / STL / IGES / F3D to your home folder.
+- **Export:** `export_model` writes STEP / STL / IGES / F3D to your home folder. The filename
+  is sanitized (path components stripped, confined to the home folder) and never overwrites an
+  existing file — it auto-suffixes (`name_1.step`, …) instead.
 - **3D placement:** sketches can be created on an **offset** construction plane so parts are
   positioned at the right height/location and assemble together rather than overlapping at
   the origin.
@@ -121,7 +126,7 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 ## Updating
 
 - The current version shows next to the logo (and in **Settings**). It's read from the `VERSION` file and bumped on each change.
-- **Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`) and installs it over itself, then asks you to **Stop, then Run** the add-in (in Scripts and Add-Ins) to load the new code. Nothing reloads Python live, so the restart is required.
+- **Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`), installs it over itself, and then **reloads itself in place** — it tears down and rebuilds the panel from the new code so you don't have to Stop/Run by hand. (The persistent main-thread event bridge is reused rather than re-registered, which is what makes the live reload safe.) If the in-place reload can't complete, it falls back to asking you to **Stop, then Run** the add-in manually. Note: the *first* update to a build that has this feature still needs a manual Stop/Run, because the old code (without auto-reload) is the one performing that update; auto-reload kicks in from then on.
 - Self-update pulls from `smostajeran/ClaudeCam` via the GitHub API. If that repo is **private**, paste a GitHub token (fine-grained PAT with **Contents: Read**) into the **GitHub token** field in Settings — or set `GITHUB_TOKEN` / add `"github_token"` to `~/.claudecad/config.json`. Otherwise make the repo public. Your API key and settings are untouched by an update.
 
 ## Notes & limitations
@@ -130,6 +135,12 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - Fillet/chamfer/shell act on **all edges / the top face** of the most recent body (no
   per-edge selection yet). The architecture is built to extend: add a method to `cad.py`,
   a schema to `tools.py`, and a branch to `tools.execute`.
-- **Discard & start over** deletes the timeline features and parameters created during the session (rolling back to where the session began) — it does not touch pre-existing geometry.
+- **Discard & start over** deletes only the geometry ClaudeCad created — every feature it makes is tagged with a Fusion attribute, and Discard removes only tagged items plus the parameters it added. Geometry you create yourself is never deleted, even if you add it after the add-in starts.
+- **Preview → approve → execute:** before running an operation that materially changes the document or filesystem (cabinet build, holes, booleans, body moves, mesh conversion, export), the panel shows the plan and an **Approve / Reject** bar — nothing runs until you approve. Reject and the assistant re-plans.
+- **One turn at a time per document:** a document-level lock means only one chat can run a CAD turn against the active design at once; a second chat is told to wait rather than interleaving operations into the shared model.
+- **Document binding:** a chat binds to the Fusion document it started in; if the active document changes, operations are refused with a clear message rather than landing on the wrong design.
+- **Safety boundary:** tool arguments are validated before any geometry is created (a bad call fails cleanly instead of half-building), and tools are risk-classified (read / build / modify / export) with policy metadata (destructive / requires-confirmation / requires-selection / requires-inspection). Runtime rules are enforced: editing existing geometry requires a prior `inspect_model`/`list_faces`/`list_edges`, and selection edits require a prior `get_selection` — otherwise the call is refused and the model is told to inspect first.
+- **Context stays lean:** older screenshots are dropped from the conversation history after they've been used and oversized tool results are truncated, so long sessions don't balloon.
+- **Tests:** `python tests/test_contracts.py` runs the offline contract suite (no Fusion needed); `tests/SMOKE.md` is the manual in-Fusion checklist.
 - All chats share the one active Fusion document (and one CAD builder), so Discard in one chat rolls back the shared geometry and sketch ids — chat isolation is about the conversation, not separate models.
 - Requires an active Fusion design in **parametric** (timeline) mode.

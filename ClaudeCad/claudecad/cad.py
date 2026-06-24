@@ -14,11 +14,14 @@ import base64
 import math
 import os
 import tempfile
+import threading
 
 import adsk.core
 import adsk.fusion
 
-MM = 0.1  # millimetres -> centimetres (Fusion internal units)
+from . import util
+
+MM = util.MM  # millimetres -> centimetres (Fusion internal units); single-sourced in util
 
 _OPERATIONS = {
     "new": adsk.fusion.FeatureOperations.NewBodyFeatureOperation,
@@ -38,6 +41,11 @@ class CadBuilder:
     document itself is shared; chat isolation is about the conversation, not the geometry.
     """
 
+    # Fusion attribute group/name used to tag everything ClaudeCad creates, so Discard
+    # can roll back ONLY the assistant's work and never the user's geometry.
+    _ATTR_GROUP = "ClaudeCad"
+    _ATTR_NAME = "owned"
+
     def __init__(self, app):
         self.app = app
         self._sketches = {}
@@ -46,13 +54,57 @@ class CadBuilder:
         self._last_feature = None
         self._last_body = None
         self._start_marker = 0
+        # Document-level lock: only one CAD-agent turn may mutate the shared design at a
+        # time (the dispatcher serializes individual calls, but not a whole multi-tool plan).
+        self.turn_lock = threading.Lock()
+        # Identity of the document this builder is bound to (set on first use). If the user
+        # switches the active Fusion document mid-session, operations would silently land on
+        # the wrong design — we detect that and refuse rather than corrupt another document.
+        self._doc_key = None
         self._record_start()
+
+    def _active_doc_key(self):
+        """A stable-ish identifier for the active document (data file id, else its name)."""
+        try:
+            doc = self.app.activeDocument
+            try:
+                if doc.dataFile:
+                    return doc.dataFile.id
+            except Exception:
+                pass
+            return doc.name
+        except Exception:
+            return None
+
+    def _own(self, entity):
+        """Tag an entity as ClaudeCad-created so Discard can identify and remove only it."""
+        try:
+            if entity:
+                entity.attributes.add(self._ATTR_GROUP, self._ATTR_NAME, "1")
+        except Exception:
+            pass
+        return entity
+
+    def _is_owned(self, entity):
+        try:
+            return entity.attributes.itemByName(self._ATTR_GROUP, self._ATTR_NAME) is not None
+        except Exception:
+            return False
 
     # -- internals -----------------------------------------------------------
     def _design(self):
         design = adsk.fusion.Design.cast(self.app.activeProduct)
         if not design:
             raise RuntimeError("No active Fusion design. Open or create a design, then try again.")
+        # Bind to the first document we see; refuse to operate on a different one later.
+        key = self._active_doc_key()
+        if self._doc_key is None:
+            self._doc_key = key
+        elif key is not None and key != self._doc_key:
+            raise RuntimeError(
+                "The active Fusion document changed since this chat started. Switch back to the "
+                "original document, or open '+ New' for a fresh chat to work on this one."
+            )
         return design
 
     def _comp(self):
@@ -123,6 +175,7 @@ class CadBuilder:
 
     def _remember(self, feature):
         self._last_feature = feature
+        self._own(feature)
         try:
             if feature.bodies.count:
                 self._last_body = feature.bodies.item(0)
@@ -140,6 +193,16 @@ class CadBuilder:
     # -- parameters & sketches ----------------------------------------------
     def create_parameter(self, name, expression, unit="mm", comment=""):
         design = self._design()
+        # Idempotent: if the parameter already exists (model reused 'width', 'wall', …),
+        # update it in place instead of failing on a duplicate-name add.
+        existing = design.userParameters.itemByName(name)
+        if existing:
+            existing.expression = expression
+            if comment:
+                existing.comment = comment
+            return "Updated existing parameter {} = {} (now {}).".format(
+                name, expression, self._format_param_value(existing)
+            )
         value = adsk.core.ValueInput.createByString(expression)
         design.userParameters.add(name, value, unit or "mm", comment or "")
         if name not in self._params:
@@ -157,10 +220,10 @@ class CadBuilder:
             off_expr = offset if isinstance(offset, str) else "{:g} mm".format(float(offset))
             plane_input = comp.constructionPlanes.createInput()
             plane_input.setByOffset(base, adsk.core.ValueInput.createByString(off_expr))
-            target = comp.constructionPlanes.add(plane_input)
+            target = self._own(comp.constructionPlanes.add(plane_input))
             offset_note = ", offset {} from the {} plane".format(off_expr, (plane or "xy").lower())
 
-        sketch = comp.sketches.add(target)
+        sketch = self._own(comp.sketches.add(target))
         if name:
             sketch.name = name
         self._sketch_counter += 1
@@ -575,7 +638,8 @@ class CadBuilder:
         if not param:
             raise ValueError("No parameter named '{}'. Use inspect_model to list parameters.".format(name))
         param.expression = expression
-        return "Set parameter {} = {} (now {:.3g} mm).".format(name, expression, self._mm(param.value))
+        # Report the evaluated value in the parameter's own unit (mm/deg/unitless), not always mm.
+        return "Set parameter {} = {} (now {}).".format(name, expression, self._format_param_value(param))
 
     def _edge_set(self, body, indices):
         edges = adsk.core.ObjectCollection.create()
@@ -619,7 +683,7 @@ class CadBuilder:
         if not adsk.core.Plane.cast(face.geometry):
             raise RuntimeError("That face is not planar; a hole needs a flat face.")
         comp = self._comp()
-        sketch = comp.sketches.add(face)
+        sketch = self._own(comp.sketches.add(face))
         center_sketch = sketch.modelToSketchSpace(face.pointOnFace)
         center = adsk.core.Point3D.create(
             center_sketch.x + float(x_offset) * MM, center_sketch.y + float(y_offset) * MM, 0.0
@@ -741,7 +805,8 @@ class CadBuilder:
             adsk.core.ValueInput.createByString("{:g} mm".format(float(dz))),
             True,
         )
-        moves.add(move_input)
+        # Remember the move feature so a following pattern targets it, not the prior feature.
+        self._remember(moves.add(move_input))
         return "Moved body [{}] by ({:g}, {:g}, {:g}) mm.".format(body_index, float(dx), float(dy), float(dz))
 
     def draw_polygon(self, sketch_id, sides, radius, center_x=0.0, center_y=0.0):
@@ -769,11 +834,21 @@ class CadBuilder:
         design = self._design()
         mgr = design.exportManager
         fmt = (fmt or "step").lower()
-        ext = {"step": ".step", "stp": ".step", "stl": ".stl", "iges": ".igs", "igs": ".igs", "f3d": ".f3d"}.get(fmt)
+        ext = util.export_extension(fmt)
         if not ext:
             raise ValueError("Unsupported format '{}'. Use step, stl, iges or f3d.".format(fmt))
-        name = (filename or "claudecad_export").rsplit(".", 1)[0]
-        path = os.path.join(os.path.expanduser("~"), name + ext)
+        # Sanitize the model-supplied filename (strip path + unsafe chars), confine it to the
+        # home folder so a prompt can't traverse out (../) or write elsewhere, and auto-suffix
+        # instead of overwriting an existing file.
+        base = util.safe_export_basename(filename)
+        home = os.path.realpath(os.path.expanduser("~"))
+        path = os.path.realpath(os.path.join(home, base + ext))
+        if os.path.dirname(path) != home:
+            raise ValueError("Refusing to export outside your home folder.")
+        suffix = 1
+        while os.path.exists(path):
+            path = os.path.join(home, "{}_{}{}".format(base, suffix, ext))
+            suffix += 1
 
         if fmt == "stl":
             options = mgr.createSTLExportOptions(self._comp(), path)
@@ -1006,27 +1081,37 @@ class CadBuilder:
         return "Set body [{}] '{}' material to '{}'.".format(body_index, bodies[0].name, target.name)
 
     # -- casework (cabinets) -------------------------------------------------
-    def _box(self, name, x0, y0, z0, x1, y1, z1):
+    def _box(self, name, x0, y0, z0, x1, y1, z1, ex=None, ey=None, ez0=None, edz=None):
         """Create a named, axis-aligned box body from corner (x0,y0,z0) to (x1,y1,z1) mm.
 
         Every panel is built as its X-Y footprint sketched on an offset XY plane and
         extruded up in Z, so there's no plane-orientation guesswork.
+
+        Optional parameter expressions make the box adjustable later: ``ex``/``ey`` drive
+        the footprint width (x) / depth (y) via sketch dimensions, ``ez0`` the plane offset,
+        and ``edz`` the extrude distance (height). Coordinates are still seeded numerically,
+        so the geometry is always built even if a dimension can't be applied.
         """
         comp = self._comp()
-        if abs(z0) < 1e-9:
+        if ez0 is None and abs(z0) < 1e-9:
             plane = comp.xYConstructionPlane
         else:
+            z0_expr = ez0 if ez0 is not None else "{:g} mm".format(z0)
             pin = comp.constructionPlanes.createInput()
-            pin.setByOffset(comp.xYConstructionPlane, adsk.core.ValueInput.createByString("{:g} mm".format(z0)))
-            plane = comp.constructionPlanes.add(pin)
-        sketch = comp.sketches.add(plane)
-        sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+            pin.setByOffset(comp.xYConstructionPlane, adsk.core.ValueInput.createByString(z0_expr))
+            plane = self._own(comp.constructionPlanes.add(pin))
+        sketch = self._own(comp.sketches.add(plane))
+        rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
             adsk.core.Point3D.create(x0 * MM, y0 * MM, 0.0),
             adsk.core.Point3D.create(x1 * MM, y1 * MM, 0.0),
         )
+        if ex or ey:
+            cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+            self._dimension_rectangle(sketch, rect, ex, ey, cx, cy, abs(x1 - x0), abs(y1 - y0))
         ext = comp.features.extrudeFeatures
         ext_input = ext.createInput(sketch.profiles.item(0), adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-        ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString("{:g} mm".format(z1 - z0)))
+        dz_expr = edz if edz is not None else "{:g} mm".format(z1 - z0)
+        ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString(dz_expr))
         feature = ext.add(ext_input)
         body = feature.bodies.item(0)
         body.name = name
@@ -1045,8 +1130,8 @@ class CadBuilder:
         else:
             pin = comp.constructionPlanes.createInput()
             pin.setByOffset(comp.xYConstructionPlane, adsk.core.ValueInput.createByString("{:g} mm".format(z0)))
-            plane = comp.constructionPlanes.add(pin)
-        sketch = comp.sketches.add(plane)
+            plane = self._own(comp.constructionPlanes.add(pin))
+        sketch = self._own(comp.sketches.add(plane))
         sketch.sketchCurves.sketchLines.addTwoPointRectangle(
             adsk.core.Point3D.create(x0 * MM, y0 * MM, 0.0),
             adsk.core.Point3D.create(x1 * MM, y1 * MM, 0.0),
@@ -1085,24 +1170,41 @@ class CadBuilder:
         return "\n".join(lines)
 
     def build_cabinet(self, width, height, depth, thickness=18.0, back_thickness=6.0,
-                      shelves=0, joinery="screws", back_joint="groove", back_groove=None):
+                      shelves=0, joinery="screws", back_joint="groove", back_groove=None,
+                      parametric=True):
         W, H, D = float(width), float(height), float(depth)
         T, BT = float(thickness), float(back_thickness)
         if W <= 2 * T + 10 or H <= 2 * T + 10 or D <= BT + 10:
             raise ValueError("Cabinet dimensions are too small for {:g} mm material.".format(T))
         n_sh = max(0, int(shelves))
 
+        # Parameter-driven by default: create named user parameters and reference them on the
+        # panels so the cabinet is adjustable later (change a parameter, the panels follow).
+        # Expressions are seeded from the current numbers, so the geometry is always built.
+        if parametric:
+            self.create_parameter("cab_w", "{:g} mm".format(W), comment="Cabinet overall width")
+            self.create_parameter("cab_h", "{:g} mm".format(H), comment="Cabinet overall height")
+            self.create_parameter("cab_d", "{:g} mm".format(D), comment="Cabinet overall depth")
+            self.create_parameter("cab_t", "{:g} mm".format(T), comment="Panel thickness")
+            self.create_parameter("cab_back", "{:g} mm".format(BT), comment="Back panel thickness")
+            e_w, e_h, e_d, e_t, e_bk = "cab_w", "cab_h", "cab_d", "cab_t", "cab_back"
+            e_inner_w = "cab_w - 2 * cab_t"   # clear width between the sides
+            e_inner_d = "cab_d - cab_back"    # depth from front to the back panel
+        else:
+            e_w = e_h = e_d = e_t = e_bk = e_inner_w = e_inner_d = None
+
         # Origin at the bottom-left-back corner: X=width, Y=depth, Z=height.
         # Sides run full depth/height; bottom/top/shelves stop at the back panel.
-        left = self._box("Left Side", 0, 0, 0, T, D, H)
-        right = self._box("Right Side", W - T, 0, 0, W, D, H)
-        self._box("Bottom", T, 0, 0, W - T, D - BT, T)
-        self._box("Top", T, 0, H - T, W - T, D - BT, H)
+        left = self._box("Left Side", 0, 0, 0, T, D, H, ex=e_t, ey=e_d, edz=e_h)
+        right = self._box("Right Side", W - T, 0, 0, W, D, H, ex=e_t, ey=e_d, edz=e_h)
+        self._box("Bottom", T, 0, 0, W - T, D - BT, T, ex=e_inner_w, ey=e_inner_d, edz=e_t)
+        self._box("Top", T, 0, H - T, W - T, D - BT, H, ex=e_inner_w, ey=e_inner_d,
+                  ez0=("cab_h - cab_t" if parametric else None), edz=e_t)
 
         # Back panel. Default 'groove': the back carries a tongue (protrusion) on its left and
         # right edges that seats into a groove routed into each side panel — this squares the
         # carcass and captures the back's edges. 'inset' = flush between the sides; 'overlay' =
-        # covers the full rear over the side edges.
+        # covers the full rear over the side edges. (The groove detail itself is sized numerically.)
         bj = (back_joint or "groove").lower()
         if bj == "groove":
             gd = float(back_groove) if back_groove else T / 2.0
@@ -1110,20 +1212,21 @@ class CadBuilder:
             try:
                 self._cut_box(left, T - gd, D - BT, 0, T, D, H)        # groove in left side
                 self._cut_box(right, W - T, D - BT, 0, W - T + gd, D, H)  # groove in right side
-                self._box("Back", T - gd, D - BT, 0, W - T + gd, D, H)  # back with matching tongues
+                e_back_w = ("cab_w - 2 * cab_t + {:g} mm".format(2 * gd)) if parametric else None
+                self._box("Back", T - gd, D - BT, 0, W - T + gd, D, H, ex=e_back_w, ey=e_bk, edz=e_h)
                 back_w = W - 2 * T + 2 * gd
                 back_note = " Back is tongued {:g} mm into a groove in each side.".format(gd)
             except Exception as exc:
-                self._box("Back", T, D - BT, 0, W - T, D, H)  # fall back to a flush inset back
+                self._box("Back", T, D - BT, 0, W - T, D, H, ex=e_inner_w, ey=e_bk, edz=e_h)
                 bj, back_w = "inset", W - 2 * T
                 back_note = " (Back groove not supported here [{}] — used a flush inset back.)".format(exc)
         elif bj == "overlay":
-            self._box("Back", 0, D - BT, 0, W, D, H)
+            self._box("Back", 0, D - BT, 0, W, D, H, ex=e_w, ey=e_bk, edz=e_h)
             back_w = W
             back_note = " Back overlays the full rear (covers the side edges)."
         else:  # inset
             bj = "inset"
-            self._box("Back", T, D - BT, 0, W - T, D, H)
+            self._box("Back", T, D - BT, 0, W - T, D, H, ex=e_inner_w, ey=e_bk, edz=e_h)
             back_w = W - 2 * T
             back_note = " Back is inset flush between the sides."
 
@@ -1132,7 +1235,8 @@ class CadBuilder:
             gap = (H - 2 * T) / (n_sh + 1)
             for i in range(1, n_sh + 1):
                 z0 = T + gap * i - T / 2.0
-                self._box("Shelf {}".format(i), T, 0, z0, W - T, D - BT, z0 + T)
+                self._box("Shelf {}".format(i), T, 0, z0, W - T, D - BT, z0 + T,
+                          ex=e_inner_w, ey=e_inner_d, edz=e_t)
             shelf_lines.append("  Shelf x{}: {:g} x {:g} x {:g} mm".format(n_sh, W - 2 * T, D - BT, T))
 
         cut = [
@@ -1141,11 +1245,16 @@ class CadBuilder:
             "  Back x1: {:g} x {:g} x {:g} mm".format(back_w, H, BT),
         ] + shelf_lines
 
+        param_note = (
+            " Parameter-driven: cab_w/cab_h/cab_d/cab_t/cab_back — change one with "
+            "change_parameter to resize." if parametric else ""
+        )
         return (
             "Built a frameless cabinet {:g}(W) x {:g}(H) x {:g}(D) mm in {:g} mm material"
-            "{}.\nBack joint: {}.{}\nCut list:\n{}\nJoinery ({}):\n{}".format(
+            "{}.{}\nBack joint: {}.{}\nCut list:\n{}\nJoinery ({}):\n{}".format(
                 W, H, D, T,
                 " with {} shelf(es)".format(n_sh) if n_sh else "",
+                param_note,
                 bj, back_note,
                 "\n".join(cut), joinery, self._joinery_plan(joinery, T, n_sh),
             )
@@ -1176,12 +1285,26 @@ class CadBuilder:
 
     # -- session reset -------------------------------------------------------
     def reset(self):
-        """Delete everything created this session (timeline features + parameters)."""
+        """Delete only the geometry ClaudeCad created (tagged via attributes), never the
+        user's own work — even if they added geometry after the add-in started.
+
+        We scan the timeline and remove only items whose entity carries the ClaudeCad
+        ownership attribute, then delete the parameters we created. Deleting in reverse
+        creation order means a feature is removed before anything it depends on.
+        """
         design = self._design()
         timeline = design.timeline
-        for i in range(timeline.count - 1, self._start_marker - 1, -1):
+        owned = []
+        for i in range(timeline.count):
             try:
-                timeline.item(i).deleteMe()
+                entity = timeline.item(i).entity
+                if entity and self._is_owned(entity):
+                    owned.append(entity)
+            except Exception:
+                pass
+        for entity in reversed(owned):
+            try:
+                entity.deleteMe()
             except Exception:
                 pass
         for name in reversed(self._params):
