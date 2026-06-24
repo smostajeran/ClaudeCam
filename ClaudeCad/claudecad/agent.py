@@ -48,7 +48,8 @@ Follow this workflow:
    Pay attention to the BACK panel: by default (back_joint='groove') the back is built with a
    tongue on its left and right edges that seats into a groove cut into each side panel, which
    squares the carcass — prefer this over a flush back unless the user asks for 'inset' or
-   'overlay'.
+   'overlay'. The cabinet is parameter-driven (cab_w/cab_h/cab_d/cab_t/cab_back); to resize
+   one later, use change_parameter rather than rebuilding.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.
@@ -98,6 +99,45 @@ class Session:
         self.messages = []
         self.busy = False
         self.generation += 1
+
+
+_MAX_TOOL_RESULT_CHARS = 6000
+
+
+def _compact_history(messages, keep_tail=6):
+    """Shrink older context in place to bound token growth over a long conversation.
+
+    For messages older than the most recent ``keep_tail``: replace screenshot image
+    blocks in tool results with a short placeholder (they were only needed for the turn
+    right after the capture), and truncate oversized text tool results. The recent tail
+    is left intact so the model still has full fidelity on what it's actively working on.
+    """
+    cutoff = max(0, len(messages) - keep_tail)
+    for i in range(cutoff):
+        msg = messages[i]
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if not isinstance(block, dict) or block.get("type") != "tool_result":
+                continue
+            inner = block.get("content")
+            if isinstance(inner, list):
+                new_inner = []
+                changed = False
+                for sub in inner:
+                    if isinstance(sub, dict) and sub.get("type") == "image":
+                        new_inner.append({"type": "text", "text": "[screenshot omitted to save context]"})
+                        changed = True
+                    else:
+                        new_inner.append(sub)
+                if changed:
+                    block["content"] = new_inner
+            elif isinstance(inner, str) and len(inner) > _MAX_TOOL_RESULT_CHARS:
+                block["content"] = inner[:_MAX_TOOL_RESULT_CHARS] + "\n…[truncated to save context]"
+    return messages
 
 
 def _strip_orphan_tool_uses(messages):
@@ -166,6 +206,14 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         )
         return
 
+    # Document-level guard: only one turn may mutate the shared Fusion design at a time.
+    # Taken non-blocking so a second chat is told to wait rather than silently queuing
+    # and interleaving tool calls into the same document.
+    lock = getattr(cad, "turn_lock", None)
+    if lock is not None and not lock.acquire(blocking=False):
+        ui.system_for(chat, "ClaudeCad is busy with another chat — please wait for it to finish.")
+        return
+
     gen = chat.generation
 
     def alive():
@@ -177,8 +225,9 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         chat.messages.append({"role": "user", "content": user_text})
 
         while alive():
-            # Repair any orphaned tool_use left by a previously interrupted turn.
+            # Repair orphaned tool_use from an interrupted turn, then compact old context.
             chat.messages[:] = _strip_orphan_tool_uses(chat.messages)
+            _compact_history(chat.messages)
             if not alive():
                 return  # Discard happened between the loop check and the request
             response = api.create_message(
@@ -263,3 +312,8 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
         if alive():
             chat.busy = False
             ui.status(chat, False, "")
+        if lock is not None:
+            try:
+                lock.release()
+            except Exception:
+                pass

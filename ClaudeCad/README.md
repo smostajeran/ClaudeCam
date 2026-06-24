@@ -94,7 +94,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
   together — and returns a cut list plus a joinery plan for the method you choose
-  (screws / dowels / dado / auto). The **back panel** is handled properly: by default it's
+  (screws / dowels / dado / auto). It's **parameter-driven** (`cab_w`/`cab_h`/`cab_d`/`cab_t`/
+  `cab_back`), so you can resize a built cabinet by changing one parameter. The **back panel**
+  is handled properly: by default it's
   built with a tongue on its left and right edges that seats into a groove cut into each side
   (`back_joint='groove'`, which squares the carcass), with `inset` (flush) and `overlay`
   alternatives. Other joinery is a plan for now (pocket holes / dados aren't cut yet).
@@ -133,6 +135,10 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - Fillet/chamfer/shell act on **all edges / the top face** of the most recent body (no
   per-edge selection yet). The architecture is built to extend: add a method to `cad.py`,
   a schema to `tools.py`, and a branch to `tools.execute`.
-- **Discard & start over** deletes the timeline features and parameters created during the session (rolling back to where the session began) — it does not touch pre-existing geometry.
+- **Discard & start over** deletes only the geometry ClaudeCad created — every feature it makes is tagged with a Fusion attribute, and Discard removes only tagged items plus the parameters it added. Geometry you create yourself is never deleted, even if you add it after the add-in starts.
+- **One turn at a time per document:** a document-level lock means only one chat can run a CAD turn against the active design at once; a second chat is told to wait rather than interleaving operations into the shared model.
+- **Safety boundary:** tool arguments are validated before any geometry is created (a bad call fails cleanly instead of half-building), and tools are risk-classified (read / build / modify / export).
+- **Context stays lean:** older screenshots are dropped from the conversation history after they've been used and oversized tool results are truncated, so long sessions don't balloon.
+- **Tests:** `python tests/test_contracts.py` runs the offline contract suite (no Fusion needed); `tests/SMOKE.md` is the manual in-Fusion checklist.
 - All chats share the one active Fusion document (and one CAD builder), so Discard in one chat rolls back the shared geometry and sketch ids — chat isolation is about the conversation, not separate models.
 - Requires an active Fusion design in **parametric** (timeline) mode.

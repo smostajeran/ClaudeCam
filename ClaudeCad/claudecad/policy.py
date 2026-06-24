@@ -1,0 +1,121 @@
+"""Tool risk classification and deterministic input validation (no Fusion dependency).
+
+This is the safety boundary in front of :func:`claudecad.tools.execute`. ``validate``
+rejects nonsensical arguments BEFORE any geometry is created, so a bad tool call fails
+cleanly (the model sees the error and corrects) instead of half-mutating the document.
+``risk`` / ``is_destructive`` classify a tool so the UI can decide what warrants a
+heads-up or confirmation.
+"""
+
+import math
+
+READ = "read"      # inspection only; never changes the document
+BUILD = "build"    # creates new geometry/parameters
+MODIFY = "modify"  # changes or consumes existing geometry
+EXPORT = "export"  # writes a file
+
+RISK = {
+    "get_design_summary": READ, "inspect_model": READ, "list_faces": READ,
+    "list_edges": READ, "get_selection": READ, "get_mass_properties": READ,
+    "list_materials": READ, "capture_view": READ,
+    "create_parameter": BUILD, "create_sketch": BUILD, "draw_rectangle": BUILD,
+    "draw_circle": BUILD, "draw_line": BUILD, "draw_polygon": BUILD,
+    "extrude": BUILD, "revolve": BUILD, "loft": BUILD, "sweep": BUILD,
+    "fillet_all_edges": BUILD, "chamfer_all_edges": BUILD, "shell": BUILD,
+    "circular_pattern": BUILD, "rectangular_pattern": BUILD, "build_cabinet": BUILD,
+    "fillet_edges": BUILD, "chamfer_edges": BUILD, "fillet_selection": BUILD,
+    "chamfer_selection": BUILD, "set_material": BUILD, "add_thread": BUILD,
+    "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
+    "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
+    "export_model": EXPORT,
+}
+
+# Operations that consume/alter existing geometry in a way worth a heads-up.
+DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid"}
+
+_MAX_MM = 100000.0  # 100 m — an upper bound on any single length input
+
+
+def risk(name):
+    return RISK.get(name, BUILD)
+
+
+def is_destructive(name):
+    return name in DESTRUCTIVE
+
+
+def _num(value):
+    """Return value as float if it's a real number, else None (e.g. a parameter
+    expression string, which Fusion validates itself)."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def _check_len(label, value, allow_negative=False):
+    n = _num(value)
+    if n is None:
+        return  # expression string or omitted — not our job to validate
+    if math.isnan(n) or math.isinf(n):
+        raise ValueError("{} must be a finite number.".format(label))
+    if not allow_negative and n <= 0:
+        raise ValueError("{} must be greater than 0 (got {:g} mm).".format(label, n))
+    if abs(n) > _MAX_MM:
+        raise ValueError("{} {:g} mm is unreasonably large (over 100 m).".format(label, n))
+
+
+def _check_count(label, value, lo, hi):
+    n = _num(value)
+    if n is None or int(n) != n or int(n) < lo or int(n) > hi:
+        raise ValueError("{} must be an integer between {} and {}.".format(label, lo, hi))
+
+
+def validate(name, tool_input):
+    """Raise ValueError if the arguments for ``name`` are out of range / nonsensical.
+
+    Only fields that carry a real risk of degenerate geometry are checked; string
+    parameter-expressions are passed through for Fusion to resolve.
+    """
+    ti = tool_input or {}
+
+    if name == "draw_rectangle":
+        _check_len("width", ti.get("width"))
+        _check_len("height", ti.get("height"))
+    elif name == "draw_circle":
+        _check_len("radius", ti.get("radius"))
+    elif name == "extrude":
+        _check_len("distance", ti.get("distance"))
+    elif name in ("fillet_all_edges", "fillet_edges", "fillet_selection"):
+        _check_len("radius", ti.get("radius"))
+    elif name in ("chamfer_all_edges", "chamfer_edges", "chamfer_selection"):
+        _check_len("distance", ti.get("distance"))
+    elif name == "shell":
+        _check_len("thickness", ti.get("thickness"))
+    elif name in ("cut_hole", "cut_hole_selection"):
+        _check_len("diameter", ti.get("diameter"))
+        if ti.get("depth") is not None:
+            _check_len("depth", ti.get("depth"))
+    elif name == "draw_polygon":
+        _check_count("sides", ti.get("sides"), 3, 1000)
+        _check_len("radius", ti.get("radius"))
+    elif name == "circular_pattern":
+        _check_count("count", ti.get("count"), 1, 2000)
+    elif name == "rectangular_pattern":
+        _check_count("count_x", ti.get("count_x"), 1, 5000)
+        if ti.get("count_y") is not None:
+            _check_count("count_y", ti.get("count_y"), 1, 5000)
+    elif name == "build_cabinet":
+        for k in ("width", "height", "depth"):
+            _check_len(k, ti.get(k))
+        if ti.get("thickness") is not None:
+            _check_len("thickness", ti.get("thickness"))
+        if ti.get("back_thickness") is not None:
+            _check_len("back_thickness", ti.get("back_thickness"))
+        if ti.get("shelves") is not None:
+            _check_count("shelves", ti.get("shelves"), 0, 50)
+    elif name == "export_model":
+        from . import util
+        if util.export_extension(ti.get("format", "step")) is None:
+            raise ValueError("Unsupported export format '{}'. Use step, stl, iges or f3d.".format(ti.get("format")))

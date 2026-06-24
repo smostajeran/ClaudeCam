@@ -473,6 +473,10 @@ TOOLS = [
                     "type": "number",
                     "description": "Groove/tongue depth in mm for back_joint='groove'. Default half the panel thickness.",
                 },
+                "parametric": {
+                    "type": "boolean",
+                    "description": "Create named user parameters (cab_w/cab_h/cab_d/cab_t/cab_back) and drive the panels from them so the cabinet is adjustable later. Default true.",
+                },
             },
             "required": ["width", "height", "depth"],
         },
@@ -488,6 +492,8 @@ TOOLS = [
 def execute(name, tool_input, cad):
     """Run a tool against the CadBuilder. Returns a status string, or (for capture_view)
     a list of content blocks. Raises on failure."""
+    from . import policy
+    policy.validate(name, tool_input)  # reject bad args before any geometry is created
     ti = tool_input or {}
 
     if name == "create_parameter":
@@ -582,6 +588,7 @@ def execute(name, tool_input, cad):
             int(ti.get("shelves", 0)), joinery,
             ti.get("back_joint", "groove"),
             ti.get("back_groove"),
+            bool(ti.get("parametric", True)),
         )
     if name == "get_design_summary":
         return cad.get_design_summary()
