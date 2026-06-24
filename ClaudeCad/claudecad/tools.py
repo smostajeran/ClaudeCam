@@ -443,7 +443,7 @@ TOOLS = [
             "joinery method: if the user hasn't explicitly chosen one, ask them (screws / dowels / "
             "dado / auto) and wait for their answer before calling this tool. Note: panels are "
             "solid bodies and the joinery is a plan only — joint geometry (pocket holes, dados) "
-            "isn't cut yet."
+            "isn't cut yet (except the back-panel groove, which IS cut — see back_joint)."
         ),
         "input_schema": {
             "type": "object",
@@ -458,6 +458,20 @@ TOOLS = [
                     "type": "string",
                     "enum": ["screws", "dowels", "dado", "auto"],
                     "description": "Joinery method to plan for, as chosen by the user (ask first; don't guess). 'auto' picks a sound default only when the user explicitly asks you to choose.",
+                },
+                "back_joint": {
+                    "type": "string",
+                    "enum": ["groove", "inset", "overlay"],
+                    "description": (
+                        "How the back panel meets the sides. 'groove' (default): the back has a "
+                        "tongue on its left and right edges that seats into a groove cut into each "
+                        "side panel (squares the carcass, captures the edges). 'inset': flush "
+                        "between the sides. 'overlay': covers the full rear over the side edges."
+                    ),
+                },
+                "back_groove": {
+                    "type": "number",
+                    "description": "Groove/tongue depth in mm for back_joint='groove'. Default half the panel thickness.",
                 },
             },
             "required": ["width", "height", "depth"],
@@ -566,6 +580,8 @@ def execute(name, tool_input, cad):
             float(ti["width"]), float(ti["height"]), float(ti["depth"]),
             float(ti.get("thickness", 18.0)), float(ti.get("back_thickness", 6.0)),
             int(ti.get("shelves", 0)), joinery,
+            ti.get("back_joint", "groove"),
+            ti.get("back_groove"),
         )
     if name == "get_design_summary":
         return cad.get_design_summary()

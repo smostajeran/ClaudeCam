@@ -45,6 +45,10 @@ Follow this workflow:
    positioned to fit, and returns a cut list + joinery plan. Do NOT call build_cabinet with
    a guessed joinery method — if the user hasn't explicitly chosen one, ask them (screws /
    dowels / dado / auto), explain the trade-offs briefly, and wait for their answer first.
+   Pay attention to the BACK panel: by default (back_joint='groove') the back is built with a
+   tongue on its left and right edges that seats into a groove cut into each side panel, which
+   squares the carcass — prefer this over a flush back unless the user asks for 'inset' or
+   'overlay'.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.
