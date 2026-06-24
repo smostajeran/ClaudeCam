@@ -88,15 +88,18 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Features:** extrude (incl. cut for holes; symmetric and start-offset options), revolve,
   fillet/chamfer (all edges **or** specific edges by index), shell (hollow / open box),
   circular / rectangular patterns, and N-sided polygons.
-- **Editing existing models:** `change_parameter` (resize), `cut_hole` on a chosen face,
+- **Editing existing models:** `change_parameter` (resize), `cut_hole` on a chosen face
+  (refuses an oversized diameter relative to the face span — evaluating expression-valued
+  diameters first — so a runaway value can't gut a panel),
   `combine_bodies` (boolean join/cut/intersect), and `move_body` (reposition).
 - **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
   together — and returns a cut list plus a joinery plan for the method you choose
-  (screws / dowels / dado / auto). It's **parameter-driven** (`cab_w`/`cab_h`/`cab_d`/`cab_t`/
-  `cab_back`), so you can resize a built cabinet by changing one parameter. The **back panel**
-  is handled properly: by default it's
+  (screws / dowels / dado / auto). It builds fixed geometry by default; an **experimental**
+  `parametric` option creates named parameters (`cab_w`/`cab_h`/`cab_d`/`cab_t`/`cab_back`) to
+  resize later — still being validated, so off by default. The **back panel** is handled
+  properly: by default it's
   built with a tongue on its left and right edges that seats into a groove cut into each side
   (`back_joint='groove'`, which squares the carcass), with `inset` (flush) and `overlay`
   alternatives. Other joinery is a plan for now (pocket holes / dados aren't cut yet).

@@ -475,7 +475,7 @@ TOOLS = [
                 },
                 "parametric": {
                     "type": "boolean",
-                    "description": "Create named user parameters (cab_w/cab_h/cab_d/cab_t/cab_back) and drive the panels from them so the cabinet is adjustable later. Default true.",
+                    "description": "EXPERIMENTAL: create named user parameters (cab_w/cab_h/cab_d/cab_t/cab_back) and drive the panels from them. Default false (the proven fixed-geometry build); the parametric path adds driven dimensions and is still being validated, so leave off unless asked.",
                 },
             },
             "required": ["width", "height", "depth"],
@@ -588,7 +588,7 @@ def execute(name, tool_input, cad):
             int(ti.get("shelves", 0)), joinery,
             ti.get("back_joint", "groove"),
             ti.get("back_groove"),
-            bool(ti.get("parametric", True)),
+            bool(ti.get("parametric", False)),
         )
     if name == "get_design_summary":
         return cad.get_design_summary()
