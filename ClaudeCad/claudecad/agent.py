@@ -33,6 +33,10 @@ Follow this workflow:
    profiles on offset planes) or sweep (profile along a path sketch). add_thread taps a
    cylindrical face (a hole or shaft). set_material + get_mass_properties give realistic
    mass/volume/centre-of-mass. mesh_to_solid converts an imported mesh where supported.
+   For a cabinet / carcass / casework, use build_cabinet: from the overall size it creates
+   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) already
+   positioned to fit, and returns a cut list + joinery plan. Ask the user which joinery
+   method they want (screws / dowels / dado / auto) before building if they haven't said.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.
