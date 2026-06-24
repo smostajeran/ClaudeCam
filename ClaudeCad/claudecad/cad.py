@@ -911,23 +911,99 @@ class CadBuilder:
             )
         )
 
-    def set_material(self, body_index, name):
-        body = self._brep_body(body_index)
-        libs = self.app.materialLibraries
-        target = None
+    def _iter_materials(self):
+        """Yield every Material across all loaded Fusion material libraries.
+
+        Appearance-only libraries (and any library whose materials can't be read) are
+        skipped rather than aborting the whole search.
+        """
+        try:
+            libs = self.app.materialLibraries
+        except Exception:
+            return
         for i in range(libs.count):
-            mats = libs.item(i).materials
+            try:
+                mats = libs.item(i).materials
+            except Exception:
+                continue
             for j in range(mats.count):
-                m = mats.item(j)
-                if name.lower() in m.name.lower():
-                    target = m
-                    break
-            if target:
+                try:
+                    yield mats.item(j)
+                except Exception:
+                    continue
+
+    def list_materials(self, filter_text="", limit=60):
+        q = (filter_text or "").strip().lower()
+        names, seen = [], set()
+        for m in self._iter_materials():
+            if q and q not in m.name.lower():
+                continue
+            if m.name in seen:
+                continue
+            seen.add(m.name)
+            names.append(m.name)
+            if len(names) >= limit:
                 break
+        if not names:
+            if q:
+                return "No materials match '{}'. Call list_materials with no filter to see what's available.".format(filter_text)
+            return "No materials are available in Fusion's material libraries on this install."
+        header = "Available materials{} ({}{}):".format(
+            " matching '{}'".format(filter_text) if q else "", len(names), "+" if len(names) >= limit else ""
+        )
+        return header + "\n  " + "\n  ".join(names)
+
+    def _find_material(self, name):
+        """Resolve a material name to a Material, preferring exact > prefix > substring."""
+        q = (name or "").strip().lower()
+        exact = prefix = contains = None
+        for m in self._iter_materials():
+            mn = m.name.lower()
+            if mn == q:
+                exact = m
+                break
+            if prefix is None and mn.startswith(q):
+                prefix = m
+            if contains is None and q in mn:
+                contains = m
+        return exact or prefix or contains
+
+    def set_material(self, body_index, name, all_bodies=False):
+        target = self._find_material(name)
         if not target:
-            raise ValueError("No material matching '{}' found in the material libraries.".format(name))
-        body.material = target
-        return "Set body [{}] material to '{}'.".format(body_index, target.name)
+            sample = []
+            for m in self._iter_materials():
+                sample.append(m.name)
+                if len(sample) >= 15:
+                    break
+            hint = (" Examples: " + ", ".join(sample) + ".") if sample else \
+                " No materials are available in this install's libraries."
+            raise ValueError("No material matching '{}'. Call list_materials to see valid names.{}".format(name, hint))
+
+        comp = self._comp()
+        if all_bodies:
+            bodies = [comp.bRepBodies.item(i) for i in range(comp.bRepBodies.count)]
+            if not bodies:
+                raise RuntimeError("There are no solid bodies to assign a material to.")
+        else:
+            bodies = [self._brep_body(body_index)]
+
+        applied = 0
+        for body in bodies:
+            try:
+                body.material = target
+                applied += 1
+            except Exception as exc:
+                if not all_bodies:
+                    raise RuntimeError(
+                        "Found material '{}' but couldn't assign it to body '{}' ({}). "
+                        "Paste this and I'll adapt it for your Fusion version.".format(target.name, body.name, exc)
+                    )
+        if applied == 0:
+            raise RuntimeError("Found material '{}' but couldn't assign it to any body.".format(target.name))
+        if all_bodies:
+            return "Set material '{}' on all {} bodies.".format(target.name, applied)
+        return "Set body [{}] '{}' material to '{}'.".format(body_index, bodies[0].name, target.name)
 
     # -- casework (cabinets) -------------------------------------------------
     def _box(self, name, x0, y0, z0, x1, y1, z1):
@@ -957,6 +1033,32 @@ class CadBuilder:
         self._remember(feature)
         return body
 
+    def _cut_box(self, target_body, x0, y0, z0, x1, y1, z1):
+        """Cut an axis-aligned rectangular pocket (mm) from ONE body only.
+
+        Used to rout a groove/rabbet into a panel without affecting the other panels —
+        ``participantBodies`` limits the cut to the given body.
+        """
+        comp = self._comp()
+        if abs(z0) < 1e-9:
+            plane = comp.xYConstructionPlane
+        else:
+            pin = comp.constructionPlanes.createInput()
+            pin.setByOffset(comp.xYConstructionPlane, adsk.core.ValueInput.createByString("{:g} mm".format(z0)))
+            plane = comp.constructionPlanes.add(pin)
+        sketch = comp.sketches.add(plane)
+        sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+            adsk.core.Point3D.create(x0 * MM, y0 * MM, 0.0),
+            adsk.core.Point3D.create(x1 * MM, y1 * MM, 0.0),
+        )
+        ext = comp.features.extrudeFeatures
+        ext_input = ext.createInput(sketch.profiles.item(0), adsk.fusion.FeatureOperations.CutFeatureOperation)
+        ext_input.participantBodies = [target_body]
+        ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString("{:g} mm".format(z1 - z0)))
+        feature = ext.add(ext_input)
+        self._remember(feature)
+        return feature
+
     @staticmethod
     def _joinery_plan(method, thickness, shelves):
         m = (method or "screws").lower()
@@ -982,7 +1084,8 @@ class CadBuilder:
         lines.append("  (Plan only — joinery holes/dados aren't cut yet; say the word and I'll add them.)")
         return "\n".join(lines)
 
-    def build_cabinet(self, width, height, depth, thickness=18.0, back_thickness=6.0, shelves=0, joinery="screws"):
+    def build_cabinet(self, width, height, depth, thickness=18.0, back_thickness=6.0,
+                      shelves=0, joinery="screws", back_joint="groove", back_groove=None):
         W, H, D = float(width), float(height), float(depth)
         T, BT = float(thickness), float(back_thickness)
         if W <= 2 * T + 10 or H <= 2 * T + 10 or D <= BT + 10:
@@ -990,12 +1093,39 @@ class CadBuilder:
         n_sh = max(0, int(shelves))
 
         # Origin at the bottom-left-back corner: X=width, Y=depth, Z=height.
-        # Back sits between the sides at the rear; bottom/top/shelves stop at the back.
-        self._box("Left Side", 0, 0, 0, T, D, H)
-        self._box("Right Side", W - T, 0, 0, W, D, H)
+        # Sides run full depth/height; bottom/top/shelves stop at the back panel.
+        left = self._box("Left Side", 0, 0, 0, T, D, H)
+        right = self._box("Right Side", W - T, 0, 0, W, D, H)
         self._box("Bottom", T, 0, 0, W - T, D - BT, T)
         self._box("Top", T, 0, H - T, W - T, D - BT, H)
-        self._box("Back", T, D - BT, 0, W - T, D, H)
+
+        # Back panel. Default 'groove': the back carries a tongue (protrusion) on its left and
+        # right edges that seats into a groove routed into each side panel — this squares the
+        # carcass and captures the back's edges. 'inset' = flush between the sides; 'overlay' =
+        # covers the full rear over the side edges.
+        bj = (back_joint or "groove").lower()
+        if bj == "groove":
+            gd = float(back_groove) if back_groove else T / 2.0
+            gd = max(2.0, min(gd, T - 2.0))  # keep at least 2 mm of side wall
+            try:
+                self._cut_box(left, T - gd, D - BT, 0, T, D, H)        # groove in left side
+                self._cut_box(right, W - T, D - BT, 0, W - T + gd, D, H)  # groove in right side
+                self._box("Back", T - gd, D - BT, 0, W - T + gd, D, H)  # back with matching tongues
+                back_w = W - 2 * T + 2 * gd
+                back_note = " Back is tongued {:g} mm into a groove in each side.".format(gd)
+            except Exception as exc:
+                self._box("Back", T, D - BT, 0, W - T, D, H)  # fall back to a flush inset back
+                bj, back_w = "inset", W - 2 * T
+                back_note = " (Back groove not supported here [{}] — used a flush inset back.)".format(exc)
+        elif bj == "overlay":
+            self._box("Back", 0, D - BT, 0, W, D, H)
+            back_w = W
+            back_note = " Back overlays the full rear (covers the side edges)."
+        else:  # inset
+            bj = "inset"
+            self._box("Back", T, D - BT, 0, W - T, D, H)
+            back_w = W - 2 * T
+            back_note = " Back is inset flush between the sides."
 
         shelf_lines = []
         if n_sh:
@@ -1008,14 +1138,15 @@ class CadBuilder:
         cut = [
             "  Side x2: {:g} x {:g} x {:g} mm".format(D, H, T),
             "  Bottom/Top x2: {:g} x {:g} x {:g} mm".format(W - 2 * T, D - BT, T),
-            "  Back x1: {:g} x {:g} x {:g} mm".format(W - 2 * T, H, BT),
+            "  Back x1: {:g} x {:g} x {:g} mm".format(back_w, H, BT),
         ] + shelf_lines
 
         return (
             "Built a frameless cabinet {:g}(W) x {:g}(H) x {:g}(D) mm in {:g} mm material"
-            "{}.\nCut list:\n{}\nJoinery ({}):\n{}".format(
+            "{}.\nBack joint: {}.{}\nCut list:\n{}\nJoinery ({}):\n{}".format(
                 W, H, D, T,
                 " with {} shelf(es)".format(n_sh) if n_sh else "",
+                bj, back_note,
                 "\n".join(cut), joinery, self._joinery_plan(joinery, T, n_sh),
             )
         )

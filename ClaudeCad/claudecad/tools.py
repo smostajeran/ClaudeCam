@@ -363,13 +363,35 @@ TOOLS = [
         },
     },
     {
-        "name": "set_material",
-        "description": "Assign a physical material to a body (e.g. 'Aluminum', 'ABS Plastic', 'Steel') so mass properties and appearance are realistic.",
+        "name": "list_materials",
+        "description": (
+            "List the physical materials actually available in this Fusion install's material "
+            "libraries (optionally filtered). Call this BEFORE set_material to pick a name that "
+            "really exists — material names vary by install, so don't guess (e.g. for casework "
+            "filter 'wood', 'oak', 'plywood', 'mdf')."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "body_index": {"type": "integer", "description": "Default 0."},
-                "name": {"type": "string", "description": "Material name (partial match, case-insensitive)."},
+                "filter_text": {"type": "string", "description": "Case-insensitive substring to filter material names, e.g. 'wood'. Omit to list all."},
+            },
+        },
+    },
+    {
+        "name": "set_material",
+        "description": (
+            "Assign a physical material to a body (e.g. 'Aluminum', 'ABS Plastic', 'Oak') so mass "
+            "properties and appearance are realistic. Names vary by install — if unsure, call "
+            "list_materials first to get a valid name. Matching prefers exact, then prefix, then "
+            "substring. Set all_bodies true to apply the same material to every body at once "
+            "(handy for a cabinet's panels)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Default 0. Ignored when all_bodies is true."},
+                "name": {"type": "string", "description": "Material name (from list_materials; matched case-insensitively)."},
+                "all_bodies": {"type": "boolean", "description": "Apply to every solid body. Default false."},
             },
             "required": ["name"],
         },
@@ -417,10 +439,11 @@ TOOLS = [
             "actually fit together — Left Side, Right Side, Bottom, Top, Back, and optional "
             "Shelves — and returns a cut list plus a joinery plan. Origin is the bottom-left-back "
             "corner; X=width, Y=depth, Z=height. Use this whenever the user asks for a cabinet, "
-            "carcass, box, or casework rather than building each panel by hand. Ask the user which "
-            "joinery method they want (screws / dowels / dado / auto) if they haven't said. Note: "
-            "panels are solid bodies and the joinery is a plan only — joint geometry (pocket holes, "
-            "dados) isn't cut yet."
+            "carcass, box, or casework rather than building each panel by hand. Do NOT guess the "
+            "joinery method: if the user hasn't explicitly chosen one, ask them (screws / dowels / "
+            "dado / auto) and wait for their answer before calling this tool. Note: panels are "
+            "solid bodies and the joinery is a plan only — joint geometry (pocket holes, dados) "
+            "isn't cut yet (except the back-panel groove, which IS cut — see back_joint)."
         ),
         "input_schema": {
             "type": "object",
@@ -434,7 +457,21 @@ TOOLS = [
                 "joinery": {
                     "type": "string",
                     "enum": ["screws", "dowels", "dado", "auto"],
-                    "description": "Joinery method to plan for. 'auto' picks a sound default. Default 'screws'.",
+                    "description": "Joinery method to plan for, as chosen by the user (ask first; don't guess). 'auto' picks a sound default only when the user explicitly asks you to choose.",
+                },
+                "back_joint": {
+                    "type": "string",
+                    "enum": ["groove", "inset", "overlay"],
+                    "description": (
+                        "How the back panel meets the sides. 'groove' (default): the back has a "
+                        "tongue on its left and right edges that seats into a groove cut into each "
+                        "side panel (squares the carcass, captures the edges). 'inset': flush "
+                        "between the sides. 'overlay': covers the full rear over the side edges."
+                    ),
+                },
+                "back_groove": {
+                    "type": "number",
+                    "description": "Groove/tongue depth in mm for back_joint='groove'. Default half the panel thickness.",
                 },
             },
             "required": ["width", "height", "depth"],
@@ -519,8 +556,10 @@ def execute(name, tool_input, cad):
         return cad.add_thread(int(ti.get("body_index", 0)), int(ti["face_index"]), bool(ti.get("internal", True)))
     if name == "get_mass_properties":
         return cad.get_mass_properties(int(ti.get("body_index", 0)))
+    if name == "list_materials":
+        return cad.list_materials(ti.get("filter_text", ""))
     if name == "set_material":
-        return cad.set_material(int(ti.get("body_index", 0)), ti["name"])
+        return cad.set_material(int(ti.get("body_index", 0)), ti["name"], bool(ti.get("all_bodies", False)))
     if name == "get_selection":
         return cad.get_selection()
     if name == "fillet_selection":
@@ -530,10 +569,19 @@ def execute(name, tool_input, cad):
     if name == "cut_hole_selection":
         return cad.cut_hole_selection(ti["diameter"], ti.get("depth"))
     if name == "build_cabinet":
+        joinery = ti.get("joinery")
+        if not joinery:
+            raise ValueError(
+                "No joinery method was provided. Ask the user which joinery they want "
+                "(screws / dowels / dado / auto) and wait for their answer before building — "
+                "do not guess."
+            )
         return cad.build_cabinet(
             float(ti["width"]), float(ti["height"]), float(ti["depth"]),
             float(ti.get("thickness", 18.0)), float(ti.get("back_thickness", 6.0)),
-            int(ti.get("shelves", 0)), ti.get("joinery", "screws"),
+            int(ti.get("shelves", 0)), joinery,
+            ti.get("back_joint", "groove"),
+            ti.get("back_groove"),
         )
     if name == "get_design_summary":
         return cad.get_design_summary()
