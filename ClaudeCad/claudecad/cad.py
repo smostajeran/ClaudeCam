@@ -825,18 +825,33 @@ class CadBuilder:
         comp = self._comp()
         meshes = comp.meshBodies
         if meshes.count == 0:
-            raise RuntimeError("There are no mesh bodies to convert.")
+            raise RuntimeError("There are no mesh bodies to convert. Import an STL/OBJ first.")
         if mesh_index < 0 or mesh_index >= meshes.count:
             raise ValueError("mesh_index {} out of range ({} mesh bodies).".format(mesh_index, meshes.count))
-        feats = getattr(comp.features, "meshToBRepFeatures", None)
+
+        feats = None
+        for attr in ("meshToBRepFeatures", "convertMeshFeatures"):
+            feats = getattr(comp.features, attr, None)
+            if feats:
+                break
         if not feats:
             raise RuntimeError(
                 "Mesh-to-solid conversion isn't exposed by the Fusion API in this version. "
-                "Workaround: in Fusion, use the Mesh tab > BRep Conversion, then I can edit the result."
+                "Workaround: in Fusion use the Mesh tab > BRep Conversion, then I can edit the result."
             )
+
         col = adsk.core.ObjectCollection.create()
         col.add(meshes.item(mesh_index))
-        feats.add(feats.createInput(col))
+        try:
+            try:
+                feats.add(feats.createInput(col))
+            except TypeError:
+                feats.add(feats.createInput(col, 0))  # some versions take a conversion-type arg
+        except Exception as exc:
+            raise RuntimeError(
+                "Mesh conversion failed ({}). Your Fusion version's API may differ — paste this "
+                "message, or use Mesh > BRep Conversion in the UI.".format(exc)
+            )
         self._record_start()  # body set changed
         return "Converted mesh [{}] to a solid body.".format(mesh_index)
 
@@ -844,28 +859,44 @@ class CadBuilder:
         comp = self._comp()
         body = self._brep_body(body_index)
         if face_index < 0 or face_index >= body.faces.count:
-            raise ValueError("face_index {} out of range.".format(face_index))
+            raise ValueError("face_index {} out of range (body has {} faces).".format(face_index, body.faces.count))
         face = body.faces.item(face_index)
         cyl = adsk.core.Cylinder.cast(face.geometry)
         if not cyl:
-            raise RuntimeError("Face [{}] is not cylindrical; threads need a cylindrical face.".format(face_index))
+            raise RuntimeError(
+                "Face [{}] is not cylindrical; threads need a cylindrical face. "
+                "Run list_faces and pick one shown as 'cylinder'.".format(face_index)
+            )
 
         threads = comp.features.threadFeatures
-        query = threads.threadDataQuery
-        thread_type = query.defaultMetricThreadType
-        diameter_cm = cyl.radius * 2.0
-        rec = query.recommendedThreadData(diameter_cm, internal, thread_type)
-        # rec: (bool ok, threadSize, threadDesignation, threadClass)
-        if not rec or not rec[0]:
-            raise RuntimeError("No standard thread recommendation for this diameter.")
-        info = threads.createThreadInfo(internal, thread_type, rec[2], rec[3])
-        faces = adsk.core.ObjectCollection.create()
-        faces.add(face)
-        tin = threads.createInput(faces, info)
-        tin.isModeled = True
-        self._remember(threads.add(tin))
-        return "Added a modeled {} thread ({}) to face [{}].".format(
-            "internal" if internal else "external", rec[2], face_index
+        diameter_mm = self._mm(cyl.radius * 2.0)
+        try:
+            query = threads.threadDataQuery
+            thread_type = query.defaultMetricThreadType
+            rec = query.recommendedThreadData(cyl.radius * 2.0, internal, thread_type)
+        except Exception as exc:
+            raise RuntimeError(
+                "Couldn't query standard thread data ({}). The thread API can vary by Fusion "
+                "version — paste this message and I'll adapt it.".format(exc)
+            )
+        if not rec or not rec[0] or len(rec) < 4:
+            raise RuntimeError("No standard metric thread is recommended for a {:.1f} mm face.".format(diameter_mm))
+
+        designation = rec[2]
+        try:
+            info = threads.createThreadInfo(internal, thread_type, designation, rec[3])
+            faces = adsk.core.ObjectCollection.create()
+            faces.add(face)
+            tin = threads.createInput(faces, info)
+            tin.isModeled = True
+            self._remember(threads.add(tin))
+        except Exception as exc:
+            raise RuntimeError(
+                "Couldn't create the thread (designation '{}'): {}. Paste this and I'll fix the "
+                "thread-info mapping for your Fusion version.".format(designation, exc)
+            )
+        return "Added a modeled {} thread ({}) to face [{}] (~{:.1f} mm).".format(
+            "internal" if internal else "external", designation, face_index, diameter_mm
         )
 
     def get_mass_properties(self, body_index=0):
