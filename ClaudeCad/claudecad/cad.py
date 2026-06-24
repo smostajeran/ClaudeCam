@@ -13,6 +13,7 @@ user parameter, so editing the parameter later updates the model.
 import base64
 import math
 import os
+import re
 import tempfile
 
 import adsk.core
@@ -140,6 +141,16 @@ class CadBuilder:
     # -- parameters & sketches ----------------------------------------------
     def create_parameter(self, name, expression, unit="mm", comment=""):
         design = self._design()
+        # Idempotent: if the parameter already exists (model reused 'width', 'wall', …),
+        # update it in place instead of failing on a duplicate-name add.
+        existing = design.userParameters.itemByName(name)
+        if existing:
+            existing.expression = expression
+            if comment:
+                existing.comment = comment
+            return "Updated existing parameter {} = {} (now {}).".format(
+                name, expression, self._format_param_value(existing)
+            )
         value = adsk.core.ValueInput.createByString(expression)
         design.userParameters.add(name, value, unit or "mm", comment or "")
         if name not in self._params:
@@ -575,7 +586,8 @@ class CadBuilder:
         if not param:
             raise ValueError("No parameter named '{}'. Use inspect_model to list parameters.".format(name))
         param.expression = expression
-        return "Set parameter {} = {} (now {:.3g} mm).".format(name, expression, self._mm(param.value))
+        # Report the evaluated value in the parameter's own unit (mm/deg/unitless), not always mm.
+        return "Set parameter {} = {} (now {}).".format(name, expression, self._format_param_value(param))
 
     def _edge_set(self, body, indices):
         edges = adsk.core.ObjectCollection.create()
@@ -741,7 +753,8 @@ class CadBuilder:
             adsk.core.ValueInput.createByString("{:g} mm".format(float(dz))),
             True,
         )
-        moves.add(move_input)
+        # Remember the move feature so a following pattern targets it, not the prior feature.
+        self._remember(moves.add(move_input))
         return "Moved body [{}] by ({:g}, {:g}, {:g}) mm.".format(body_index, float(dx), float(dy), float(dz))
 
     def draw_polygon(self, sketch_id, sides, radius, center_x=0.0, center_y=0.0):
@@ -772,8 +785,19 @@ class CadBuilder:
         ext = {"step": ".step", "stp": ".step", "stl": ".stl", "iges": ".igs", "igs": ".igs", "f3d": ".f3d"}.get(fmt)
         if not ext:
             raise ValueError("Unsupported format '{}'. Use step, stl, iges or f3d.".format(fmt))
-        name = (filename or "claudecad_export").rsplit(".", 1)[0]
-        path = os.path.join(os.path.expanduser("~"), name + ext)
+        # Sanitize the model-supplied filename: strip any path, keep a safe charset, and
+        # confine the result to the home folder so a prompt can't traverse out (../) or
+        # write elsewhere. Auto-suffix instead of overwriting an existing file.
+        raw = os.path.basename(filename or "claudecad_export").rsplit(".", 1)[0]
+        base = re.sub(r"[^A-Za-z0-9._-]", "_", raw).strip("._") or "claudecad_export"
+        home = os.path.realpath(os.path.expanduser("~"))
+        path = os.path.realpath(os.path.join(home, base + ext))
+        if path != os.path.join(home, base + ext) or os.path.dirname(path) != home:
+            raise ValueError("Refusing to export outside your home folder.")
+        suffix = 1
+        while os.path.exists(path):
+            path = os.path.join(home, "{}_{}{}".format(base, suffix, ext))
+            suffix += 1
 
         if fmt == "stl":
             options = mgr.createSTLExportOptions(self._comp(), path)
