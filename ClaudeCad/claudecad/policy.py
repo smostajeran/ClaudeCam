@@ -34,7 +34,40 @@ RISK = {
 DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid"}
 
 # Tools that should be gated behind explicit user confirmation in a preview/approve UI.
-REQUIRES_CONFIRMATION = DESTRUCTIVE | {"export_model", "move_body", "combine_bodies"}
+REQUIRES_CONFIRMATION = DESTRUCTIVE | {"export_model", "move_body", "combine_bodies", "build_cabinet"}
+
+
+def needs_confirmation(name):
+    return name in REQUIRES_CONFIRMATION
+
+
+def summarize_call(name, tool_input):
+    """A short, human-readable one-line description of a pending tool call for the plan preview."""
+    ti = tool_input or {}
+    if name == "build_cabinet":
+        extra = []
+        if ti.get("shelves"):
+            extra.append("{} shelf(es)".format(ti["shelves"]))
+        extra.append("{} joinery".format(ti.get("joinery", "screws")))
+        extra.append("{} back".format(ti.get("back_joint", "groove")))
+        return "Build cabinet {}x{}x{} mm ({})".format(
+            ti.get("width"), ti.get("height"), ti.get("depth"), ", ".join(extra))
+    if name == "cut_hole":
+        return "Cut a {} mm hole in body[{}] face[{}]".format(
+            ti.get("diameter"), ti.get("body_index", 0), ti.get("face_index"))
+    if name == "cut_hole_selection":
+        return "Cut a {} mm hole in the selected face".format(ti.get("diameter"))
+    if name == "combine_bodies":
+        return "Combine body[{}] with {} ({})".format(
+            ti.get("target_index"), ti.get("tool_indices"), ti.get("operation", "join"))
+    if name == "move_body":
+        return "Move body[{}] by ({}, {}, {}) mm".format(
+            ti.get("body_index"), ti.get("dx", 0), ti.get("dy", 0), ti.get("dz", 0))
+    if name == "mesh_to_solid":
+        return "Convert mesh[{}] to a solid body".format(ti.get("mesh_index", 0))
+    if name == "export_model":
+        return "Export the model as {}".format((ti.get("format") or "step").upper())
+    return name
 
 # Tools that act on the live viewport selection: get_selection must be read first.
 REQUIRES_SELECTION = {"fillet_selection", "chamfer_selection", "cut_hole_selection"}

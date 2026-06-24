@@ -18,6 +18,7 @@ class ClaudeCadUI:
         self.chats = chats
         self.palette = None
         self._handlers = []  # keep handler refs alive
+        self._pending_chat = None  # chat currently awaiting an Approve/Reject decision
 
     # -- setup / teardown ----------------------------------------------------
     def setup(self):
@@ -114,6 +115,43 @@ class ClaudeCadUI:
                 self.palette.sendInfoToHTML("chats", json.dumps({"chats": self.chats.summary()}))
         self.dispatcher.run(do)
 
+    # -- preview / approve -> execute gate -----------------------------------
+    def _set_approval_bar(self, chat, pending):
+        def do():
+            if self.palette and self.chats.active is chat:
+                self.palette.sendInfoToHTML("approval", json.dumps({"pending": bool(pending)}))
+        self.dispatcher.run(do)
+
+    def request_approval(self, chat, plan_text):
+        """Show ``plan_text`` and reveal Approve/Reject. Returns an Event the worker waits on."""
+        event = threading.Event()
+        chat._approval = {"event": event, "approved": None}
+        self._pending_chat = chat
+        self._emit(chat, "system", plan_text)
+        self._set_approval_bar(chat, True)
+        return event
+
+    def take_approval(self, chat):
+        appr = getattr(chat, "_approval", None)
+        chat._approval = None
+        return appr.get("approved") if appr else None
+
+    def clear_approval(self, chat):
+        chat._approval = None
+        if self._pending_chat is chat:
+            self._pending_chat = None
+        self._set_approval_bar(chat, False)
+
+    def _resolve_approval(self, approved):
+        chat = self._pending_chat
+        appr = getattr(chat, "_approval", None) if chat else None
+        if appr:
+            appr["approved"] = approved
+            appr["event"].set()
+        if chat:
+            self._set_approval_bar(chat, False)
+        self._pending_chat = None
+
     def _show_chat(self, chat):
         """Clear the panel and replay one chat's transcript (used on switch/new/open)."""
         def do():
@@ -124,6 +162,10 @@ class ClaudeCadUI:
                 self.palette.sendInfoToHTML("message", json.dumps({"role": msg["role"], "text": msg["text"]}))
             self.palette.sendInfoToHTML(
                 "status", json.dumps({"busy": bool(chat.busy), "text": "Working…" if chat.busy else ""})
+            )
+            # Re-reveal the approval bar if the chat we're showing is mid-approval.
+            self.palette.sendInfoToHTML(
+                "approval", json.dumps({"pending": bool(getattr(chat, "_approval", None))})
             )
         self.dispatcher.run(do)
         self._send_chats()
@@ -177,6 +219,10 @@ class ClaudeCadUI:
             chat = self.chats.switch(data.get("id"))
             if chat:
                 self._show_chat(chat)
+        elif action == "approve_plan":
+            self._resolve_approval(True)
+        elif action == "reject_plan":
+            self._resolve_approval(False)
         elif action == "save_key":
             self._save_key(data.get("key", ""))
         elif action == "save_token":

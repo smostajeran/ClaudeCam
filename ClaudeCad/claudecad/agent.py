@@ -11,6 +11,44 @@ from . import policy
 from . import tools
 
 
+def _format_plan(tool_use_blocks):
+    """A readable plan for the approval prompt: one line per pending tool call, with the
+    ones that need confirmation marked."""
+    lines = ["I'd like to run these operations:"]
+    for b in tool_use_blocks:
+        mark = "  • {}".format(policy.summarize_call(b["name"], b.get("input", {})))
+        if policy.needs_confirmation(b["name"]):
+            mark += "  — needs your OK"
+        lines.append(mark)
+    lines.append("Approve to proceed, or Reject and tell me what to change.")
+    return "\n".join(lines)
+
+
+def _await_approval(chat, ui, plan, alive, timeout=600.0):
+    """Show the plan and block until the user approves/rejects in the panel.
+
+    Returns True (approved), False (rejected/timed out), or None (cancelled via Discard or
+    the turn is no longer current). Polls in short waits so Discard unblocks promptly, and
+    auto-rejects after ``timeout`` so a closed/reloaded panel can never hang the turn.
+    """
+    event = ui.request_approval(chat, plan)
+    waited = 0.0
+    step = 0.5
+    while not event.wait(step):
+        waited += step
+        if not alive():
+            ui.clear_approval(chat)
+            return None
+        if waited >= timeout:
+            ui.clear_approval(chat)
+            ui.system_for(chat, "No response to the approval request — skipping it for safety.")
+            return False
+    if not alive():
+        return None
+    decision = ui.take_approval(chat)
+    return bool(decision)
+
+
 def _tool_names_in(messages):
     """All tool names already invoked across the conversation (from assistant tool_use blocks)."""
     names = set()
@@ -284,6 +322,25 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
             # Tools invoked so far this conversation + everything in this batch, used to
             # enforce ordering rules (inspect-before-edit, selection-before-selection-edit).
             called = _tool_names_in(chat.messages) | {b.get("name") for b in tool_use_blocks}
+
+            # Preview -> approve -> execute: if this batch contains any tool that needs
+            # confirmation, present the plan and wait for the user's Approve/Reject before
+            # running ANYTHING in the batch. Declining returns errors so the model re-plans.
+            confirm_blocks = [b for b in tool_use_blocks if policy.needs_confirmation(b["name"])]
+            if confirm_blocks:
+                plan = _format_plan(tool_use_blocks)
+                approved = _await_approval(chat, ui, plan, alive)
+                if approved is None:
+                    return  # cancelled (Discard) or interrupted while waiting
+                if not approved:
+                    chat.messages.append({"role": "user", "content": [
+                        {"type": "tool_result", "tool_use_id": b["id"],
+                         "content": "The user declined this operation. Do not run it; ask what they'd like to change.",
+                         "is_error": True}
+                        for b in tool_use_blocks
+                    ]})
+                    ui.system_for(chat, "Declined. Tell me what you'd like to change and I'll revise the plan.")
+                    continue
 
             tool_results = []
             for block in tool_use_blocks:

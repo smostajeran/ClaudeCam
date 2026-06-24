@@ -27,6 +27,9 @@
     var updateBtn = document.getElementById("updateBtn");
     var ghTokenEl = document.getElementById("ghToken");
     var saveTokenBtn = document.getElementById("saveTokenBtn");
+    var approvalEl = document.getElementById("approval");
+    var approvePlanBtn = document.getElementById("approvePlanBtn");
+    var rejectPlanBtn = document.getElementById("rejectPlanBtn");
 
     var busy = false;
     var hasKey = false;
@@ -199,6 +202,20 @@
         sendData("new_chat", {});
     });
 
+    function setApproval(pending) {
+        approvalEl.classList.toggle("hidden", !pending);
+    }
+
+    approvePlanBtn.addEventListener("click", function () {
+        setApproval(false);
+        sendData("approve_plan", {});
+    });
+
+    rejectPlanBtn.addEventListener("click", function () {
+        setApproval(false);
+        sendData("reject_plan", {});
+    });
+
     chatSelect.addEventListener("change", function () {
         sendData("switch_chat", { id: chatSelect.value });
     });
@@ -254,9 +271,13 @@
                 case "reset":
                     messagesEl.innerHTML = "";
                     setStatus(false, "");
+                    setApproval(false);
                     break;
                 case "chats":
                     renderChats(d.chats);
+                    break;
+                case "approval":
+                    setApproval(!!d.pending);
                     break;
                 case "config":
                     hasKey = !!d.has_key;

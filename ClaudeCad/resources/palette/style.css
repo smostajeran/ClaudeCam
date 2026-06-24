@@ -243,6 +243,32 @@ body {
 }
 .msg pre code { background: none; padding: 0; }
 
+.approval {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 14px;
+    padding: 8px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    background: rgba(217, 119, 87, 0.12);
+}
+
+.approval.hidden { display: none; }
+
+.approval-label {
+    flex: 1;
+    font-size: 12.5px;
+    color: var(--accent);
+}
+
+.approval-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.approval-actions .quick { padding: 6px 14px; }
+
 .quick-actions {
     display: flex;
     gap: 8px;

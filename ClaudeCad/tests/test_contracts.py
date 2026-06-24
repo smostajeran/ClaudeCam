@@ -207,6 +207,84 @@ def test_strip_orphan_keeps_properly_answered_tool_use():
     assert any(b.get("type") == "tool_use" for b in repaired[0]["content"])
 
 
+# -- mock CadBuilder: dispatch wiring end-to-end (no Fusion) -----------------
+
+class MockCad:
+    """Records calls; any method name returns a status string (mimics CadBuilder's API)."""
+    def __init__(self):
+        self.calls = []
+
+    def __getattr__(self, name):
+        def record(*args, **kwargs):
+            self.calls.append((name, args, kwargs))
+            return "ok:" + name
+        return record
+
+
+# One valid sample input per tool, used to drive execute() against the mock.
+SAMPLES = {
+    "create_parameter": {"name": "width", "expression": "40 mm"},
+    "create_sketch": {},
+    "draw_rectangle": {"sketch_id": "s1", "width": 10, "height": 20},
+    "draw_circle": {"sketch_id": "s1", "radius": 5},
+    "draw_line": {"sketch_id": "s1", "x1": 0, "y1": 0, "x2": 10, "y2": 0},
+    "extrude": {"sketch_id": "s1", "distance": 10},
+    "revolve": {"sketch_id": "s1"},
+    "fillet_all_edges": {"radius": 2},
+    "chamfer_all_edges": {"distance": 2},
+    "shell": {"thickness": 2},
+    "circular_pattern": {"count": 4},
+    "rectangular_pattern": {"count_x": 3, "spacing_x": 10},
+    "capture_view": {},
+    "inspect_model": {},
+    "list_faces": {},
+    "list_edges": {},
+    "change_parameter": {"name": "width", "expression": "50 mm"},
+    "fillet_edges": {"edge_indices": [0, 1], "radius": 2},
+    "chamfer_edges": {"edge_indices": [0], "distance": 2},
+    "cut_hole": {"face_index": 0, "diameter": 6},
+    "combine_bodies": {"target_index": 0, "tool_indices": [1]},
+    "move_body": {"body_index": 0, "dx": 5},
+    "draw_polygon": {"sketch_id": "s1", "sides": 6, "radius": 10},
+    "export_model": {"format": "step"},
+    "loft": {"sketch_ids": ["s1", "s2"]},
+    "sweep": {"profile_sketch_id": "s1", "path_sketch_id": "s2"},
+    "mesh_to_solid": {},
+    "add_thread": {"face_index": 0},
+    "get_mass_properties": {},
+    "set_material": {"name": "Steel"},
+    "list_materials": {},
+    "get_selection": {},
+    "fillet_selection": {"radius": 2},
+    "chamfer_selection": {"distance": 2},
+    "cut_hole_selection": {"diameter": 6},
+    "build_cabinet": {"width": 600, "height": 720, "depth": 580, "joinery": "screws"},
+    "get_design_summary": {},
+}
+
+
+def test_samples_cover_every_tool():
+    assert SAMPLES.keys() == {t["name"] for t in tools.TOOLS}
+
+
+def test_execute_routes_every_tool_to_a_cad_method():
+    for name in SAMPLES:
+        cad = MockCad()
+        result = tools.execute(name, SAMPLES[name], cad)
+        assert result is not None
+        assert cad.calls, "execute({}) did not call any CadBuilder method".format(name)
+
+
+def test_execute_validates_before_dispatch():
+    cad = MockCad()
+    try:
+        tools.execute("draw_circle", {"sketch_id": "s1", "radius": -1}, cad)
+        assert False, "expected validation to reject a negative radius"
+    except ValueError:
+        pass
+    assert not cad.calls, "no CAD method should run when validation fails"
+
+
 if __name__ == "__main__":
     failures = 0
     for fn_name, fn in sorted(globals().items()):

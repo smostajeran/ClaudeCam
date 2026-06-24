@@ -27,3 +27,9 @@ attribute-based rollback, document locking, and the in-place reload. Run after a
     Settings shows the new version without a manual Stop/Run.
 11. **Context hygiene** — do several capture_view checks in one chat; the conversation keeps
     working (older screenshots are dropped from history, so it doesn't bloat/slow down).
+12. **Approval gate** — request a cabinet / hole / export. An approval bar (Approve / Reject)
+    must appear and the operation must NOT run until you click Approve. Reject → nothing is
+    built and the agent asks what to change. Discard while the bar is shown → turn aborts cleanly.
+13. **Document switch** — build in document A, switch the active document to B, send another
+    request → expect a clear "active document changed" error, not edits to B.
+

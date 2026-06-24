@@ -57,7 +57,24 @@ class CadBuilder:
         # Document-level lock: only one CAD-agent turn may mutate the shared design at a
         # time (the dispatcher serializes individual calls, but not a whole multi-tool plan).
         self.turn_lock = threading.Lock()
+        # Identity of the document this builder is bound to (set on first use). If the user
+        # switches the active Fusion document mid-session, operations would silently land on
+        # the wrong design — we detect that and refuse rather than corrupt another document.
+        self._doc_key = None
         self._record_start()
+
+    def _active_doc_key(self):
+        """A stable-ish identifier for the active document (data file id, else its name)."""
+        try:
+            doc = self.app.activeDocument
+            try:
+                if doc.dataFile:
+                    return doc.dataFile.id
+            except Exception:
+                pass
+            return doc.name
+        except Exception:
+            return None
 
     def _own(self, entity):
         """Tag an entity as ClaudeCad-created so Discard can identify and remove only it."""
@@ -79,6 +96,15 @@ class CadBuilder:
         design = adsk.fusion.Design.cast(self.app.activeProduct)
         if not design:
             raise RuntimeError("No active Fusion design. Open or create a design, then try again.")
+        # Bind to the first document we see; refuse to operate on a different one later.
+        key = self._active_doc_key()
+        if self._doc_key is None:
+            self._doc_key = key
+        elif key is not None and key != self._doc_key:
+            raise RuntimeError(
+                "The active Fusion document changed since this chat started. Switch back to the "
+                "original document, or open '+ New' for a fresh chat to work on this one."
+            )
         return design
 
     def _comp(self):
