@@ -858,22 +858,20 @@ class CadBuilder:
         "z": (0.0, 0.0, 1.0), "-z": (0.0, 0.0, -1.0),
     }
 
+    _BASE_AXIS = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
+
     def drill_holes(self, body_index, holes):
         """Drill blind/through holes into one body by ABSOLUTE coordinates.
 
-        Each hole is built as an explicit cylinder between two 3D end-centres (via the
-        temporary BRep manager) and boolean-cut from the target body. Because the axis is
-        given by two absolute points, there's no construction-plane orientation or face-frame
-        guesswork — deterministic regardless of how the body was built. Refuses a diameter
-        too large for the body so it can't gut a panel.
+        Each hole is a circle sketched on a construction plane through the entry point
+        (perpendicular to the hole axis) and extrude-CUT into the body — the same proven
+        machinery as the cabinet groove and cut_hole, with ``participantBodies`` limiting the
+        cut to this body. The plane offset and cut direction are derived from the plane normal
+        (no sign guessing). This avoids the temporary-BRep + boolean-combine path, which can
+        fail on some Fusion builds. Refuses a diameter too large for the body.
         """
         body = self._brep_body(body_index)
-        dims = self._bbox_dims(body.boundingBox)
-        body_min = min(dims)
-        try:
-            tbm = adsk.fusion.TemporaryBRepManager.get()
-        except Exception as exc:
-            raise RuntimeError("Temporary BRep manager unavailable ({}); can't drill.".format(exc))
+        body_min = min(self._bbox_dims(body.boundingBox))
         comp = self._comp()
         drilled = 0
         for i, h in enumerate(holes or []):
@@ -886,32 +884,42 @@ class CadBuilder:
                     "Hole {}: diameter {:g} mm is too large for this body (~{:.1f} mm thick); "
                     "refusing so the panel isn't destroyed.".format(i, d, body_min)
                 )
-            unit = self._AXES.get((h.get("axis") or "z").lower())
+            axis = (h.get("axis") or "z").lower()
+            unit = self._AXES.get(axis)
             if not unit:
                 raise ValueError("Hole {}: axis must be one of x, -x, y, -y, z, -z.".format(i))
             x, y, z = float(h["x"]), float(h["y"]), float(h["z"])
-            p0 = adsk.core.Point3D.create(x * MM, y * MM, z * MM)
-            p1 = adsk.core.Point3D.create(
-                (x + unit[0] * depth) * MM, (y + unit[1] * depth) * MM, (z + unit[2] * depth) * MM
-            )
+            letter = axis[-1]
+            base = {"x": comp.yZConstructionPlane, "y": comp.xZConstructionPlane,
+                    "z": comp.xYConstructionPlane}[letter]
+            coord = {"x": x, "y": y, "z": z}[letter]
+            axw = self._BASE_AXIS[letter]
             try:
-                cyl = tbm.createCylinderOrCone(p0, (d / 2.0) * MM, p1, (d / 2.0) * MM)
-                base = comp.features.baseFeatures.add()
-                base.startEdit()
-                tool = comp.bRepBodies.add(cyl, base)
-                base.finishEdit()
-                self._own(base)
-                col = adsk.core.ObjectCollection.create()
-                col.add(tool)
-                cin = comp.features.combineFeatures.createInput(body, col)
-                cin.operation = adsk.fusion.FeatureOperations.CutFeatureOperation
-                cin.isKeepToolBodies = False
-                self._remember(comp.features.combineFeatures.add(cin))
+                n = base.geometry.normal
+                comp_n = n.x * axw[0] + n.y * axw[1] + n.z * axw[2]  # +/-1 for axis-aligned planes
+                if abs(comp_n) < 1e-6:
+                    raise RuntimeError("unexpected construction-plane orientation")
+                off = coord / comp_n  # offset (mm) so the plane lands at the entry coordinate
+                pin = comp.constructionPlanes.createInput()
+                pin.setByOffset(base, adsk.core.ValueInput.createByString("{:g} mm".format(off)))
+                plane = self._own(comp.constructionPlanes.add(pin))
+                sketch = self._own(comp.sketches.add(plane))
+                sp = sketch.modelToSketchSpace(adsk.core.Point3D.create(x * MM, y * MM, z * MM))
+                sketch.sketchCurves.sketchCircles.addByCenterRadius(
+                    adsk.core.Point3D.create(sp.x, sp.y, 0.0), (d / 2.0) * MM)
+                # Cut along the hole direction: positive distance follows the plane normal.
+                udotn = unit[0] * n.x + unit[1] * n.y + unit[2] * n.z
+                dist = depth if udotn > 0 else -depth
+                ext = comp.features.extrudeFeatures
+                ein = ext.createInput(sketch.profiles.item(0), adsk.fusion.FeatureOperations.CutFeatureOperation)
+                ein.participantBodies = [body]
+                ein.setDistanceExtent(False, adsk.core.ValueInput.createByString("{:g} mm".format(dist)))
+                self._remember(ext.add(ein))
                 drilled += 1
             except Exception as exc:
                 raise RuntimeError(
-                    "Hole {} at ({:g}, {:g}, {:g}) failed ({}). It may not intersect the body, or "
-                    "the API differs on your Fusion version — paste this and I'll adapt it.".format(i, x, y, z, exc)
+                    "Hole {} at ({:g}, {:g}, {:g}) failed ({}). Check it lies on/over the body; "
+                    "or use drill_holes_on_face. Paste this and I'll adapt it.".format(i, x, y, z, exc)
                 )
         if drilled == 0:
             raise ValueError("No holes were given to drill.")
