@@ -29,7 +29,7 @@ RISK = {
     "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
     "drill_holes": MODIFY, "drill_holes_on_face": MODIFY,
-    "undo_last": MODIFY, "promote_to_components": MODIFY,
+    "undo_last": MODIFY, "promote_to_components": MODIFY, "rename_body": MODIFY,
     "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT,
 }
 

@@ -124,6 +124,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   cut list (parts grouped into quantities, with dimensions and material) for the shop.
 - **Undo:** `undo_last` removes just the most recent operation's features (e.g. a bad drilling
   pass) — a targeted recovery that doesn't touch earlier work or your own geometry.
+- **Naming:** sketches and bodies get readable names (holes, grooves and panels are labelled,
+  and `extrude`/`revolve` take a `name`); `rename_body` relabels any body — so the browser
+  tree and cut list read clearly instead of `Sketch12` / `Body3`.
 - **Cabinet fronts & assembly (experimental):** after `build_cabinet`, `add_face_frame`,
   `add_doors` (overlay/inset), and `add_drawers` (fronts + simple boxes) add the front;
   `promote_to_components` moves each panel into its own component to form a real assembly;

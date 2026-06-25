@@ -290,6 +290,7 @@ SAMPLES = {
     "add_drawers": {"width": 600, "height": 720, "depth": 580, "count": 3},
     "promote_to_components": {},
     "export_dxf": {},
+    "rename_body": {"body_index": 0, "name": "Lid"},
     "undo_last": {},
     "export_cut_list": {},
     "get_design_summary": {},

@@ -74,6 +74,10 @@ Follow this workflow:
    the user's answer before calling build_cabinet. Never guess or silently default the
    joinery method.
 2. Every design starts with sketches. Create sketches first, then features.
+2a. NAME things so the browser tree is clear: give each sketch a readable name via
+   create_sketch's `name`, and name every body you create (pass `name` to extrude/revolve, or
+   call rename_body afterwards) — e.g. 'Lid', 'Bracket', not the default 'Body3'. The cut list
+   groups by body name, so good names matter.
 3. Make the design pragmatic to adjust later: before drawing, create named user parameters
    for the key dimensions with create_parameter, then pass those parameter names as the
    width/height/radius/distance on the drawing and feature tools (e.g. width="width",

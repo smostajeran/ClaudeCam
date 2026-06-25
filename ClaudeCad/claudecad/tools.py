@@ -94,6 +94,7 @@ TOOLS = [
                 "profile_index": {"type": "integer", "description": "Which profile in the sketch to extrude. Default 0."},
                 "symmetric": {"type": "boolean", "description": "Extrude equally in both directions about the sketch plane. Default false."},
                 "start_offset": {"type": ["string", "number"], "description": "Distance (mm) or expression to offset the start of the extrude from the sketch plane. Default 0."},
+                "name": {"type": "string", "description": "Readable name for the new body (operation 'new'). Always name bodies meaningfully."},
             },
             "required": ["sketch_id", "distance"],
         },
@@ -109,6 +110,7 @@ TOOLS = [
                 "angle": {"type": ["string", "number"], "description": "Degrees (default 360) or an expression like '180 deg'."},
                 "operation": {"type": "string", "enum": ["new", "join", "cut", "intersect"], "description": "Default 'new'."},
                 "profile_index": {"type": "integer", "description": "Default 0."},
+                "name": {"type": "string", "description": "Readable name for the new body (operation 'new')."},
             },
             "required": ["sketch_id"],
         },
@@ -636,6 +638,18 @@ TOOLS = [
         },
     },
     {
+        "name": "rename_body",
+        "description": "Give a solid body a readable name in the browser (body indices from inspect_model). Use this to label bodies meaningfully (e.g. 'Lid', 'Bracket') so the model and cut list are clear.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer"},
+                "name": {"type": "string", "description": "The new body name."},
+            },
+            "required": ["body_index", "name"],
+        },
+    },
+    {
         "name": "undo_last",
         "description": (
             "Undo the most recent geometry-producing operation — removes just the features that "
@@ -690,10 +704,10 @@ def execute(name, tool_input, cad):
     if name == "extrude":
         return cad.extrude(ti["sketch_id"], ti["distance"], ti.get("operation", "new"),
                            int(ti.get("profile_index", 0)), bool(ti.get("symmetric", False)),
-                           ti.get("start_offset"))
+                           ti.get("start_offset"), ti.get("name"))
     if name == "revolve":
         return cad.revolve(ti["sketch_id"], ti.get("axis", "z"), ti.get("angle", 360),
-                           ti.get("operation", "new"), int(ti.get("profile_index", 0)))
+                           ti.get("operation", "new"), int(ti.get("profile_index", 0)), ti.get("name"))
     if name == "fillet_all_edges":
         return cad.fillet_all_edges(ti["radius"])
     if name == "chamfer_all_edges":
@@ -793,6 +807,8 @@ def execute(name, tool_input, cad):
         return cad.promote_to_components()
     if name == "export_dxf":
         return cad.export_dxf(ti.get("folder"))
+    if name == "rename_body":
+        return cad.rename_body(int(ti["body_index"]), ti["name"])
     if name == "undo_last":
         return cad.undo_last()
     if name == "export_cut_list":
