@@ -27,8 +27,8 @@ RISK = {
     "chamfer_selection": BUILD, "set_material": BUILD, "add_thread": BUILD,
     "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
-    "drill_holes": MODIFY,
-    "export_model": EXPORT,
+    "drill_holes": MODIFY, "undo_last": MODIFY,
+    "export_model": EXPORT, "export_cut_list": EXPORT,
 }
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.

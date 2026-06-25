@@ -517,6 +517,29 @@ TOOLS = [
         },
     },
     {
+        "name": "undo_last",
+        "description": (
+            "Undo the most recent geometry-producing operation — removes just the features that "
+            "operation created (e.g. the last drilling pass or the last extrude), newest first. "
+            "Use this to recover from a step that went wrong, instead of discarding everything. "
+            "Does not touch the user's own geometry or earlier operations."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "export_cut_list",
+        "description": (
+            "Write a CSV cut list of every solid body (length x width x thickness, grouped into "
+            "quantities, with material) to the user's home folder — for the shop / ordering sheet goods."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Base filename (no extension). Default 'claudecad_cutlist'."},
+            },
+        },
+    },
+    {
         "name": "get_design_summary",
         "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
@@ -529,6 +552,8 @@ def execute(name, tool_input, cad):
     a list of content blocks. Raises on failure."""
     from . import policy
     policy.validate(name, tool_input)  # reject bad args before any geometry is created
+    if policy.risk(name) in (policy.BUILD, policy.MODIFY) and name != "undo_last":
+        cad.begin_operation(name)  # group created entities so undo_last can roll this back
     ti = tool_input or {}
 
     if name == "create_parameter":
@@ -627,6 +652,10 @@ def execute(name, tool_input, cad):
         )
     if name == "drill_holes":
         return cad.drill_holes(int(ti["body_index"]), list(ti["holes"]))
+    if name == "undo_last":
+        return cad.undo_last()
+    if name == "export_cut_list":
+        return cad.export_cut_list(ti.get("filename"))
     if name == "get_design_summary":
         return cad.get_design_summary()
 

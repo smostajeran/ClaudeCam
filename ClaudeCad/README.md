@@ -118,7 +118,10 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   `fillet_selection`, `chamfer_selection`, `cut_hole_selection` ("round these edges 2 mm").
 - **Export:** `export_model` writes STEP / STL / IGES / F3D to your home folder. The filename
   is sanitized (path components stripped, confined to the home folder) and never overwrites an
-  existing file — it auto-suffixes (`name_1.step`, …) instead.
+  existing file — it auto-suffixes (`name_1.step`, …) instead. `export_cut_list` writes a CSV
+  cut list (parts grouped into quantities, with dimensions and material) for the shop.
+- **Undo:** `undo_last` removes just the most recent operation's features (e.g. a bad drilling
+  pass) — a targeted recovery that doesn't touch earlier work or your own geometry.
 - **3D placement:** sketches can be created on an **offset** construction plane so parts are
   positioned at the right height/location and assemble together rather than overlapping at
   the origin.

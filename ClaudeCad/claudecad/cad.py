@@ -61,7 +61,49 @@ class CadBuilder:
         # switches the active Fusion document mid-session, operations would silently land on
         # the wrong design — we detect that and refuse rather than corrupt another document.
         self._doc_key = None
+        # Operation grouping for undo_last: each entry is the set of entities/params created
+        # during one tool call, newest last, so a single bad operation can be rolled back.
+        self._ops = []
         self._record_start()
+
+    def begin_operation(self, name):
+        """Start a new undo group; subsequent created entities/params are attributed to it."""
+        self._ops.append({"name": name, "entities": [], "params": []})
+
+    def undo_last(self):
+        """Delete everything created by the most recent geometry-producing operation.
+
+        Removes only that operation's tagged features (and any parameters it created), newest
+        first, so a single bad step (e.g. a drilling pass) can be reversed from chat without a
+        manual Undo. Empty operations (e.g. read-only calls) are skipped.
+        """
+        design = self._design()
+        while self._ops:
+            op = self._ops.pop()
+            entities = op.get("entities", [])
+            params = op.get("params", [])
+            if not entities and not params:
+                continue
+            for entity in reversed(entities):
+                try:
+                    entity.deleteMe()
+                except Exception:
+                    pass
+            for name in reversed(params):
+                try:
+                    param = design.userParameters.itemByName(name)
+                    if param:
+                        param.deleteMe()
+                    if name in self._params:
+                        self._params.remove(name)
+                except Exception:
+                    pass
+            self._last_feature = None
+            self._last_body = None
+            return "Undid the last operation ('{}') — removed {} feature(s){}.".format(
+                op["name"], len(entities),
+                " and {} parameter(s)".format(len(params)) if params else "")
+        return "There's nothing from this session to undo."
 
     def _active_doc_key(self):
         """A stable-ish identifier for the active document (data file id, else its name)."""
@@ -77,10 +119,13 @@ class CadBuilder:
             return None
 
     def _own(self, entity):
-        """Tag an entity as ClaudeCad-created so Discard can identify and remove only it."""
+        """Tag an entity as ClaudeCad-created so Discard can identify and remove only it,
+        and attribute it to the current operation (for undo_last)."""
         try:
             if entity:
                 entity.attributes.add(self._ATTR_GROUP, self._ATTR_NAME, "1")
+                if self._ops:
+                    self._ops[-1]["entities"].append(entity)
         except Exception:
             pass
         return entity
@@ -207,6 +252,8 @@ class CadBuilder:
         design.userParameters.add(name, value, unit or "mm", comment or "")
         if name not in self._params:
             self._params.append(name)
+        if self._ops:
+            self._ops[-1]["params"].append(name)
         return "Created parameter {} = {} ({}).".format(name, expression, unit or "mm")
 
     def create_sketch(self, plane="xy", name=None, offset=0):
@@ -983,6 +1030,38 @@ class CadBuilder:
         mgr.execute(options)
         return "Exported the model to {}".format(path)
 
+    def export_cut_list(self, filename=None):
+        """Write a CSV cut list of every solid body (length x width x thickness + material),
+        grouping identical parts into quantities, to the user's home folder."""
+        comp = self._comp()
+        if comp.bRepBodies.count == 0:
+            raise RuntimeError("There are no solid bodies to list.")
+        parts = []
+        for i in range(comp.bRepBodies.count):
+            b = comp.bRepBodies.item(i)
+            length, width, thickness = sorted(self._bbox_dims(b.boundingBox), reverse=True)
+            material = ""
+            try:
+                material = b.material.name if b.material else ""
+            except Exception:
+                pass
+            parts.append({"name": b.name, "length": length, "width": width,
+                          "thickness": thickness, "material": material})
+        csv_text = util.cut_list_csv(parts)
+
+        base = util.safe_export_basename(filename if filename else "claudecad_cutlist")
+        home = os.path.realpath(os.path.expanduser("~"))
+        path = os.path.realpath(os.path.join(home, base + ".csv"))
+        if os.path.dirname(path) != home:
+            raise ValueError("Refusing to write outside your home folder.")
+        suffix = 1
+        while os.path.exists(path):
+            path = os.path.join(home, "{}_{}.csv".format(base, suffix))
+            suffix += 1
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(csv_text)
+        return "Wrote a cut list of {} part(s) to {}".format(len(parts), path)
+
     # -- advanced features ---------------------------------------------------
     def loft(self, sketch_ids, operation="new"):
         comp = self._comp()
@@ -1442,4 +1521,5 @@ class CadBuilder:
         self._sketch_counter = 0
         self._last_feature = None
         self._last_body = None
+        self._ops = []
         self._record_start()

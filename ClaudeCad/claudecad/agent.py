@@ -86,7 +86,9 @@ Follow this workflow:
    fillet_edges / chamfer_edges / cut_hole act on specific edges/faces you found with
    list_edges / list_faces; combine_bodies does booleans (join/cut/intersect) and move_body
    repositions a body. export_model writes STEP/STL/IGES/F3D to the user's home folder when
-   they ask to export. For shapes extrude/revolve can't make, use loft (blend through
+   they ask to export; export_cut_list writes a CSV cut list (parts, quantities, material).
+   If a step goes wrong, undo_last removes just the most recent operation's features — prefer
+   it over asking the user to discard everything. For shapes extrude/revolve can't make, use loft (blend through
    profiles on offset planes) or sweep (profile along a path sketch). add_thread taps a
    cylindrical face (a hole or shaft). set_material + get_mass_properties give realistic
    mass/volume/centre-of-mass — material names vary by install, so call list_materials to
