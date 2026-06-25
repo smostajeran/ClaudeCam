@@ -125,6 +125,20 @@ def test_build_tools_have_no_prerequisites():
 
 # -- unit conversion --------------------------------------------------------
 
+def test_turn_guard_one_at_a_time_and_clear():
+    g = util.TurnGuard()
+    a, b = (1, 0), (2, 0)
+    assert g.try_begin(a) is True
+    assert g.try_begin(b) is False          # one turn at a time
+    assert g.end(b) is False                # only the owner can end
+    # Stop/Discard frees the slot by owner even though chat a's worker hasn't ended.
+    assert g.clear_owner(1) is True
+    assert g.try_begin(b) is True           # b can now run
+    # a's stale worker ending must not clobber b's slot.
+    assert g.end(a) is False
+    assert g.active() == b
+
+
 def test_unit_conversion_roundtrip():
     assert util.cm_to_mm(util.mm_to_cm(123.4)) == 123.4
     assert util.mm_to_cm(10) == 1.0   # 10 mm == 1 cm

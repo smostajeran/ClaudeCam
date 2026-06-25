@@ -319,6 +319,10 @@ class ClaudeCadUI:
         if self._pending_chat is chat:
             self._resolve_approval(False)  # unblock a waiting approval and hide the bar
         chat.cancel()
+        try:
+            self.cad.turns.clear_owner(id(chat))  # free the document slot immediately
+        except Exception:
+            pass
         self.status(chat, False, "")
         self.system_for(chat, "Stopped. Your model and chat are unchanged — continue when ready.")
 
@@ -327,6 +331,10 @@ class ClaudeCadUI:
         # still waiting on Claude can't repopulate the model or the chat after we clear.
         chat = self.chats.active
         chat.reset()
+        try:
+            self.cad.turns.clear_owner(id(chat))  # free the document slot a stuck turn may hold
+        except Exception:
+            pass
         try:
             self.cad.reset()
         except Exception as exc:

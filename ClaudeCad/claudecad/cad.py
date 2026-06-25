@@ -14,7 +14,6 @@ import base64
 import math
 import os
 import tempfile
-import threading
 
 import adsk.core
 import adsk.fusion
@@ -54,9 +53,10 @@ class CadBuilder:
         self._last_feature = None
         self._last_body = None
         self._start_marker = 0
-        # Document-level lock: only one CAD-agent turn may mutate the shared design at a
-        # time (the dispatcher serializes individual calls, but not a whole multi-tool plan).
-        self.turn_lock = threading.Lock()
+        # Document-level guard: only one CAD-agent turn may mutate the shared design at a time.
+        # A marker (not a held lock) so Stop/Discard can free the slot immediately even while a
+        # cancelled worker is still unwinding a blocked network call.
+        self.turns = util.TurnGuard()
         # Identity of the document this builder is bound to (set on first use). If the user
         # switches the active Fusion document mid-session, operations would silently land on
         # the wrong design — we detect that and refuse rather than corrupt another document.
