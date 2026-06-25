@@ -64,6 +64,8 @@ class CadBuilder:
         # Operation grouping for undo_last: each entry is the set of entities/params created
         # during one tool call, newest last, so a single bad operation can be rolled back.
         self._ops = []
+        # Per-body displacement recorded by explode_assembly so reassemble restores exactly.
+        self._explode_state = None
         self._record_start()
 
     def begin_operation(self, name):
@@ -1087,9 +1089,9 @@ class CadBuilder:
         self._remember(combines.add(cin))
         return "Combined body [{}] with {} body(ies) using '{}'.".format(target_index, tools_col.count, operation)
 
-    def move_body(self, body_index, dx=0.0, dy=0.0, dz=0.0):
+    def _translate_body(self, body, dx, dy, dz):
+        """Translate one body by (dx, dy, dz) mm via a Move feature (remembers it)."""
         comp = self._comp()
-        body = self._brep_body(body_index)
         col = adsk.core.ObjectCollection.create()
         col.add(body)
         moves = comp.features.moveFeatures
@@ -1102,7 +1104,97 @@ class CadBuilder:
         )
         # Remember the move feature so a following pattern targets it, not the prior feature.
         self._remember(moves.add(move_input))
+
+    def move_body(self, body_index, dx=0.0, dy=0.0, dz=0.0):
+        self._translate_body(self._brep_body(body_index), dx, dy, dz)
         return "Moved body [{}] by ({:g}, {:g}, {:g}) mm.".format(body_index, float(dx), float(dy), float(dz))
+
+    def _body_center(self, body):
+        bb = body.boundingBox
+        return ((bb.minPoint.x + bb.maxPoint.x) / 2.0,
+                (bb.minPoint.y + bb.maxPoint.y) / 2.0,
+                (bb.minPoint.z + bb.maxPoint.z) / 2.0)
+
+    def explode_assembly(self, factor=0.6):
+        """Move bodies radially outward from the assembly centre for an exploded view.
+
+        Records each body's displacement so reassemble() can restore the built positions
+        exactly (this is a literal move — Fusion's animated exploded view isn't scriptable).
+        """
+        comp = self._comp()
+        n = comp.bRepBodies.count
+        if n == 0:
+            raise RuntimeError("There are no bodies to explode.")
+        if self._explode_state:
+            raise RuntimeError("The model is already exploded — call reassemble first.")
+        factor = float(factor)
+        if factor <= 0:
+            raise ValueError("factor must be greater than 0.")
+
+        bodies = [comp.bRepBodies.item(i) for i in range(n)]
+        centers = [self._body_center(b) for b in bodies]
+        ctr = tuple(sum(c[k] for c in centers) / n for k in range(3))  # centroid of body centres
+
+        state = []
+        for b, c in zip(bodies, centers):
+            dx = self._mm((c[0] - ctr[0]) * factor)
+            dy = self._mm((c[1] - ctr[1]) * factor)
+            dz = self._mm((c[2] - ctr[2]) * factor)
+            if abs(dx) < 0.1 and abs(dy) < 0.1 and abs(dz) < 0.1:
+                dz += 50.0  # a body at the centre would otherwise not move; nudge it up
+            self._translate_body(b, dx, dy, dz)
+            state.append((b.name, dx, dy, dz))
+        self._explode_state = state
+        return "Exploded {} bodies (factor {:g}). Call reassemble to restore the built positions.".format(n, factor)
+
+    def reassemble(self):
+        """Restore every body moved by explode_assembly back to its built position."""
+        if not self._explode_state:
+            raise RuntimeError("Nothing is exploded. (explode_assembly records the moves it undoes.)")
+        comp = self._comp()
+        by_name = {}
+        for i in range(comp.bRepBodies.count):
+            b = comp.bRepBodies.item(i)
+            by_name.setdefault(b.name, []).append(b)
+        restored = 0
+        for name, dx, dy, dz in self._explode_state:
+            bodies = by_name.get(name)
+            if bodies:
+                self._translate_body(bodies.pop(0), -dx, -dy, -dz)
+                restored += 1
+        self._explode_state = None
+        return "Reassembled {} bodies to their built positions.".format(restored)
+
+    def export_bom(self, filename=None):
+        """Write a Bill of Materials (item, qty, part, material, dimensions) as CSV to the home
+        folder, and return the table text so it can be shown / put on a drawing."""
+        comp = self._comp()
+        if comp.bRepBodies.count == 0:
+            raise RuntimeError("There are no bodies for a BOM.")
+        parts = []
+        for i in range(comp.bRepBodies.count):
+            b = comp.bRepBodies.item(i)
+            length, width, thickness = sorted(self._bbox_dims(b.boundingBox), reverse=True)
+            material = ""
+            try:
+                material = b.material.name if b.material else ""
+            except Exception:
+                pass
+            parts.append({"name": b.name, "material": material,
+                          "length": length, "width": width, "thickness": thickness})
+        csv_text = util.bom_csv(parts)
+        base = util.safe_export_basename(filename if filename else "claudecad_bom")
+        home = os.path.realpath(os.path.expanduser("~"))
+        path = os.path.realpath(os.path.join(home, base + ".csv"))
+        if os.path.dirname(path) != home:
+            raise ValueError("Refusing to write outside your home folder.")
+        suffix = 1
+        while os.path.exists(path):
+            path = os.path.join(home, "{}_{}.csv".format(base, suffix))
+            suffix += 1
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(csv_text)
+        return "Wrote a BOM to {}\n\n{}".format(path, csv_text)
 
     def rename_body(self, body_index, name):
         """Give a solid body a readable name in the browser (body indices from inspect_model)."""
@@ -1802,4 +1894,5 @@ class CadBuilder:
         self._last_feature = None
         self._last_body = None
         self._ops = []
+        self._explode_state = None
         self._record_start()

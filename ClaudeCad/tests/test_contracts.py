@@ -173,6 +173,20 @@ def test_cut_list_quotes_cells_with_commas():
     assert '"Panel, A"' in csv
 
 
+def test_bom_numbers_items_and_groups_by_part():
+    parts = [
+        {"name": "Side", "length": 720, "width": 580, "thickness": 18, "material": "Ply"},
+        {"name": "Side", "length": 720, "width": 580, "thickness": 18, "material": "Ply"},
+        {"name": "Shelf", "length": 564, "width": 560, "thickness": 18, "material": "Ply"},
+    ]
+    csv = util.bom_csv(parts)
+    lines = csv.strip().split("\n")
+    assert lines[0].startswith("Item,Qty,Part")
+    assert len(lines) == 3  # header + 2 grouped rows
+    assert lines[1].startswith("1,2,Side")  # item 1, qty 2
+    assert lines[2].startswith("2,1,Shelf")
+
+
 # -- history compaction -----------------------------------------------------
 
 def _img_msg():
@@ -291,6 +305,9 @@ SAMPLES = {
     "promote_to_components": {},
     "export_dxf": {},
     "rename_body": {"body_index": 0, "name": "Lid"},
+    "explode_assembly": {"factor": 0.6},
+    "reassemble": {},
+    "export_bom": {},
     "undo_last": {},
     "export_cut_list": {},
     "get_design_summary": {},

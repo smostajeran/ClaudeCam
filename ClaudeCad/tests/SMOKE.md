@@ -40,5 +40,9 @@ attribute-based rollback, document locking, and the in-place reload. Run after a
     doors", "add 3 drawers" → fronts/boxes appear positioned on the front; check fit.
 17. **Components (experimental)** — "make this a real assembly" → each panel becomes its own
     component in the browser tree.
+18. **Explode / reassemble** — "explode the assembly" spreads the panels apart; "reassemble"
+    returns them to exactly the built positions. Names should read clearly in the browser.
+19. **BOM** — "export a BOM" → CSV in home folder + a parts table (item/qty/part/material/size)
+    returned in chat, grouped by part name.
 
 

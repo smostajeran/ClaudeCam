@@ -78,3 +78,31 @@ def cut_list_csv(parts):
             "{:g}".format(thickness), material, "; ".join(g["names"]),
         )))
     return "\n".join(rows) + "\n"
+
+
+def bom_csv(parts):
+    """Build a Bill of Materials CSV from a list of parts.
+
+    Unlike the cut list (grouped purely by size for sheet layout), the BOM groups by part
+    identity — ``name`` + ``material`` + dimensions — and assigns an item number per row, the
+    way a drawing's parts table reads. Each part dict has ``name`` and ``length`` / ``width`` /
+    ``thickness`` (mm) and an optional ``material``.
+    """
+    groups = {}
+    order = []
+    for p in parts:
+        dims = tuple(round(float(p.get(k, 0.0)), 1) for k in ("length", "width", "thickness"))
+        key = (p.get("name") or "Part", p.get("material") or "", dims)
+        if key not in groups:
+            groups[key] = 0
+            order.append(key)
+        groups[key] += 1
+
+    rows = ["Item,Qty,Part,Material,Length(mm),Width(mm),Thickness(mm)"]
+    for item, key in enumerate(order, start=1):
+        name, material, (length, width, thickness) = key
+        rows.append(",".join(_csv_cell(c) for c in (
+            item, groups[key], name, material,
+            "{:g}".format(length), "{:g}".format(width), "{:g}".format(thickness),
+        )))
+    return "\n".join(rows) + "\n"
