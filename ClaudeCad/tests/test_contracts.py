@@ -269,6 +269,38 @@ def test_bom_numbers_items_and_groups_by_part():
     assert lines[2].startswith("2,1,Shelf")
 
 
+# -- sheet nesting ----------------------------------------------------------
+
+def test_nest_panels_single_sheet_and_utilisation():
+    # four 1200x600 panels (each a quarter of a 2440x1220 sheet) fit on one sheet.
+    stats = util.nest_panels([(1200, 600)] * 4, sheet_w=2440, sheet_h=1220, kerf=0)
+    assert stats["sheets"] == 1
+    assert 0 < stats["utilization_pct"] <= 100
+    assert stats["oversized"] == []
+
+
+def test_nest_panels_multiple_sheets():
+    # ten near-full-width panels can't share a sheet vertically -> several sheets.
+    stats = util.nest_panels([(2400, 700)] * 10, sheet_w=2440, sheet_h=1220, kerf=3)
+    assert stats["sheets"] >= 5
+
+
+def test_nest_panels_flags_oversized():
+    stats = util.nest_panels([(3000, 1500), (600, 400)], sheet_w=2440, sheet_h=1220)
+    assert (3000, 1500) in stats["oversized"]
+    assert stats["sheets"] == 1  # only the fitting panel is packed
+
+
+def test_validation_new_tools():
+    assert _rejects("build_kitchen_run", {"widths": []})
+    assert _rejects("build_kitchen_run", {"widths": [600, -10]})
+    assert not _rejects("build_kitchen_run", {"widths": [600, 900]})
+    assert _rejects("add_door_hardware", {"body_index": 0, "face_index": 0, "hinges": 0})
+    assert not _rejects("add_door_hardware", {"body_index": 0, "face_index": 0, "hinges": 2})
+    assert _rejects("estimate_materials", {"sheet_width": -1})
+    assert not _rejects("estimate_materials", {"sheet_width": 2440, "kerf": 0})
+
+
 # -- history compaction -----------------------------------------------------
 
 def _img_msg():
@@ -422,6 +454,9 @@ SAMPLES = {
     "cut_hole_selection": {"diameter": 6},
     "build_cabinet": {"width": 600, "height": 720, "depth": 580, "joinery": "screws"},
     "build_kitchen_cabinet": {"width": 600, "cabinet_type": "base", "front": "doors", "joinery": "screws"},
+    "build_kitchen_run": {"widths": [600, 600, 900], "cabinet_type": "base", "front": "doors"},
+    "add_door_hardware": {"body_index": 5, "face_index": 0, "hinge_side": "left", "hinges": 2},
+    "estimate_materials": {"sheet_width": 2440, "sheet_height": 1220, "sheet_price": 60, "kerf": 3},
     "drill_holes": {"body_index": 0, "holes": [{"x": 10, "y": 37, "z": 100, "axis": "x", "depth": 12, "diameter": 5}]},
     "drill_holes_on_face": {"body_index": 0, "face_index": 2, "diameter": 5, "depth": 12,
                             "points": [{"u": 37, "v": 100}, {"u": 37, "v": 132}]},

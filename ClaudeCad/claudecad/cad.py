@@ -1439,6 +1439,46 @@ class CadBuilder:
             fh.write(csv_text)
         return "Wrote a cut list of {} part(s) to {}".format(len(parts), path)
 
+    def estimate_materials(self, sheet_width=2440.0, sheet_height=1220.0, sheet_price=None,
+                           kerf=3.0, thickness_filter=None):
+        """Estimate sheet goods: pack each body's largest face onto standard sheets and report
+        the sheet count, utilisation and (optional) cost. Read-only — geometry is unchanged.
+
+        Each body's two largest bounding-box dimensions are its panel footprint; the smallest is
+        the thickness. ``thickness_filter`` (mm) keeps only panels of that thickness (+/-1 mm) so
+        you can cost one sheet material at a time. Packing is approximate (util.nest_panels)."""
+        comp = self._comp()
+        if comp.bRepBodies.count == 0:
+            raise RuntimeError("There are no solid bodies to estimate.")
+        panels, skipped = [], 0
+        for i in range(comp.bRepBodies.count):
+            length, width, thick = sorted(
+                self._bbox_dims(comp.bRepBodies.item(i).boundingBox), reverse=True)
+            if thickness_filter is not None and abs(thick - float(thickness_filter)) > 1.0:
+                skipped += 1
+                continue
+            panels.append((length, width))
+        if not panels:
+            raise RuntimeError("No bodies matched the thickness filter; nothing to nest.")
+        stats = util.nest_panels(panels, sheet_width, sheet_height, kerf)
+        lines = [
+            "Sheet nesting estimate ({:g} x {:g} mm sheets, {:g} mm kerf):".format(
+                float(sheet_width), float(sheet_height), float(kerf)),
+            "  Panels: {}{}".format(
+                len(panels), " ({} skipped by thickness filter)".format(skipped) if skipped else ""),
+            "  Sheets needed: {}".format(stats["sheets"]),
+            "  Utilisation: {:.1f}%".format(stats["utilization_pct"]),
+        ]
+        if sheet_price is not None:
+            cost = stats["sheets"] * float(sheet_price)
+            lines.append("  Material cost: {} x {:g} = {:.2f}".format(
+                stats["sheets"], float(sheet_price), cost))
+        if stats["oversized"]:
+            lines.append("  WARNING: {} panel(s) exceed one sheet: {}".format(
+                len(stats["oversized"]),
+                ", ".join("{:.0f}x{:.0f}".format(w, h) for w, h in stats["oversized"])))
+        return "\n".join(lines)
+
     # -- advanced features ---------------------------------------------------
     def loft(self, sketch_ids, operation="new"):
         comp = self._comp()
@@ -1939,8 +1979,9 @@ class CadBuilder:
         T = float(thickness)
         n_sh = int(shelves) if shelves is not None else d_sh
         f = (front or "doors").lower()
-        if f not in ("doors", "drawers", "none"):
-            raise ValueError("front must be 'doors', 'drawers' or 'none'.")
+        if f not in ("doors", "drawers", "none", "open", "door_drawer", "sink"):
+            raise ValueError(
+                "front must be 'doors', 'drawers', 'none', 'open', 'door_drawer' or 'sink'.")
 
         # Carcass at z[0, H].
         self.build_cabinet(W, H, D, T, back_thickness, n_sh, joinery, back_joint, None, False)
@@ -1960,13 +2001,145 @@ class CadBuilder:
         elif f == "drawers":
             self.add_drawers(W, H, D, int(drawers), T)
             notes.append("{} drawer(s)".format(int(drawers)))
-        else:
+        elif f in ("door_drawer", "sink"):
+            # A fixed top front (a real drawer for 'door_drawer', a cosmetic false front for a
+            # 'sink' base) over one or more doors below it.
+            rev, fgap = 2.0, 3.0
+            top_h = min(200.0, H * 0.25)
+            top_name = "Sink False Front" if f == "sink" else "Drawer Front 1"
+            n = int(doors) if doors else (1 if W <= 600 else 2)
+            door_top = H - rev - top_h - fgap
+            avail = (W - 2 * rev) - (n - 1) * fgap
+            if avail <= 0 or door_top <= rev:
+                raise ValueError("Cabinet is too small for a '{}' front.".format(f))
+            self._box(top_name, rev, -T, H - rev - top_h, W - rev, 0.0, H - rev)
+            dw = avail / n
+            for i in range(n):
+                x0 = rev + i * (dw + fgap)
+                self._box("Door {}".format(i + 1), x0, -T, rev, x0 + dw, 0.0, door_top)
+            notes.append(("sink base" if f == "sink" else "drawer-over-door")
+                         + " ({} door(s))".format(n))
+        else:  # "none" / "open"
             notes.append("open front")
 
         return (
             "Built a {} kitchen cabinet {:g}(W) x {:g}(H) x {:g}(D) mm in {:g} mm material with "
             "{} shelf(es): {}.".format(ctype, W, H, D, T, n_sh, ", ".join(notes))
         )
+
+    def build_kitchen_run(self, widths, cabinet_type="base", height=None, depth=None,
+                          thickness=18.0, front="doors", joinery="screws", gap=0.0,
+                          countertop=True, countertop_thickness=38.0, countertop_overhang=25.0):
+        """Build a row of cabinets side by side along X, with an optional countertop slab.
+
+        Each cabinet is built with build_kitchen_cabinet then translated into its slot along X
+        (the new bodies for that cabinet are shifted by the running x-cursor). For base/tall
+        runs a single countertop slab is laid over the whole run with a front/side overhang.
+        """
+        if not widths:
+            raise ValueError("Provide at least one cabinet width (mm).")
+        ws = [float(w) for w in widths]
+        ctype = (cabinet_type or "base").lower()
+        if ctype not in self._KITCHEN_DEFAULTS:
+            raise ValueError("cabinet_type must be 'base', 'wall' or 'tall'.")
+        d_h, d_d, _d_sh, _has_toe = self._KITCHEN_DEFAULTS[ctype]
+        H = float(height) if height else d_h
+        D = float(depth) if depth else d_d
+        T = float(thickness)
+        g = float(gap)
+        comp = self._comp()
+
+        x_cursor = 0.0
+        for w in ws:
+            before = comp.bRepBodies.count
+            self.build_kitchen_cabinet(w, ctype, H, D, T, front=front, joinery=joinery)
+            if abs(x_cursor) > 1e-9:  # shift this cabinet's new bodies into their slot
+                for i in range(before, comp.bRepBodies.count):
+                    self._translate_body(comp.bRepBodies.item(i), x_cursor, 0.0, 0.0)
+            x_cursor += w + g
+
+        total_w = sum(ws) + g * (len(ws) - 1)
+        notes = ["{} {} cabinet(s), {:g} mm run".format(len(ws), ctype, total_w)]
+        if countertop and ctype in ("base", "tall") and float(countertop_thickness) > 0:
+            oh = float(countertop_overhang)
+            ct_t = float(countertop_thickness)
+            # Slab on top (z=H..H+ct_t), overhanging the open front (-Y) and both ends (X).
+            self._box("Countertop", -oh, -oh, H, total_w + oh, D, H + ct_t)
+            notes.append("countertop {:g} mm thick ({:g} mm overhang)".format(ct_t, oh))
+        return "Built a kitchen run: {}.".format(", ".join(notes))
+
+    def add_door_hardware(self, body_index, face_index, hinge_side="left", hinges=2,
+                          handle=True, hinge_hardware="euro_hinge_cup_35",
+                          handle_hardware="handle_pull_128", edge_distance=22.0,
+                          end_inset=100.0):
+        """Auto-place hinge cups and a handle on a door's inner face.
+
+        Reads the face's own u/v frame, treats its LONGER in-plane axis as the door height, and
+        bores ``hinges`` cups along the chosen hinge edge (``end_inset`` mm from each end,
+        ``edge_distance`` mm in from the edge). A pull handle is drilled on the opposite edge,
+        centred along the height with its screw pair running along the height. Cup boring uses
+        the catalogued ``hinge_hardware`` pattern; the handle uses ``handle_hardware``'s pitch.
+        """
+        from . import hardware
+        body = self._brep_body(body_index)
+        if face_index < 0 or face_index >= body.faces.count:
+            raise ValueError("face_index {} out of range (body has {} faces).".format(
+                face_index, body.faces.count))
+        frame = self._face_uv(body.faces.item(face_index))
+        if not frame:
+            raise RuntimeError(
+                "Face [{}] isn't planar — pick the flat inner face of the door.".format(face_index))
+        _origin, _u, _v, u_size, v_size = frame
+        long_is_v = v_size >= u_size
+        long_size = v_size if long_is_v else u_size
+        short_size = u_size if long_is_v else v_size
+
+        def to_uv(long_coord, short_coord):
+            return (short_coord, long_coord) if long_is_v else (long_coord, short_coord)
+
+        ed = float(edge_distance)
+        if ed * 2 >= short_size:
+            raise ValueError("edge_distance {:g} mm is too large for this {:.0f} mm-wide door.".format(
+                ed, short_size))
+        near = (hinge_side or "left").lower() in ("left", "near", "low", "bottom")
+        hinge_short = ed if near else short_size - ed
+        handle_short = short_size - ed if near else ed
+
+        n = max(1, int(hinges))
+        ei = min(float(end_inset), long_size / 2.0 - 1.0)
+        if n == 1:
+            longs = [long_size / 2.0]
+        else:
+            span = long_size - 2 * ei
+            longs = [ei + span * k / (n - 1) for k in range(n)]
+
+        total = 0
+        for lc in longs:
+            u, v = to_uv(lc, hinge_short)
+            self.drill_for_hardware(hinge_hardware, body_index, face_index, u, v)
+            total += 1
+
+        notes = "{} hinge cup(s) on the {} edge".format(n, "near" if near else "far")
+        if handle:
+            entry = hardware.get(handle_hardware) or {}
+            holes = entry.get("holes") or []
+            pitch = 128.0
+            if len(holes) >= 2:  # span of the catalog pattern = its handle centre-to-centre
+                dus = [float(h.get("du", 0.0)) for h in holes]
+                dvs = [float(h.get("dv", 0.0)) for h in holes]
+                pitch = max(max(dus) - min(dus), max(dvs) - min(dvs)) or 128.0
+            diameter = float(holes[0]["diameter"]) if holes else 5.0
+            mid = long_size / 2.0
+            pitch = min(pitch, long_size - 20.0)
+            pts = []
+            for lc in (mid - pitch / 2.0, mid + pitch / 2.0):
+                u, v = to_uv(lc, handle_short)
+                pts.append({"u": u, "v": v})
+            self.drill_holes_on_face(body_index, face_index, pts, diameter)
+            total += len(pts)
+            notes += " + a {:g} mm handle on the opposite edge".format(pitch)
+        return "Drilled {} hole(s) on face [{}] of body [{}]: {}.".format(
+            total, face_index, body_index, notes)
 
     def promote_to_components(self):
         """Move each solid body into its own component/occurrence to form a real assembly."""

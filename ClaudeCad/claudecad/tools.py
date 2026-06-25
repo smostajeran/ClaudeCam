@@ -583,6 +583,76 @@ TOOLS = [
         },
     },
     {
+        "name": "build_kitchen_run",
+        "description": (
+            "Build a ROW of kitchen cabinets side by side along X in one step, with an optional "
+            "countertop slab laid over the whole run. Give the individual cabinet 'widths' (mm) "
+            "in left-to-right order; each is built with build_kitchen_cabinet and positioned in "
+            "its slot. Use this for a kitchen wall/run rather than placing cabinets one by one. "
+            "Countertop is added for base/tall runs by default."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "widths": {"type": "array", "items": {"type": "number"}, "description": "Cabinet widths in mm, left to right (e.g. [600, 600, 900])."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Applies to every cabinet in the run. Default 'base'."},
+                "height": {"type": "number", "description": "Override carcass height in mm (default per type)."},
+                "depth": {"type": "number", "description": "Override depth in mm (default per type)."},
+                "thickness": {"type": "number", "description": "Panel thickness in mm. Default 18."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Front type for every cabinet. Default 'doors'."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Carcass joinery. Default 'screws'."},
+                "gap": {"type": "number", "description": "Gap between cabinets in mm. Default 0 (gang them)."},
+                "countertop": {"type": "boolean", "description": "Lay a countertop over base/tall runs. Default true."},
+                "countertop_thickness": {"type": "number", "description": "Countertop thickness in mm. Default 38."},
+                "countertop_overhang": {"type": "number", "description": "Countertop overhang past the front/ends in mm. Default 25."},
+            },
+            "required": ["widths"],
+        },
+    },
+    {
+        "name": "add_door_hardware",
+        "description": (
+            "Auto-place concealed hinge cups and a pull handle on a door's inner face — no need "
+            "to compute each hole. First call list_faces on the door body to find the flat inner "
+            "face, then give its index. Cups are bored along the chosen hinge edge (more for "
+            "taller doors); a handle is drilled on the opposite edge. Uses the hardware catalog."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "The door body (from inspect_model)."},
+                "face_index": {"type": "integer", "description": "The flat inner face of the door (from list_faces)."},
+                "hinge_side": {"type": "string", "enum": ["left", "right"], "description": "Which long edge carries the hinges. Default 'left'."},
+                "hinges": {"type": "integer", "description": "Number of hinge cups. Default 2 (use 3 for tall doors)."},
+                "handle": {"type": "boolean", "description": "Also drill a pull handle on the opposite edge. Default true."},
+                "hinge_hardware": {"type": "string", "description": "Catalog id for the hinge cup. Default 'euro_hinge_cup_35'."},
+                "handle_hardware": {"type": "string", "description": "Catalog id for the handle. Default 'handle_pull_128'."},
+                "edge_distance": {"type": "number", "description": "Cup/handle setback from the edge in mm. Default 22."},
+                "end_inset": {"type": "number", "description": "Inset of the end hinges from the door ends in mm. Default 100."},
+            },
+            "required": ["body_index", "face_index"],
+        },
+    },
+    {
+        "name": "estimate_materials",
+        "description": (
+            "Estimate the sheet goods for the current model: nest every panel (each body's "
+            "largest face) onto standard sheets and report how many sheets are needed, the "
+            "material utilisation %, and optional cost. Read-only. Use thickness_filter to cost "
+            "one sheet material at a time (e.g. 18 mm carcass vs 6 mm backs)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sheet_width": {"type": "number", "description": "Sheet width in mm. Default 2440."},
+                "sheet_height": {"type": "number", "description": "Sheet height in mm. Default 1220."},
+                "sheet_price": {"type": "number", "description": "Price per sheet (any currency) to also report cost. Optional."},
+                "kerf": {"type": "number", "description": "Saw kerf/spacing between parts in mm. Default 3."},
+                "thickness_filter": {"type": "number", "description": "Only count panels of this thickness (mm, +/-1). Omit for all bodies."},
+            },
+        },
+    },
+    {
         "name": "add_face_frame",
         "description": (
             "EXPERIMENTAL casework: apply a face frame (left/right stiles + top/bottom rails) to "
@@ -991,6 +1061,28 @@ def execute(name, tool_input, cad):
             (int(ti["shelves"]) if ti.get("shelves") is not None else None),
             ti.get("joinery", "screws"), ti.get("back_joint", "groove"),
             float(ti.get("toe_kick_height", 100.0)), float(ti.get("toe_kick_recess", 50.0)))
+    if name == "build_kitchen_run":
+        return cad.build_kitchen_run(
+            [float(w) for w in ti["widths"]], ti.get("cabinet_type", "base"),
+            (float(ti["height"]) if ti.get("height") is not None else None),
+            (float(ti["depth"]) if ti.get("depth") is not None else None),
+            float(ti.get("thickness", 18.0)), ti.get("front", "doors"),
+            ti.get("joinery", "screws"), float(ti.get("gap", 0.0)),
+            bool(ti.get("countertop", True)), float(ti.get("countertop_thickness", 38.0)),
+            float(ti.get("countertop_overhang", 25.0)))
+    if name == "add_door_hardware":
+        return cad.add_door_hardware(
+            int(ti["body_index"]), int(ti["face_index"]), ti.get("hinge_side", "left"),
+            int(ti.get("hinges", 2)), bool(ti.get("handle", True)),
+            ti.get("hinge_hardware", "euro_hinge_cup_35"),
+            ti.get("handle_hardware", "handle_pull_128"),
+            float(ti.get("edge_distance", 22.0)), float(ti.get("end_inset", 100.0)))
+    if name == "estimate_materials":
+        return cad.estimate_materials(
+            float(ti.get("sheet_width", 2440.0)), float(ti.get("sheet_height", 1220.0)),
+            (float(ti["sheet_price"]) if ti.get("sheet_price") is not None else None),
+            float(ti.get("kerf", 3.0)),
+            (float(ti["thickness_filter"]) if ti.get("thickness_filter") is not None else None))
     if name == "add_face_frame":
         return cad.add_face_frame(float(ti["width"]), float(ti["height"]),
                                   float(ti.get("stile", 38.0)), float(ti.get("rail", 38.0)),

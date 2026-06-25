@@ -121,6 +121,55 @@ def cut_list_csv(parts):
     return "\n".join(rows) + "\n"
 
 
+def nest_panels(panels, sheet_w=2440.0, sheet_h=1220.0, kerf=3.0):
+    """Shelf-pack rectangular panels onto standard sheets; return usage stats.
+
+    ``panels`` is a list of (width, height) mm. Returns a dict with the number of sheets, the
+    total sheet vs used area, utilisation %, and any oversized panels that don't fit a sheet.
+    Approximate (first-fit-decreasing shelf packing) but good for an estimate.
+    """
+    usable_w, usable_h = float(sheet_w), float(sheet_h)
+    kerf = float(kerf)
+    items, oversized, used_area = [], [], 0.0
+    for w, h in panels:
+        w, h = float(w), float(h)
+        used_area += w * h
+        a, b = max(w + kerf, h + kerf), min(w + kerf, h + kerf)  # longer side first
+        if a > max(usable_w, usable_h) + 1e-6 or b > min(usable_w, usable_h) + 1e-6:
+            oversized.append((w, h))
+            continue
+        items.append((a, b))
+    items.sort(key=lambda t: (-t[1], -t[0]))  # tallest first
+
+    remaining = list(items)
+    sheets = 0
+    while remaining:
+        sheets += 1
+        y = 0.0
+        while remaining:
+            # open a shelf with the first remaining panel that still fits the sheet height
+            idx = next((i for i, (a, b) in enumerate(remaining)
+                        if b <= usable_h - y + 1e-6 and a <= usable_w + 1e-6), None)
+            if idx is None:
+                break
+            a, b = remaining.pop(idx)
+            shelf_h, x = b, a
+            i = 0
+            while i < len(remaining):  # fill the shelf left-to-right
+                aa, bb = remaining[i]
+                if bb <= shelf_h + 1e-6 and x + aa <= usable_w + 1e-6:
+                    x += aa
+                    remaining.pop(i)
+                else:
+                    i += 1
+            y += shelf_h
+
+    sheet_area = usable_w * usable_h * sheets
+    utilization = (used_area / sheet_area * 100.0) if sheet_area else 0.0
+    return {"sheets": sheets, "sheet_area_mm2": sheet_area, "used_area_mm2": used_area,
+            "utilization_pct": utilization, "oversized": oversized}
+
+
 def bom_csv(parts):
     """Build a Bill of Materials CSV from a list of parts.
 

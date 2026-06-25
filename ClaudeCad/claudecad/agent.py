@@ -121,9 +121,17 @@ Follow this workflow:
    to apply one material to every body, e.g. all of a cabinet's panels). mesh_to_solid
    converts an imported mesh where supported.
    For a KITCHEN cabinet, use build_kitchen_cabinet — one call that composes the carcass, a
-   recessed toe kick, shelves and a door/drawer front with kitchen-standard defaults for base
-   / wall / tall types. Ask the user for type, width, front (doors/drawers), and the joinery
-   method if unstated. For a generic (non-kitchen) cabinet / carcass / casework, use build_cabinet: from the overall size it creates
+   recessed toe kick, shelves and a front with kitchen-standard defaults for base / wall /
+   tall types. The 'front' can be doors, drawers, door_drawer (a drawer over door(s) —
+   the common base cabinet), sink (a false top front over doors), open, or none. Ask the user
+   for type, width, front, and the joinery method if unstated. For a whole RUN of cabinets in
+   a row, use build_kitchen_run with the list of cabinet widths — it builds and positions each
+   cabinet side by side and lays a countertop over base/tall runs in one call. To place door
+   hardware, use add_door_hardware (call list_faces on the door first, give the flat inner
+   face): it auto-bores the hinge cups along one edge and a handle on the opposite edge.
+   To estimate sheet goods / cost, use estimate_materials — it nests the panels onto standard
+   sheets and reports sheet count, utilisation and optional cost (use thickness_filter to cost
+   one material at a time, e.g. 18 mm carcass vs 6 mm backs). For a generic (non-kitchen) cabinet / carcass / casework, use build_cabinet: from the overall size it creates
    the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) already
    positioned to fit, and returns a cut list + joinery plan. Do NOT call build_cabinet with
    a guessed joinery method — if the user hasn't explicitly chosen one, ask them (screws /

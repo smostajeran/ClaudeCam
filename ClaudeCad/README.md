@@ -100,10 +100,22 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   refuse a diameter too large for the face/body.
 - **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
 - **Kitchen cabinets:** `build_kitchen_cabinet` builds a **configurable** kitchen cabinet in one
-  call — carcass + recessed toe kick + shelves + a door or drawer front — with kitchen-standard
+  call — carcass + recessed toe kick + shelves + a front — with kitchen-standard
   defaults per type: **base** (720×560 mm + toe kick), **wall** (720×320, no toe kick), **tall**
-  (2100×580 + toe kick). Configure width, front (doors/drawers/none), counts, joinery, toe kick,
-  etc. It composes the casework tools below.
+  (2100×580 + toe kick). The **front** can be `doors`, `drawers`, `door_drawer` (a drawer over
+  door(s) — the classic base cabinet), `sink` (a false top front over doors), or `open`/`none`.
+  Configure width, counts, joinery, toe kick, etc. It composes the casework tools below.
+- **Kitchen runs + countertop:** `build_kitchen_run` builds a **row** of cabinets side by side
+  from a list of widths (e.g. `[600, 600, 900]`), positions each in its slot, and lays a single
+  **countertop** slab over base/tall runs (configurable thickness/overhang) — a whole wall of
+  cabinets in one call.
+- **Auto hinge & handle placement:** `add_door_hardware` reads a door's inner face and
+  automatically bores the **concealed hinge cups** along one edge (more for taller doors) and a
+  **pull handle** on the opposite edge, using the hardware catalog — no need to compute each hole.
+- **Sheet nesting + costing:** `estimate_materials` nests every panel (each body's largest face)
+  onto standard **sheet goods** and reports how many sheets you need, the **utilisation %**, and
+  optional **cost** (per-sheet price). Use a thickness filter to cost one material at a time
+  (e.g. 18 mm carcass vs 6 mm backs). Read-only — it doesn't change the model.
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
   together — and returns a cut list plus a joinery plan for the method you choose

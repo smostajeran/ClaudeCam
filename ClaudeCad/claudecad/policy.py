@@ -19,18 +19,20 @@ RISK = {
     "list_edges": READ, "get_selection": READ, "get_mass_properties": READ,
     "list_materials": READ, "capture_view": READ,
     "list_hardware": READ, "hardware_info": READ, "add_hardware": READ,
+    "estimate_materials": READ,
     "create_parameter": BUILD, "create_sketch": BUILD, "draw_rectangle": BUILD,
     "draw_circle": BUILD, "draw_line": BUILD, "draw_polygon": BUILD,
     "extrude": BUILD, "revolve": BUILD, "loft": BUILD, "sweep": BUILD,
     "fillet_all_edges": BUILD, "chamfer_all_edges": BUILD, "shell": BUILD,
     "circular_pattern": BUILD, "rectangular_pattern": BUILD, "build_cabinet": BUILD,
-    "build_kitchen_cabinet": BUILD,
+    "build_kitchen_cabinet": BUILD, "build_kitchen_run": BUILD,
     "fillet_edges": BUILD, "chamfer_edges": BUILD, "fillet_selection": BUILD,
     "chamfer_selection": BUILD, "set_material": BUILD, "add_thread": BUILD,
     "add_face_frame": BUILD, "add_doors": BUILD, "add_drawers": BUILD,
     "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
     "drill_holes": MODIFY, "drill_holes_on_face": MODIFY, "drill_for_hardware": MODIFY,
+    "add_door_hardware": MODIFY,
     "undo_last": MODIFY, "promote_to_components": MODIFY, "rename_body": MODIFY,
     "explode_assembly": MODIFY, "reassemble": MODIFY, "animate_assembly": MODIFY,
     "import_model": MODIFY, "place_hardware": MODIFY,
@@ -39,13 +41,13 @@ RISK = {
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
 DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid",
-               "drill_holes", "drill_holes_on_face", "drill_for_hardware"}
+               "drill_holes", "drill_holes_on_face", "drill_for_hardware", "add_door_hardware"}
 
 # Tools that should be gated behind explicit user confirmation in a preview/approve UI.
 REQUIRES_CONFIRMATION = DESTRUCTIVE | {
     "export_model", "move_body", "combine_bodies", "build_cabinet",
     "add_face_frame", "add_doors", "add_drawers", "promote_to_components",
-    "import_model", "place_hardware", "build_kitchen_cabinet",
+    "import_model", "place_hardware", "build_kitchen_cabinet", "build_kitchen_run",
 }
 
 
@@ -93,6 +95,18 @@ def summarize_call(name, tool_input):
     if name == "build_kitchen_cabinet":
         return "Build a {} kitchen cabinet {}mm wide ({} front)".format(
             ti.get("cabinet_type", "base"), ti.get("width"), ti.get("front", "doors"))
+    if name == "build_kitchen_run":
+        widths = ti.get("widths") or []
+        return "Build a {}-cabinet {} run ({}mm){}".format(
+            len(widths), ti.get("cabinet_type", "base"), sum(widths) if widths else 0,
+            " + countertop" if ti.get("countertop", True) else "")
+    if name == "add_door_hardware":
+        return "Drill {} hinge(s){} on face[{}] of body[{}]".format(
+            ti.get("hinges", 2), " + handle" if ti.get("handle", True) else "",
+            ti.get("face_index"), ti.get("body_index"))
+    if name == "estimate_materials":
+        return "Estimate sheet goods ({}x{} mm sheets)".format(
+            ti.get("sheet_width", 2440), ti.get("sheet_height", 1220))
     if name == "promote_to_components":
         return "Promote all bodies into separate components"
     if name == "explode_assembly":
@@ -126,7 +140,7 @@ REQUIRES_SELECTION = {"fillet_selection", "chamfer_selection", "cut_hole_selecti
 REQUIRES_INSPECTION = {
     "cut_hole", "combine_bodies", "move_body", "fillet_edges", "chamfer_edges",
     "add_thread", "mesh_to_solid", "change_parameter", "drill_holes", "drill_holes_on_face",
-    "drill_for_hardware",
+    "drill_for_hardware", "add_door_hardware",
 }
 
 # Calls that count as "inspecting" the model (any one satisfies REQUIRES_INSPECTION).
@@ -273,6 +287,29 @@ def validate(name, tool_input):
         for k in ("height", "depth", "thickness", "back_thickness"):
             if ti.get(k) is not None:
                 _check_len(k, ti.get(k))
+    elif name == "build_kitchen_run":
+        widths = ti.get("widths")
+        if not isinstance(widths, list) or not widths:
+            raise ValueError("build_kitchen_run needs a non-empty 'widths' list (mm).")
+        for i, w in enumerate(widths):
+            _check_len("widths[{}]".format(i), w)
+        for k in ("height", "depth", "thickness", "countertop_thickness", "countertop_overhang"):
+            if ti.get(k) is not None:
+                _check_len(k, ti.get(k))
+    elif name == "add_door_hardware":
+        if ti.get("hinges") is not None:
+            _check_count("hinges", ti.get("hinges"), 1, 12)
+        for k in ("edge_distance", "end_inset"):
+            if ti.get(k) is not None:
+                _check_len(k, ti.get(k))
+    elif name == "estimate_materials":
+        for k in ("sheet_width", "sheet_height"):
+            if ti.get(k) is not None:
+                _check_len(k, ti.get(k))
+        if ti.get("kerf") is not None:
+            _check_len("kerf", ti.get("kerf"), allow_negative=True)
+        if ti.get("sheet_price") is not None:
+            _check_len("sheet_price", ti.get("sheet_price"))
     elif name == "explode_assembly":
         if ti.get("factor") is not None:
             f = _num(ti.get("factor"))
