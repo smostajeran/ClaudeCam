@@ -14,7 +14,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from claudecad import agent, policy, tools, util  # noqa: E402
+from claudecad import agent, hardware, policy, tools, util  # noqa: E402
 
 
 # -- tool schema <-> dispatch parity ----------------------------------------
@@ -235,6 +235,49 @@ def test_strip_orphan_tool_use_keeps_text_drops_unanswered_call():
     assert any(b["type"] == "text" for b in last["content"])
 
 
+def test_build_user_content_plain_text():
+    assert agent._build_user_content("make a box") == "make a box"
+    assert agent._build_user_content("make a box", None) == "make a box"
+
+
+def test_build_user_content_with_image():
+    content = agent._build_user_content("build this", {"media_type": "image/jpeg", "data": "QUJD"})
+    assert isinstance(content, list) and len(content) == 2
+    assert content[0]["type"] == "image"
+    assert content[0]["source"]["data"] == "QUJD"
+    assert content[1]["type"] == "text" and content[1]["text"] == "build this"
+
+
+def test_build_user_content_image_default_prompt():
+    content = agent._build_user_content("", {"media_type": "image/png", "data": "QUJD"})
+    assert content[1]["text"]  # falls back to a default build instruction when text is empty
+
+
+def test_hardware_catalog_loads_and_has_a_hinge():
+    catalog = hardware.load_catalog()
+    assert catalog, "bundled hardware catalog should load"
+    assert "euro_hinge_cup_35" in catalog
+    cup = catalog["euro_hinge_cup_35"]
+    assert cup["holes"][0]["diameter"] == 35.0
+
+
+def test_hardware_grouped_holes_anchors_and_groups_by_bore():
+    entry = {"holes": [
+        {"du": 0, "dv": 0, "diameter": 35, "depth": 12},
+        {"du": -64, "dv": 0, "diameter": 5},
+        {"du": 64, "dv": 0, "diameter": 5},
+    ]}
+    groups = hardware.grouped_holes(entry, 100, 50)
+    assert groups[(35.0, 12.0)] == [(100, 50)]
+    assert sorted(groups[(5.0, None)]) == [(36, 50), (164, 50)]  # anchored at u=100, +/-64
+
+
+def test_hardware_list_filter():
+    hinges = hardware.list_hardware("hinge")
+    assert hinges and all("hinge" in
+        " ".join(str(e.get(k, "")) for k in ("id", "brand", "category", "name")).lower() for e in hinges)
+
+
 def test_strip_orphan_keeps_properly_answered_tool_use():
     messages = [
         {"role": "assistant", "content": [{"type": "tool_use", "id": "abc", "name": "extrude", "input": {}}]},
@@ -308,6 +351,12 @@ SAMPLES = {
     "explode_assembly": {"factor": 0.6},
     "reassemble": {},
     "export_bom": {},
+    "list_hardware": {},
+    "hardware_info": {"hardware_id": "euro_hinge_cup_35"},
+    "drill_for_hardware": {"hardware_id": "euro_hinge_cup_35", "body_index": 0, "face_index": 2, "u": 100, "v": 100},
+    "add_hardware": {"id": "my_part", "holes": [{"du": 0, "dv": 0, "diameter": 5, "depth": 12}]},
+    "import_model": {"path": "/tmp/part.step"},
+    "place_hardware": {"hardware_id": "euro_hinge_cup_35"},
     "undo_last": {},
     "export_cut_list": {},
     "get_design_summary": {},
@@ -318,12 +367,17 @@ def test_samples_cover_every_tool():
     assert SAMPLES.keys() == {t["name"] for t in tools.TOOLS}
 
 
+# Tools that are served by the catalog module directly, not the CadBuilder.
+_MODULE_TOOLS = {"list_hardware", "hardware_info", "add_hardware"}
+
+
 def test_execute_routes_every_tool_to_a_cad_method():
     for name in SAMPLES:
         cad = MockCad()
         result = tools.execute(name, SAMPLES[name], cad)
-        assert result is not None
-        assert cad.calls, "execute({}) did not call any CadBuilder method".format(name)
+        assert result is not None, "execute({}) returned None".format(name)
+        if name not in _MODULE_TOOLS:
+            assert cad.calls, "execute({}) did not call any CadBuilder method".format(name)
 
 
 def test_execute_validates_before_dispatch():

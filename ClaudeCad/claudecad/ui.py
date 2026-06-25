@@ -200,15 +200,18 @@ class ClaudeCadUI:
             self._show_chat(chat)
         elif action == "send":
             text = (data.get("text") or "").strip()
-            if text:
+            image = data.get("image") if isinstance(data.get("image"), dict) else None
+            if text or image:
                 chat = self.chats.active
                 if chat.busy:
                     self.system_for(chat, "ClaudeCad is still working — please wait.")
                     return
-                self._emit(chat, "user", text)  # render + store the user's message
+                shown = text + (("\n" if text else "") + "🖼 [image attached]" if image else "")
+                self._emit(chat, "user", shown)  # render + store the user's message
                 threading.Thread(
                     target=agent.run_turn,
                     args=(chat, text, self, self.cad, self.dispatcher),
+                    kwargs={"image": image},
                     daemon=True,
                 ).start()
         elif action == "new_chat":
@@ -227,6 +230,8 @@ class ClaudeCadUI:
             self._save_key(data.get("key", ""))
         elif action == "save_token":
             self._save_token(data.get("token", ""))
+        elif action == "stop":
+            self._stop()
         elif action == "discard":
             self._discard()
         elif action == "update":
@@ -302,6 +307,20 @@ class ClaudeCadUI:
             self.system_for(chat, "API key saved. You're ready to design — describe a part to begin.")
         except Exception as exc:
             self.system_for(chat, "Could not save the API key: {}".format(exc))
+
+    def _stop(self):
+        # Cancel the in-flight turn without clearing the conversation or geometry. Bumping the
+        # generation makes the worker abort at its next checkpoint; we also resolve any pending
+        # approval so a worker blocked on it unblocks immediately.
+        chat = self.chats.active
+        if not chat.busy and self._pending_chat is not chat:
+            self.system_for(chat, "Nothing is running to stop.")
+            return
+        if self._pending_chat is chat:
+            self._resolve_approval(False)  # unblock a waiting approval and hide the bar
+        chat.cancel()
+        self.status(chat, False, "")
+        self.system_for(chat, "Stopped. Your model and chat are unchanged — continue when ready.")
 
     def _discard(self):
         # Cancel any in-flight turn in this chat first (bumps the generation) so a worker

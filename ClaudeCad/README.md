@@ -75,7 +75,7 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 
 - Use the chat dropdown and **+ New** (above the message area) to keep separate conversation threads. Each chat has its own history and **never carries over** anything from another chat.
 - Chats live only in memory for the current Fusion session — nothing is written to disk, so when you restart Fusion you start fresh with a single empty chat.
-- While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck.
+- While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck. A **Stop** button next to it cancels the current operation — it halts the turn (and unblocks a pending approval) but **keeps your model and conversation**, unlike *Discard & start over*.
 - Assistant replies render **formatted Markdown** (headings, bold, bullet/numbered lists, inline and fenced code) rather than showing raw `**`/`#`/`-` characters. Expression-like text (`2 * width`) and parameter names (`back_thickness`) are left untouched.
 - Note: all chats build into the one active Fusion document (geometry is shared); chat isolation is about the *conversation*, not separate 3D models.
 
@@ -132,6 +132,16 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   translate, since Fusion's animated exploded view isn't scriptable).
 - **BOM:** `export_bom` writes/returns a Bill of Materials (item #, qty, part, material,
   dimensions) grouped by part name — for a drawing's parts list or ordering.
+- **Hardware catalog:** `list_hardware` / `hardware_info` browse a catalog of cabinet hardware
+  (Blum / Hettich / Häfele + generic standards — hinges, slides, shelf pins, connectors,
+  handles), and `drill_for_hardware` bores the correct hole pattern onto a face. The catalog
+  is **extensible**: `add_hardware` saves exact parts to `~/.claudecad/hardware.json`. Seeded
+  entries are standard patterns (35 mm system, System 32) — verify against the exact SKU's
+  spec sheet. Manufacturers' proprietary 3D models aren't bundled (licensing); to place a real
+  part, download its STEP from the brand's CAD portal and import it.
+- **Import real 3D parts:** `import_model` brings a STEP / IGES / SAT / SMT / F3D file you
+  supply into the design and positions it (so a real hinge/slide/handle renders); `place_hardware`
+  imports the model linked to a catalog entry (a STEP you've dropped in `~/.claudecad/hardware/`).
 - **Cabinet fronts & assembly (experimental):** after `build_cabinet`, `add_face_frame`,
   `add_doors` (overlay/inset), and `add_drawers` (fronts + simple boxes) add the front;
   `promote_to_components` moves each panel into its own component to form a real assembly;
@@ -147,6 +157,10 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   location) for targeting. Meshes are detected but aren't parametric, so they can't be edited.
 - **Vision:** `capture_view` screenshots the viewport so Claude can *see* the model and
   self-correct before asking you to approve.
+- **Build from image:** attach a reference photo or sketch with the **📎** button next to the
+  message box; Claude studies it and builds the model. Because an image has no scale, it asks
+  you for one real dimension (e.g. overall width) first, then infers the rest from the image's
+  proportions. The image is downscaled in the browser before sending.
 
 ## Updating
 

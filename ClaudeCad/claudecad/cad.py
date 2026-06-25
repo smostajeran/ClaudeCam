@@ -1006,6 +1006,90 @@ class CadBuilder:
         return "Drilled {} hole(s) on face [{}] of body [{}] (u/v from the face corner).".format(
             placed, face_index, body_index)
 
+    def drill_for_hardware(self, hardware_id, body_index, face_index, u, v):
+        """Drill a catalogued hardware pattern (hinge cup, slide holes, …) onto a face,
+        anchored at face-local (u, v) mm. Each distinct bore size is cut in one pass."""
+        from . import hardware
+        entry = hardware.get(hardware_id)
+        if not entry:
+            raise ValueError("Unknown hardware '{}'. Call list_hardware to see the catalog.".format(hardware_id))
+        groups = hardware.grouped_holes(entry, float(u), float(v))
+        if not groups:
+            raise ValueError("Hardware '{}' has no drill pattern.".format(hardware_id))
+        total = 0
+        for (diameter, depth), pts in groups.items():
+            points = [{"u": pu, "v": pv} for pu, pv in pts]
+            self.drill_holes_on_face(body_index, face_index, points, diameter, depth)
+            total += len(points)
+        return "Drilled {} hole(s) for {} [{}] on face [{}] of body [{}].".format(
+            total, entry.get("name", hardware_id), entry.get("brand", ""), face_index, body_index)
+
+    _IMPORT_MAKERS = {
+        "step": "createSTEPImportOptions", "stp": "createSTEPImportOptions",
+        "iges": "createIGESImportOptions", "igs": "createIGESImportOptions",
+        "sat": "createSATImportOptions", "smt": "createSMTImportOptions",
+        "f3d": "createFusionArchiveImportOptions",
+    }
+
+    def import_model(self, path, x=0.0, y=0.0, z=0.0):
+        """Import a 3D file (STEP / IGES / SAT / SMT / F3D) into the design and optionally
+        position it at (x, y, z) mm — e.g. a manufacturer's hardware model so it renders."""
+        full = os.path.realpath(os.path.expanduser(path or ""))
+        if not os.path.isfile(full):
+            raise ValueError("File not found: {}. Provide the full path to a 3D file.".format(path))
+        ext = full.rsplit(".", 1)[-1].lower() if "." in os.path.basename(full) else ""
+        maker = self._IMPORT_MAKERS.get(ext)
+        if not maker:
+            raise ValueError("Unsupported format '{}'. Use step, iges, sat, smt or f3d.".format(ext))
+
+        comp = self._comp()
+        mgr = self.app.importManager
+        before = comp.occurrences.count
+        try:
+            options = getattr(mgr, maker)(full)
+            mgr.importToTarget(options, comp)
+        except Exception as exc:
+            raise RuntimeError(
+                "Import failed ({}). Check the file is a valid {} and not open elsewhere; "
+                "paste this and I'll adapt it for your Fusion version.".format(exc, ext.upper()))
+
+        new = [comp.occurrences.item(i) for i in range(before, comp.occurrences.count)]
+        for occ in new:
+            self._own(occ)
+        moved = ""
+        if (x or y or z) and new:
+            try:
+                col = adsk.core.ObjectCollection.create()
+                for occ in new:
+                    col.add(occ)
+                moves = comp.features.moveFeatures
+                mi = moves.createInput2(col)
+                mi.defineAsTranslateXYZ(
+                    adsk.core.ValueInput.createByString("{:g} mm".format(float(x))),
+                    adsk.core.ValueInput.createByString("{:g} mm".format(float(y))),
+                    adsk.core.ValueInput.createByString("{:g} mm".format(float(z))),
+                    True,
+                )
+                self._remember(moves.add(mi))
+                moved = " and positioned at ({:g}, {:g}, {:g}) mm".format(float(x), float(y), float(z))
+            except Exception:
+                moved = " (imported at its own origin; couldn't auto-position — move it with move_body)"
+        return "Imported '{}' as {} component(s){}.".format(os.path.basename(full), len(new), moved)
+
+    def place_hardware(self, hardware_id, x=0.0, y=0.0, z=0.0):
+        """Import the 3D model linked to a catalog hardware entry (user-supplied STEP, etc.)."""
+        from . import hardware
+        entry = hardware.get(hardware_id)
+        if not entry:
+            raise ValueError("Unknown hardware '{}'. Call list_hardware.".format(hardware_id))
+        model = hardware.model_path(entry)
+        if not model or not os.path.isfile(model):
+            raise ValueError(
+                "No 3D model on file for '{}'. Download its STEP from the maker's CAD portal, put "
+                "it in ~/.claudecad/hardware/, and set the entry's 'model' to that filename "
+                "(add_hardware). Their models can't be bundled for licensing reasons.".format(hardware_id))
+        return self.import_model(model, x, y, z)
+
     # -- viewport selection (pick in Fusion, act in chat) --------------------
     def _selected_entities(self):
         sels = self.app.userInterface.activeSelections

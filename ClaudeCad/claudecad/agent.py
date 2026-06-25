@@ -49,6 +49,21 @@ def _await_approval(chat, ui, plan, alive, timeout=600.0):
     return bool(decision)
 
 
+def _build_user_content(text, image=None):
+    """Build the content for a user turn: a plain string, or (when an image is attached) a
+    list with an image block followed by the text, so Claude can 'build from image'."""
+    if image and image.get("data"):
+        return [
+            {"type": "image", "source": {
+                "type": "base64",
+                "media_type": image.get("media_type", "image/jpeg"),
+                "data": image["data"],
+            }},
+            {"type": "text", "text": text or "Build a 3D model of the object shown in this image."},
+        ]
+    return text
+
+
 def _tool_names_in(messages):
     """All tool names already invoked across the conversation (from assistant tool_use blocks)."""
     names = set()
@@ -73,6 +88,12 @@ Follow this workflow:
    method (screws / dowels / dado / auto) — and any unstated key dimensions — and WAIT for
    the user's answer before calling build_cabinet. Never guess or silently default the
    joinery method.
+1b. BUILD FROM IMAGE: when the user attaches an image, study it and describe what you see —
+   the object, its main shapes/features, and proportions. An image carries NO scale, so you
+   MUST ask the user for at least one real dimension (e.g. overall width or height) to set the
+   scale before modeling; infer the other dimensions from the image's proportions and state
+   your assumptions. Then build sketch-first and parametric as usual, and capture_view to
+   compare your result against the reference before asking for approval.
 2. Every design starts with sketches. Create sketches first, then features.
 2a. NAME things so the browser tree is clear: give each sketch a readable name via
    create_sketch's `name`, and name every body you create (pass `name` to extrude/revolve, or
@@ -120,6 +141,14 @@ Follow this workflow:
    For an exploded view, explode_assembly spreads the bodies apart (reassemble restores them
    exactly — it's a literal move, so always reassemble before exporting the assembled model).
    export_bom writes/returns a Bill of Materials (item/qty/part/material/size).
+   For cabinet hardware (hinges, drawer slides, shelf pins, connectors, handles from Blum /
+   Hettich / Häfele), use list_hardware to find a part, then drill_for_hardware on a face
+   (call list_faces first for its u/v frame) to bore the correct pattern. Catalogued patterns
+   are standards — tell the user to verify against the exact SKU's spec sheet; add exact parts
+   with add_hardware. For a part to actually show in renders you need its 3D geometry:
+   import_model brings in a STEP/IGES/SAT/F3D the user supplies and positions it, and
+   place_hardware imports the model linked to a catalog entry. Their proprietary models aren't
+   bundled — ask the user to download the STEP from the brand's CAD portal first.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.
@@ -256,7 +285,7 @@ def _strip_orphan_tool_uses(messages):
     return result
 
 
-def run_turn(chat, user_text, ui, cad, dispatcher):
+def run_turn(chat, user_text, ui, cad, dispatcher, image=None):
     """Process one user message in ``chat``: call Claude, run tool calls, surface replies.
 
     Runs on a background thread. UI updates and CAD tool execution are marshalled to the
@@ -292,7 +321,7 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
     chat.busy = True
     ui.status(chat, True, "Thinking…")
     try:
-        chat.messages.append({"role": "user", "content": user_text})
+        chat.messages.append({"role": "user", "content": _build_user_content(user_text, image)})
 
         while alive():
             # Repair orphaned tool_use from an interrupted turn, then compact old context.
