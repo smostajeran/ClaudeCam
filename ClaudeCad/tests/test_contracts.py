@@ -174,6 +174,25 @@ def test_updater_install_with_backup_copies_files():
         assert os.path.isfile(os.path.join(dest, "claudecad", "__init__.py"))
 
 
+def test_updater_install_rollback_removes_created_dirs_and_chains():
+    with tempfile.TemporaryDirectory() as staging, tempfile.TemporaryDirectory() as dest:
+        os.makedirs(os.path.join(staging, "pkg"))
+        with open(os.path.join(staging, "pkg", "a.txt"), "w") as fh:
+            fh.write("a")
+        # The 2nd rel has no backing file in staging, so the copy fails after a.txt and the
+        # nested dirs (dest/pkg, dest/ghost) have been created.
+        rels = [os.path.join("pkg", "a.txt"), os.path.join("ghost", "b.txt")]
+        try:
+            updater._install_with_backup(staging, dest, rels)
+            assert False, "expected the install to fail and roll back"
+        except RuntimeError as exc:
+            assert exc.__cause__ is not None  # original error preserved via chaining
+        # rollback removed the file and the directories it created — dest is clean
+        assert not os.path.exists(os.path.join(dest, "pkg"))
+        assert not os.path.exists(os.path.join(dest, "ghost"))
+        assert os.listdir(dest) == []
+
+
 def test_turn_guard_one_at_a_time_and_clear():
     g = util.TurnGuard()
     a, b = (1, 0), (2, 0)
