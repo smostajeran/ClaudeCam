@@ -61,7 +61,58 @@ class CadBuilder:
         # switches the active Fusion document mid-session, operations would silently land on
         # the wrong design — we detect that and refuse rather than corrupt another document.
         self._doc_key = None
+        # Operation grouping for undo_last: each entry is the set of entities/params created
+        # during one tool call, newest last, so a single bad operation can be rolled back.
+        self._ops = []
         self._record_start()
+
+    def begin_operation(self, name):
+        """Start a new undo group; subsequent created entities/params are attributed to it."""
+        self._ops.append({"name": name, "entities": [], "params": []})
+
+    def undo_last(self):
+        """Delete everything created by the most recent geometry-producing operation.
+
+        Removes only that operation's tagged features (and any parameters it created), newest
+        first, so a single bad step (e.g. a drilling pass) can be reversed from chat without a
+        manual Undo. Empty operations (e.g. read-only calls) are skipped.
+        """
+        design = self._design()
+        while self._ops:
+            op = self._ops.pop()
+            entities = op.get("entities", [])
+            params = op.get("params", [])
+            if not entities and not params:
+                continue
+            for entity in reversed(entities):
+                try:
+                    entity.deleteMe()
+                except Exception:
+                    pass
+            for name in reversed(params):
+                try:
+                    param = design.userParameters.itemByName(name)
+                    if param:
+                        param.deleteMe()
+                    if name in self._params:
+                        self._params.remove(name)
+                except Exception:
+                    pass
+            self._last_feature = None
+            self._last_body = None
+            # Drop any sketch ids whose sketch was just deleted, so they can't be reused.
+            self._sketches = {sid: sk for sid, sk in self._sketches.items() if self._sketch_valid(sk)}
+            return "Undid the last operation ('{}') — removed {} feature(s){}.".format(
+                op["name"], len(entities),
+                " and {} parameter(s)".format(len(params)) if params else "")
+        return "There's nothing from this session to undo."
+
+    @staticmethod
+    def _sketch_valid(sketch):
+        try:
+            return bool(sketch.isValid)
+        except Exception:
+            return False
 
     def _active_doc_key(self):
         """A stable-ish identifier for the active document (data file id, else its name)."""
@@ -77,10 +128,13 @@ class CadBuilder:
             return None
 
     def _own(self, entity):
-        """Tag an entity as ClaudeCad-created so Discard can identify and remove only it."""
+        """Tag an entity as ClaudeCad-created so Discard can identify and remove only it,
+        and attribute it to the current operation (for undo_last)."""
         try:
             if entity:
                 entity.attributes.add(self._ATTR_GROUP, self._ATTR_NAME, "1")
+                if self._ops:
+                    self._ops[-1]["entities"].append(entity)
         except Exception:
             pass
         return entity
@@ -207,6 +261,8 @@ class CadBuilder:
         design.userParameters.add(name, value, unit or "mm", comment or "")
         if name not in self._params:
             self._params.append(name)
+        if self._ops:
+            self._ops[-1]["params"].append(name)
         return "Created parameter {} = {} ({}).".format(name, expression, unit or "mm")
 
     def create_sketch(self, plane="xy", name=None, offset=0):
@@ -983,6 +1039,38 @@ class CadBuilder:
         mgr.execute(options)
         return "Exported the model to {}".format(path)
 
+    def export_cut_list(self, filename=None):
+        """Write a CSV cut list of every solid body (length x width x thickness + material),
+        grouping identical parts into quantities, to the user's home folder."""
+        comp = self._comp()
+        if comp.bRepBodies.count == 0:
+            raise RuntimeError("There are no solid bodies to list.")
+        parts = []
+        for i in range(comp.bRepBodies.count):
+            b = comp.bRepBodies.item(i)
+            length, width, thickness = sorted(self._bbox_dims(b.boundingBox), reverse=True)
+            material = ""
+            try:
+                material = b.material.name if b.material else ""
+            except Exception:
+                pass
+            parts.append({"name": b.name, "length": length, "width": width,
+                          "thickness": thickness, "material": material})
+        csv_text = util.cut_list_csv(parts)
+
+        base = util.safe_export_basename(filename if filename else "claudecad_cutlist")
+        home = os.path.realpath(os.path.expanduser("~"))
+        path = os.path.realpath(os.path.join(home, base + ".csv"))
+        if os.path.dirname(path) != home:
+            raise ValueError("Refusing to write outside your home folder.")
+        suffix = 1
+        while os.path.exists(path):
+            path = os.path.join(home, "{}_{}.csv".format(base, suffix))
+            suffix += 1
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(csv_text)
+        return "Wrote a cut list of {} part(s) to {}".format(len(parts), path)
+
     # -- advanced features ---------------------------------------------------
     def loft(self, sketch_ids, operation="new"):
         comp = self._comp()
@@ -1383,6 +1471,151 @@ class CadBuilder:
             )
         )
 
+    # -- cabinet fronts (front=y=0, outward=-Y; same frame as build_cabinet) --
+    def add_face_frame(self, width, height, stile=38.0, rail=38.0, frame_thickness=19.0):
+        """Apply a face frame (left/right stiles + top/bottom rails) to the cabinet front."""
+        W, H = float(width), float(height)
+        sw, rw, ft = float(stile), float(rail), float(frame_thickness)
+        if sw * 2 >= W or rw * 2 >= H:
+            raise ValueError("Stile/rail widths are too large for the cabinet face.")
+        y0, y1 = -ft, 0.0  # frame sits proud of the carcass front (y=0), extending outward (-Y)
+        self._box("FF Left Stile", 0, y0, 0, sw, y1, H)
+        self._box("FF Right Stile", W - sw, y0, 0, W, y1, H)
+        self._box("FF Top Rail", sw, y0, H - rw, W - sw, y1, H)
+        self._box("FF Bottom Rail", sw, y0, 0, W - sw, y1, rw)
+        return "Added a face frame ({:g} mm stiles, {:g} mm rails, {:g} mm thick) to the front.".format(sw, rw, ft)
+
+    def add_doors(self, width, height, count=1, thickness=18.0, gap=3.0, reveal=2.0,
+                  style="overlay", carcass_thickness=18.0):
+        """Add overlay or inset door fronts across the cabinet face."""
+        W, H = float(width), float(height)
+        t, gap, rev = float(thickness), float(gap), float(reveal)
+        n = max(1, int(count))
+        style = (style or "overlay").lower()
+        if style == "inset":
+            ct = float(carcass_thickness)
+            ox0, oz0, ox1, oz1 = ct, ct, W - ct, H - ct  # opening between the panels
+            clr = 2.0
+            avail = (ox1 - ox0) - 2 * clr - (n - 1) * gap
+            if avail <= 0:
+                raise ValueError("Opening too small for {} inset door(s).".format(n))
+            dw, dh = avail / n, (oz1 - oz0) - 2 * clr
+            y0, y1 = 0.0, t  # flush with the carcass front, extending back into the opening
+            x_start, z0 = ox0 + clr, oz0 + clr
+        else:  # overlay
+            avail = (W - 2 * rev) - (n - 1) * gap
+            if avail <= 0:
+                raise ValueError("Face too small for {} overlay door(s).".format(n))
+            dw, dh = avail / n, H - 2 * rev
+            y0, y1 = -t, 0.0  # proud of the carcass front
+            x_start, z0 = rev, rev
+        for i in range(n):
+            x0 = x_start + i * (dw + gap)
+            self._box("Door {}".format(i + 1), x0, y0, z0, x0 + dw, y1, z0 + dh)
+        return "Added {} {} door(s) ({:g} x {:g} mm each, {:g} mm thick).".format(n, style, dw, dh, t)
+
+    def add_drawers(self, width, height, depth, count=1, front_thickness=18.0, gap=3.0,
+                    reveal=2.0, carcass_thickness=18.0, box_thickness=12.0, slide_clearance=13.0,
+                    boxes=True):
+        """Add stacked overlay drawer fronts, and (optionally) a simple box behind each."""
+        W, H, D = float(width), float(height), float(depth)
+        ft, gap, rev = float(front_thickness), float(gap), float(reveal)
+        ct, bt, slc = float(carcass_thickness), float(box_thickness), float(slide_clearance)
+        n = max(1, int(count))
+        avail = (H - 2 * rev) - (n - 1) * gap
+        if avail <= 0:
+            raise ValueError("Face too small for {} drawer(s).".format(n))
+        fh, fw = avail / n, W - 2 * rev
+        # Drawer box footprint: inside the opening, minus slide clearance each side.
+        bx0, bx1 = ct + slc, W - ct - slc
+        by1 = D - ct  # leave the carcass back clear; box runs from the front into the cabinet
+        for i in range(n):
+            z0 = rev + i * (fh + gap)
+            self._box("Drawer Front {}".format(i + 1), rev, -ft, z0, W - rev, 0.0, z0 + fh)
+            if boxes and bx1 - bx0 > 10:
+                bz0 = z0 + 5.0          # box bottom sits a little above the front's lower edge
+                bh = max(40.0, fh - 25.0)  # box height a bit less than the front
+                bz1 = bz0 + bh
+                by0 = 5.0               # start just inside the front
+                self._box("Drawer {} Bottom".format(i + 1), bx0, by0, bz0, bx1, by1, bz0 + bt)
+                self._box("Drawer {} Left".format(i + 1), bx0, by0, bz0, bx0 + bt, by1, bz1)
+                self._box("Drawer {} Right".format(i + 1), bx1 - bt, by0, bz0, bx1, by1, bz1)
+                self._box("Drawer {} Back".format(i + 1), bx0, by1 - bt, bz0, bx1, by1, bz1)
+        return "Added {} drawer(s){} ({:g} x {:g} mm fronts).".format(
+            n, " with boxes" if boxes else "", fw, fh)
+
+    def promote_to_components(self):
+        """Move each solid body into its own component/occurrence to form a real assembly."""
+        comp = self._comp()
+        count = comp.bRepBodies.count
+        if count == 0:
+            raise RuntimeError("There are no solid bodies to promote.")
+        bodies = [comp.bRepBodies.item(i) for i in range(count)]
+        moved = 0
+        for b in bodies:
+            name = b.name
+            try:
+                occ = comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+                occ.component.name = name
+                b.moveToComponent(occ)
+                moved += 1
+            except Exception as exc:
+                raise RuntimeError(
+                    "Couldn't promote body '{}' to a component ({}). Paste this and I'll adapt "
+                    "it for your Fusion version.".format(name, exc)
+                )
+        return "Promoted {} body(ies) into their own components (a real assembly).".format(moved)
+
+    def _largest_planar_face(self, body):
+        best, best_area = None, -1.0
+        for i in range(body.faces.count):
+            f = body.faces.item(i)
+            if not adsk.core.Plane.cast(f.geometry):
+                continue
+            try:
+                area = f.area
+            except Exception:
+                continue
+            if area > best_area:
+                best, best_area = f, area
+        return best
+
+    def export_dxf(self, folder=None):
+        """Export each body's largest flat face as a DXF (for CNC/laser) into a home subfolder."""
+        comp = self._comp()
+        if comp.bRepBodies.count == 0:
+            raise RuntimeError("There are no solid bodies to export.")
+        base = util.safe_export_basename(folder if folder else "claudecad_dxf")
+        home = os.path.realpath(os.path.expanduser("~"))
+        outdir = os.path.realpath(os.path.join(home, base))
+        if os.path.dirname(outdir) != home:
+            raise ValueError("Refusing to write outside your home folder.")
+        os.makedirs(outdir, exist_ok=True)
+        written = 0
+        for i in range(comp.bRepBodies.count):
+            b = comp.bRepBodies.item(i)
+            face = self._largest_planar_face(b)
+            if not face:
+                continue
+            sketch = self._own(comp.sketches.add(face))
+            try:
+                sketch.project(face)
+                path = os.path.join(outdir, "{}_{}.dxf".format(util.safe_export_basename(b.name), i))
+                sketch.saveAsDXF(path)
+                written += 1
+            except Exception as exc:
+                raise RuntimeError(
+                    "DXF export failed for body '{}' ({}). Paste this and I'll adapt it.".format(b.name, exc)
+                )
+            finally:
+                # The sketch is only a means to the DXF; remove it so repeated exports don't
+                # clutter the timeline/browser (export isn't part of an undo group).
+                try:
+                    sketch.deleteMe()
+                except Exception:
+                    pass
+        return "Wrote {} DXF panel(s) to {}".format(written, outdir)
+
     def capture_view(self):
         """Fit the camera and return a PNG of the active viewport as image content blocks."""
         viewport = self.app.activeViewport
@@ -1442,4 +1675,5 @@ class CadBuilder:
         self._sketch_counter = 0
         self._last_feature = None
         self._last_body = None
+        self._ops = []
         self._record_start()

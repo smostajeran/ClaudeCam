@@ -150,6 +150,29 @@ def test_export_basename_blocks_traversal_and_absolute_paths():
     assert os.sep not in util.safe_export_basename("x/y/../z")
 
 
+# -- cut-list CSV -----------------------------------------------------------
+
+def test_cut_list_groups_identical_parts_and_quantifies():
+    parts = [
+        {"name": "Left Side", "length": 720, "width": 580, "thickness": 18, "material": "Plywood"},
+        {"name": "Right Side", "length": 720, "width": 580, "thickness": 18, "material": "Plywood"},
+        {"name": "Bottom", "length": 564, "width": 574, "thickness": 18, "material": "Plywood"},
+    ]
+    csv = util.cut_list_csv(parts)
+    lines = csv.strip().split("\n")
+    assert lines[0].startswith("Qty,Length")
+    # the two identical sides collapse to one row with qty 2; bottom is its own row
+    assert len(lines) == 3
+    sides = [ln for ln in lines if ln.startswith("2,")][0]
+    assert "Left Side; Right Side" in sides
+
+
+def test_cut_list_quotes_cells_with_commas():
+    parts = [{"name": "Panel, A", "length": 100, "width": 50, "thickness": 18, "material": "MDF"}]
+    csv = util.cut_list_csv(parts)
+    assert '"Panel, A"' in csv
+
+
 # -- history compaction -----------------------------------------------------
 
 def _img_msg():
@@ -260,6 +283,13 @@ SAMPLES = {
     "cut_hole_selection": {"diameter": 6},
     "build_cabinet": {"width": 600, "height": 720, "depth": 580, "joinery": "screws"},
     "drill_holes": {"body_index": 0, "holes": [{"x": 10, "y": 37, "z": 100, "axis": "x", "depth": 12, "diameter": 5}]},
+    "add_face_frame": {"width": 600, "height": 720},
+    "add_doors": {"width": 600, "height": 720, "count": 2},
+    "add_drawers": {"width": 600, "height": 720, "depth": 580, "count": 3},
+    "promote_to_components": {},
+    "export_dxf": {},
+    "undo_last": {},
+    "export_cut_list": {},
     "get_design_summary": {},
 }
 

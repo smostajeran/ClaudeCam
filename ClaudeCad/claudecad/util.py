@@ -39,3 +39,42 @@ def safe_export_basename(filename):
     raw = os.path.basename(filename or "claudecad_export").rsplit(".", 1)[0]
     base = re.sub(r"[^A-Za-z0-9._-]", "_", raw).strip("._")
     return base or "claudecad_export"
+
+
+def _csv_cell(value):
+    """Quote a CSV cell if it contains a comma, quote or newline (minimal RFC-4180)."""
+    s = "" if value is None else str(value)
+    if any(c in s for c in (",", '"', "\n", "\r")):
+        return '"' + s.replace('"', '""') + '"'
+    return s
+
+
+def cut_list_csv(parts):
+    """Build a cut-list CSV from a list of parts.
+
+    Each part is a dict with ``name`` and ``length`` / ``width`` / ``thickness`` (mm) and an
+    optional ``material``. Parts with the same dimensions (rounded to 0.1 mm) and material are
+    grouped into one row with a quantity and the member names. Returns the CSV as a string.
+    """
+    groups = {}
+    order = []
+    for p in parts:
+        dims = tuple(round(float(p.get(k, 0.0)), 1) for k in ("length", "width", "thickness"))
+        material = p.get("material") or ""
+        key = (dims, material)
+        if key not in groups:
+            groups[key] = {"qty": 0, "names": []}
+            order.append(key)
+        groups[key]["qty"] += 1
+        if p.get("name"):
+            groups[key]["names"].append(p["name"])
+
+    rows = ["Qty,Length(mm),Width(mm),Thickness(mm),Material,Parts"]
+    for key in order:
+        (length, width, thickness), material = key
+        g = groups[key]
+        rows.append(",".join(_csv_cell(c) for c in (
+            g["qty"], "{:g}".format(length), "{:g}".format(width),
+            "{:g}".format(thickness), material, "; ".join(g["names"]),
+        )))
+    return "\n".join(rows) + "\n"

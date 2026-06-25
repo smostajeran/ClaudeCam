@@ -32,4 +32,13 @@ attribute-based rollback, document locking, and the in-place reload. Run after a
     built and the agent asks what to change. Discard while the bar is shown → turn aborts cleanly.
 13. **Document switch** — build in document A, switch the active document to B, send another
     request → expect a clear "active document changed" error, not edits to B.
+14. **Undo last** — build a cabinet, then drill some holes, then "undo that" → only the holes
+    are removed, the cabinet remains. Then "undo again" → the cabinet is removed.
+15. **Cut list / DXF** — "export the cut list" → CSV in home folder with parts + quantities;
+    "export DXF panels" → a claudecad_dxf/ folder with one .dxf per panel.
+16. **Cabinet fronts (experimental)** — after a cabinet, "add a face frame", "add 2 overlay
+    doors", "add 3 drawers" → fronts/boxes appear positioned on the front; check fit.
+17. **Components (experimental)** — "make this a real assembly" → each panel becomes its own
+    component in the browser tree.
+
 

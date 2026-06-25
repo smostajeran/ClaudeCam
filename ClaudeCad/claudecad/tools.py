@@ -517,6 +517,115 @@ TOOLS = [
         },
     },
     {
+        "name": "add_face_frame",
+        "description": (
+            "EXPERIMENTAL casework: apply a face frame (left/right stiles + top/bottom rails) to "
+            "the front of a cabinet built with build_cabinet. Pass the same width/height. Front is "
+            "at y=0, frame extends outward. Smoke-test before relying on it."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "width": {"type": "number", "description": "Cabinet overall width in mm."},
+                "height": {"type": "number", "description": "Cabinet overall height in mm."},
+                "stile": {"type": "number", "description": "Vertical stile width in mm. Default 38."},
+                "rail": {"type": "number", "description": "Horizontal rail width in mm. Default 38."},
+                "frame_thickness": {"type": "number", "description": "Frame thickness in mm. Default 19."},
+            },
+            "required": ["width", "height"],
+        },
+    },
+    {
+        "name": "add_doors",
+        "description": (
+            "EXPERIMENTAL casework: add overlay or inset door fronts across a cabinet face. Pass "
+            "the same width/height as build_cabinet. style 'overlay' (default) covers the front; "
+            "'inset' sits within the opening (needs carcass_thickness). Smoke-test before relying on it."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "width": {"type": "number", "description": "Cabinet overall width in mm."},
+                "height": {"type": "number", "description": "Cabinet overall height in mm."},
+                "count": {"type": "integer", "description": "Number of doors across. Default 1."},
+                "thickness": {"type": "number", "description": "Door thickness in mm. Default 18."},
+                "gap": {"type": "number", "description": "Gap between doors in mm. Default 3."},
+                "reveal": {"type": "number", "description": "Edge reveal in mm (overlay). Default 2."},
+                "style": {"type": "string", "enum": ["overlay", "inset"], "description": "Default 'overlay'."},
+                "carcass_thickness": {"type": "number", "description": "Panel thickness in mm (for inset). Default 18."},
+            },
+            "required": ["width", "height"],
+        },
+    },
+    {
+        "name": "add_drawers",
+        "description": (
+            "EXPERIMENTAL casework: add stacked overlay drawer fronts and (optionally) a simple "
+            "box behind each. Pass the same width/height/depth as build_cabinet. Smoke-test first."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "width": {"type": "number", "description": "Cabinet overall width in mm."},
+                "height": {"type": "number", "description": "Cabinet overall height in mm."},
+                "depth": {"type": "number", "description": "Cabinet overall depth in mm."},
+                "count": {"type": "integer", "description": "Number of drawers. Default 1."},
+                "front_thickness": {"type": "number", "description": "Drawer front thickness in mm. Default 18."},
+                "gap": {"type": "number", "description": "Gap between fronts in mm. Default 3."},
+                "reveal": {"type": "number", "description": "Edge reveal in mm. Default 2."},
+                "carcass_thickness": {"type": "number", "description": "Panel thickness in mm. Default 18."},
+                "box_thickness": {"type": "number", "description": "Drawer box material in mm. Default 12."},
+                "slide_clearance": {"type": "number", "description": "Per-side slide clearance in mm. Default 13."},
+                "boxes": {"type": "boolean", "description": "Also build a box behind each front. Default true."},
+            },
+            "required": ["width", "height", "depth"],
+        },
+    },
+    {
+        "name": "promote_to_components",
+        "description": (
+            "EXPERIMENTAL: move each solid body into its own component/occurrence to form a real "
+            "assembly (so you get a browser tree, BOM and can add joints). Smoke-test before relying on it."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "export_dxf",
+        "description": (
+            "EXPERIMENTAL: export each body's largest flat face as a DXF (for CNC/laser) into a "
+            "subfolder of your home folder. Smoke-test before relying on it."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "folder": {"type": "string", "description": "Subfolder name under home. Default 'claudecad_dxf'."},
+            },
+        },
+    },
+    {
+        "name": "undo_last",
+        "description": (
+            "Undo the most recent geometry-producing operation — removes just the features that "
+            "operation created (e.g. the last drilling pass or the last extrude), newest first. "
+            "Use this to recover from a step that went wrong, instead of discarding everything. "
+            "Does not touch the user's own geometry or earlier operations."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "export_cut_list",
+        "description": (
+            "Write a CSV cut list of every solid body (length x width x thickness, grouped into "
+            "quantities, with material) to the user's home folder — for the shop / ordering sheet goods."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Base filename (no extension). Default 'claudecad_cutlist'."},
+            },
+        },
+    },
+    {
         "name": "get_design_summary",
         "description": "Quick state: body count, sketch count, and the parameters this assistant created. For full detail use inspect_model.",
         "input_schema": {"type": "object", "properties": {}},
@@ -529,6 +638,8 @@ def execute(name, tool_input, cad):
     a list of content blocks. Raises on failure."""
     from . import policy
     policy.validate(name, tool_input)  # reject bad args before any geometry is created
+    if policy.risk(name) in (policy.BUILD, policy.MODIFY) and name != "undo_last":
+        cad.begin_operation(name)  # group created entities so undo_last can roll this back
     ti = tool_input or {}
 
     if name == "create_parameter":
@@ -627,6 +738,29 @@ def execute(name, tool_input, cad):
         )
     if name == "drill_holes":
         return cad.drill_holes(int(ti["body_index"]), list(ti["holes"]))
+    if name == "add_face_frame":
+        return cad.add_face_frame(float(ti["width"]), float(ti["height"]),
+                                  float(ti.get("stile", 38.0)), float(ti.get("rail", 38.0)),
+                                  float(ti.get("frame_thickness", 19.0)))
+    if name == "add_doors":
+        return cad.add_doors(float(ti["width"]), float(ti["height"]), int(ti.get("count", 1)),
+                             float(ti.get("thickness", 18.0)), float(ti.get("gap", 3.0)),
+                             float(ti.get("reveal", 2.0)), ti.get("style", "overlay"),
+                             float(ti.get("carcass_thickness", 18.0)))
+    if name == "add_drawers":
+        return cad.add_drawers(float(ti["width"]), float(ti["height"]), float(ti["depth"]),
+                               int(ti.get("count", 1)), float(ti.get("front_thickness", 18.0)),
+                               float(ti.get("gap", 3.0)), float(ti.get("reveal", 2.0)),
+                               float(ti.get("carcass_thickness", 18.0)), float(ti.get("box_thickness", 12.0)),
+                               float(ti.get("slide_clearance", 13.0)), bool(ti.get("boxes", True)))
+    if name == "promote_to_components":
+        return cad.promote_to_components()
+    if name == "export_dxf":
+        return cad.export_dxf(ti.get("folder"))
+    if name == "undo_last":
+        return cad.undo_last()
+    if name == "export_cut_list":
+        return cad.export_cut_list(ti.get("filename"))
     if name == "get_design_summary":
         return cad.get_design_summary()
 

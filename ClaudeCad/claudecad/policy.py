@@ -25,17 +25,21 @@ RISK = {
     "circular_pattern": BUILD, "rectangular_pattern": BUILD, "build_cabinet": BUILD,
     "fillet_edges": BUILD, "chamfer_edges": BUILD, "fillet_selection": BUILD,
     "chamfer_selection": BUILD, "set_material": BUILD, "add_thread": BUILD,
+    "add_face_frame": BUILD, "add_doors": BUILD, "add_drawers": BUILD,
     "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
-    "drill_holes": MODIFY,
-    "export_model": EXPORT,
+    "drill_holes": MODIFY, "undo_last": MODIFY, "promote_to_components": MODIFY,
+    "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT,
 }
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
 DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid", "drill_holes"}
 
 # Tools that should be gated behind explicit user confirmation in a preview/approve UI.
-REQUIRES_CONFIRMATION = DESTRUCTIVE | {"export_model", "move_body", "combine_bodies", "build_cabinet"}
+REQUIRES_CONFIRMATION = DESTRUCTIVE | {
+    "export_model", "move_body", "combine_bodies", "build_cabinet",
+    "add_face_frame", "add_doors", "add_drawers", "promote_to_components",
+}
 
 
 def needs_confirmation(name):
@@ -70,6 +74,20 @@ def summarize_call(name, tool_input):
         return "Export the model as {}".format((ti.get("format") or "step").upper())
     if name == "drill_holes":
         return "Drill {} hole(s) into body[{}]".format(len(ti.get("holes") or []), ti.get("body_index"))
+    if name == "add_face_frame":
+        return "Add a face frame to the {}x{} mm cabinet front".format(ti.get("width"), ti.get("height"))
+    if name == "add_doors":
+        return "Add {} {} door(s)".format(ti.get("count", 1), ti.get("style", "overlay"))
+    if name == "add_drawers":
+        return "Add {} drawer(s)".format(ti.get("count", 1))
+    if name == "promote_to_components":
+        return "Promote all bodies into separate components"
+    if name == "undo_last":
+        return "Undo the most recent operation"
+    if name == "export_cut_list":
+        return "Export a CSV cut list"
+    if name == "export_dxf":
+        return "Export DXF flat panels"
     return name
 
 # Tools that act on the live viewport selection: get_selection must be read first.
@@ -198,6 +216,13 @@ def validate(name, tool_input):
             _check_len("back_thickness", ti.get("back_thickness"))
         if ti.get("shelves") is not None:
             _check_count("shelves", ti.get("shelves"), 0, 50)
+    elif name in ("add_face_frame", "add_doors", "add_drawers"):
+        _check_len("width", ti.get("width"))
+        _check_len("height", ti.get("height"))
+        if name == "add_drawers":
+            _check_len("depth", ti.get("depth"))
+        if ti.get("count") is not None:
+            _check_count("count", ti.get("count"), 1, 50)
     elif name == "drill_holes":
         holes = ti.get("holes")
         if not isinstance(holes, list) or not holes:
