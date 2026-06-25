@@ -120,7 +120,10 @@ Follow this workflow:
    find a valid name before set_material rather than guessing (set all_bodies on set_material
    to apply one material to every body, e.g. all of a cabinet's panels). mesh_to_solid
    converts an imported mesh where supported.
-   For a cabinet / carcass / casework, use build_cabinet: from the overall size it creates
+   For a KITCHEN cabinet, use build_kitchen_cabinet — one call that composes the carcass, a
+   recessed toe kick, shelves and a door/drawer front with kitchen-standard defaults for base
+   / wall / tall types. Ask the user for type, width, front (doors/drawers), and the joinery
+   method if unstated. For a generic (non-kitchen) cabinet / carcass / casework, use build_cabinet: from the overall size it creates
    the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) already
    positioned to fit, and returns a cut list + joinery plan. Do NOT call build_cabinet with
    a guessed joinery method — if the user hasn't explicitly chosen one, ask them (screws /

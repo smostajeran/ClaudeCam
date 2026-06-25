@@ -99,6 +99,11 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   `drill_holes` is the alternative by **absolute coordinates** (cylinder + boolean cut). Both
   refuse a diameter too large for the face/body.
 - **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
+- **Kitchen cabinets:** `build_kitchen_cabinet` builds a **configurable** kitchen cabinet in one
+  call — carcass + recessed toe kick + shelves + a door or drawer front — with kitchen-standard
+  defaults per type: **base** (720×560 mm + toe kick), **wall** (720×320, no toe kick), **tall**
+  (2100×580 + toe kick). Configure width, front (doors/drawers/none), counts, joinery, toe kick,
+  etc. It composes the casework tools below.
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
   together — and returns a cut list plus a joinery plan for the method you choose

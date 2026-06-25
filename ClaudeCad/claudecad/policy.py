@@ -24,6 +24,7 @@ RISK = {
     "extrude": BUILD, "revolve": BUILD, "loft": BUILD, "sweep": BUILD,
     "fillet_all_edges": BUILD, "chamfer_all_edges": BUILD, "shell": BUILD,
     "circular_pattern": BUILD, "rectangular_pattern": BUILD, "build_cabinet": BUILD,
+    "build_kitchen_cabinet": BUILD,
     "fillet_edges": BUILD, "chamfer_edges": BUILD, "fillet_selection": BUILD,
     "chamfer_selection": BUILD, "set_material": BUILD, "add_thread": BUILD,
     "add_face_frame": BUILD, "add_doors": BUILD, "add_drawers": BUILD,
@@ -44,7 +45,7 @@ DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_soli
 REQUIRES_CONFIRMATION = DESTRUCTIVE | {
     "export_model", "move_body", "combine_bodies", "build_cabinet",
     "add_face_frame", "add_doors", "add_drawers", "promote_to_components",
-    "import_model", "place_hardware",
+    "import_model", "place_hardware", "build_kitchen_cabinet",
 }
 
 
@@ -89,6 +90,9 @@ def summarize_call(name, tool_input):
         return "Add {} {} door(s)".format(ti.get("count", 1), ti.get("style", "overlay"))
     if name == "add_drawers":
         return "Add {} drawer(s)".format(ti.get("count", 1))
+    if name == "build_kitchen_cabinet":
+        return "Build a {} kitchen cabinet {}mm wide ({} front)".format(
+            ti.get("cabinet_type", "base"), ti.get("width"), ti.get("front", "doors"))
     if name == "promote_to_components":
         return "Promote all bodies into separate components"
     if name == "explode_assembly":
@@ -262,6 +266,11 @@ def validate(name, tool_input):
         _check_len("diameter", ti.get("diameter"))
         if ti.get("depth") is not None:
             _check_len("depth", ti.get("depth"))
+    elif name == "build_kitchen_cabinet":
+        _check_len("width", ti.get("width"))
+        for k in ("height", "depth", "thickness", "back_thickness"):
+            if ti.get(k) is not None:
+                _check_len(k, ti.get(k))
     elif name == "explode_assembly":
         if ti.get("factor") is not None:
             f = _num(ti.get("factor"))

@@ -552,6 +552,37 @@ TOOLS = [
         },
     },
     {
+        "name": "build_kitchen_cabinet",
+        "description": (
+            "Build a CONFIGURABLE kitchen cabinet in one step, composing the carcass, an optional "
+            "recessed toe kick, shelves, and a door or drawer front using kitchen-standard "
+            "defaults per type (base / wall / tall). Use this for kitchen cabinets instead of "
+            "wiring build_cabinet + add_doors yourself. Ask the user for type, width, and front "
+            "(doors/drawers) and the joinery method if not given. Sensible defaults: base = 720 "
+            "high x 560 deep + toe kick; wall = 720 x 320, no toe kick; tall = 2100 x 580 + toe kick."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "width": {"type": "number", "description": "Cabinet width in mm (e.g. 600)."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Default 'base'."},
+                "height": {"type": "number", "description": "Override carcass height in mm (default per type)."},
+                "depth": {"type": "number", "description": "Override depth in mm (default per type)."},
+                "thickness": {"type": "number", "description": "Panel thickness in mm. Default 18."},
+                "back_thickness": {"type": "number", "description": "Back panel thickness in mm. Default 6."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none"], "description": "Front type. Default 'doors'."},
+                "doors": {"type": "integer", "description": "Number of doors (default 1 if width<=600 else 2)."},
+                "drawers": {"type": "integer", "description": "Number of drawers when front='drawers'. Default 3."},
+                "shelves": {"type": "integer", "description": "Interior shelves (default per type)."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Carcass joinery. Default 'screws'."},
+                "back_joint": {"type": "string", "enum": ["groove", "inset", "overlay"], "description": "Back panel joint. Default 'groove'."},
+                "toe_kick_height": {"type": "number", "description": "Toe-kick height in mm (base/tall). Default 100."},
+                "toe_kick_recess": {"type": "number", "description": "Toe-kick setback from the front in mm. Default 50."},
+            },
+            "required": ["width"],
+        },
+    },
+    {
         "name": "add_face_frame",
         "description": (
             "EXPERIMENTAL casework: apply a face frame (left/right stiles + top/bottom rails) to "
@@ -930,6 +961,18 @@ def execute(name, tool_input, cad):
     if name == "drill_holes_on_face":
         return cad.drill_holes_on_face(int(ti["body_index"]), int(ti["face_index"]),
                                        list(ti["points"]), float(ti["diameter"]), ti.get("depth"))
+    if name == "build_kitchen_cabinet":
+        return cad.build_kitchen_cabinet(
+            float(ti["width"]), ti.get("cabinet_type", "base"),
+            (float(ti["height"]) if ti.get("height") is not None else None),
+            (float(ti["depth"]) if ti.get("depth") is not None else None),
+            float(ti.get("thickness", 18.0)), float(ti.get("back_thickness", 6.0)),
+            ti.get("front", "doors"),
+            (int(ti["doors"]) if ti.get("doors") is not None else None),
+            int(ti.get("drawers", 3)),
+            (int(ti["shelves"]) if ti.get("shelves") is not None else None),
+            ti.get("joinery", "screws"), ti.get("back_joint", "groove"),
+            float(ti.get("toe_kick_height", 100.0)), float(ti.get("toe_kick_recess", 50.0)))
     if name == "add_face_frame":
         return cad.add_face_frame(float(ti["width"]), float(ti["height"]),
                                   float(ti.get("stile", 38.0)), float(ti.get("rail", 38.0)),

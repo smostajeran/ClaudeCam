@@ -421,6 +421,7 @@ SAMPLES = {
     "chamfer_selection": {"distance": 2},
     "cut_hole_selection": {"diameter": 6},
     "build_cabinet": {"width": 600, "height": 720, "depth": 580, "joinery": "screws"},
+    "build_kitchen_cabinet": {"width": 600, "cabinet_type": "base", "front": "doors", "joinery": "screws"},
     "drill_holes": {"body_index": 0, "holes": [{"x": 10, "y": 37, "z": 100, "axis": "x", "depth": 12, "diameter": 5}]},
     "drill_holes_on_face": {"body_index": 0, "face_index": 2, "diameter": 5, "depth": 12,
                             "points": [{"u": 37, "v": 100}, {"u": 37, "v": 132}]},

@@ -1846,6 +1846,62 @@ class CadBuilder:
         return "Added {} drawer(s){} ({:g} x {:g} mm fronts).".format(
             n, " with boxes" if boxes else "", fw, fh)
 
+    # Kitchen-cabinet conventions: (carcass height, depth, default shelves, has toe kick) by type.
+    _KITCHEN_DEFAULTS = {
+        "base": (720.0, 560.0, 1, True),
+        "wall": (720.0, 320.0, 2, False),
+        "tall": (2100.0, 580.0, 4, True),
+    }
+
+    def build_kitchen_cabinet(self, width, cabinet_type="base", height=None, depth=None,
+                              thickness=18.0, back_thickness=6.0, front="doors", doors=None,
+                              drawers=3, shelves=None, joinery="screws", back_joint="groove",
+                              toe_kick_height=100.0, toe_kick_recess=50.0):
+        """Build a configurable kitchen cabinet by composing the carcass, an optional toe kick,
+        and a door/drawer front using kitchen-standard defaults for base / wall / tall types.
+
+        Reuses build_cabinet (carcass), a recessed toe-kick plinth (built below z=0 so it needs
+        no offset elsewhere), and add_doors / add_drawers for the front.
+        """
+        W = float(width)
+        ctype = (cabinet_type or "base").lower()
+        if ctype not in self._KITCHEN_DEFAULTS:
+            raise ValueError("cabinet_type must be 'base', 'wall' or 'tall'.")
+        d_h, d_d, d_sh, has_toe = self._KITCHEN_DEFAULTS[ctype]
+        H = float(height) if height else d_h
+        D = float(depth) if depth else d_d
+        T = float(thickness)
+        n_sh = int(shelves) if shelves is not None else d_sh
+        f = (front or "doors").lower()
+        if f not in ("doors", "drawers", "none"):
+            raise ValueError("front must be 'doors', 'drawers' or 'none'.")
+
+        # Carcass at z[0, H].
+        self.build_cabinet(W, H, D, T, back_thickness, n_sh, joinery, back_joint, None, False)
+
+        # Toe kick: a recessed plinth below the carcass (negative z), for base/tall.
+        tk = float(toe_kick_height)
+        notes = []
+        if has_toe and tk > 0:
+            self._box("Toe Kick", 0.0, float(toe_kick_recess), -tk, W, D, 0.0)
+            notes.append("toe kick {:g} mm (recessed {:g} mm)".format(tk, float(toe_kick_recess)))
+
+        # Front.
+        if f == "doors":
+            n = int(doors) if doors else (1 if W <= 600 else 2)
+            self.add_doors(W, H, n, T)
+            notes.append("{} door(s)".format(n))
+        elif f == "drawers":
+            self.add_drawers(W, H, D, int(drawers), T)
+            notes.append("{} drawer(s)".format(int(drawers)))
+        else:
+            notes.append("open front")
+
+        return (
+            "Built a {} kitchen cabinet {:g}(W) x {:g}(H) x {:g}(D) mm in {:g} mm material with "
+            "{} shelf(es): {}.".format(ctype, W, H, D, T, n_sh, ", ".join(notes))
+        )
+
     def promote_to_components(self):
         """Move each solid body into its own component/occurrence to form a real assembly."""
         comp = self._comp()
