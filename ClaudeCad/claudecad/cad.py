@@ -1249,6 +1249,72 @@ class CadBuilder:
         self._explode_state = None
         return "Reassembled {} bodies to their built positions.".format(restored)
 
+    def animate_assembly(self, steps=20, factor=0.8, direction="assemble", folder=None):
+        """Render an assembly animation as a PNG frame sequence in the home folder.
+
+        Moves the bodies step-by-step between their assembled positions and an exploded layout
+        (radially out from the assembly centre by ``factor``), refreshing the viewport and
+        saving a frame each step. ``direction='assemble'`` ends assembled (parts fly together);
+        ``'explode'`` ends exploded. Fusion's animation workspace isn't scriptable, so this is a
+        frame sequence — compile it to a GIF/MP4 with an external tool.
+        """
+        comp = self._comp()
+        n = comp.bRepBodies.count
+        if n == 0:
+            raise RuntimeError("There are no bodies to animate.")
+        viewport = self.app.activeViewport
+        if not viewport:
+            raise RuntimeError("No active viewport to render.")
+        steps = max(2, int(steps))
+        direction = (direction or "assemble").lower()
+        if direction not in ("assemble", "explode"):
+            raise ValueError("direction must be 'assemble' or 'explode'.")
+
+        bodies = [comp.bRepBodies.item(i) for i in range(n)]
+        centers = [self._body_center(b) for b in bodies]
+        ctr = tuple(sum(c[k] for c in centers) / n for k in range(3))
+        # Per-body exploded offset in mm (0 = assembled, this = fully exploded).
+        offsets = []
+        for c in centers:
+            off = [self._mm((c[k] - ctr[k]) * float(factor)) for k in range(3)]
+            if abs(off[0]) < 0.1 and abs(off[1]) < 0.1 and abs(off[2]) < 0.1:
+                off[2] += 50.0
+            offsets.append(off)
+
+        base = util.safe_export_basename(folder if folder else "claudecad_anim")
+        home = os.path.realpath(os.path.expanduser("~"))
+        outdir = os.path.realpath(os.path.join(home, base))
+        if os.path.dirname(outdir) != home:
+            raise ValueError("Refusing to write outside your home folder.")
+        os.makedirs(outdir, exist_ok=True)
+
+        def move_to(frac, prev):
+            delta = frac - prev
+            if abs(delta) < 1e-9:
+                return
+            for b, off in zip(bodies, offsets):
+                self._translate_body(b, off[0] * delta, off[1] * delta, off[2] * delta)
+
+        start = 1.0 if direction == "assemble" else 0.0  # bodies begin from assembled (frac 0)
+        move_to(start, 0.0)
+        prev = start
+        saved = 0
+        for k in range(steps + 1):
+            frac = (k / steps) if direction == "explode" else (1.0 - k / steps)
+            move_to(frac, prev)
+            prev = frac
+            try:
+                viewport.refresh()
+                adsk.doEvents()
+            except Exception:
+                pass
+            if viewport.saveAsImageFile(os.path.join(outdir, "frame_{:03d}.png".format(k)), 1024, 768):
+                saved += 1
+        return (
+            "Rendered {} assembly frames ({}) to {}. Compile them into a GIF/MP4 with an "
+            "external tool (Fusion's animation workspace isn't scriptable).".format(saved, direction, outdir)
+        )
+
     def export_bom(self, filename=None):
         """Write a Bill of Materials (item, qty, part, material, dimensions) as CSV to the home
         folder, and return the table text so it can be shown / put on a drawing."""

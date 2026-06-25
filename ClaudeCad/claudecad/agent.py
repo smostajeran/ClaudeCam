@@ -143,6 +143,8 @@ Follow this workflow:
    and export_cut_list / export_dxf for the shop. These casework-front tools are EXPERIMENTAL.
    For an exploded view, explode_assembly spreads the bodies apart (reassemble restores them
    exactly — it's a literal move, so always reassemble before exporting the assembled model).
+   For an assembly animation, animate_assembly renders a PNG frame sequence of the parts moving
+   together/apart (Fusion's animation workspace isn't scriptable; compile the frames externally).
    export_bom writes/returns a Bill of Materials (item/qty/part/material/size).
    For cabinet hardware (hinges, drawer slides, shelf pins, connectors, handles from Blum /
    Hettich / Häfele), use list_hardware to find a part, then drill_for_hardware on a face

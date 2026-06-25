@@ -135,6 +135,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Exploded view:** `explode_assembly` spreads the bodies apart (for a screenshot) and
   `reassemble` restores them to the built positions exactly (it records each move — a literal
   translate, since Fusion's animated exploded view isn't scriptable).
+- **Assembly animation:** `animate_assembly` renders a PNG **frame sequence** of the parts
+  moving together (`assemble`) or apart (`explode`) into a home subfolder — compile to a
+  GIF/MP4 externally, since Fusion's animation workspace can't be driven by the add-in API.
 - **BOM:** `export_bom` writes/returns a Bill of Materials (item #, qty, part, material,
   dimensions) grouped by part name — for a drawing's parts list or ordering.
 - **Hardware catalog:** `list_hardware` / `hardware_info` browse a catalog of cabinet hardware

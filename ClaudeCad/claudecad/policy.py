@@ -32,7 +32,7 @@ RISK = {
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
     "drill_holes": MODIFY, "drill_holes_on_face": MODIFY, "drill_for_hardware": MODIFY,
     "undo_last": MODIFY, "promote_to_components": MODIFY, "rename_body": MODIFY,
-    "explode_assembly": MODIFY, "reassemble": MODIFY,
+    "explode_assembly": MODIFY, "reassemble": MODIFY, "animate_assembly": MODIFY,
     "import_model": MODIFY, "place_hardware": MODIFY,
     "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT, "export_bom": EXPORT,
 }
@@ -99,6 +99,8 @@ def summarize_call(name, tool_input):
         return "Explode the assembly (factor {})".format(ti.get("factor", 0.6))
     if name == "reassemble":
         return "Reassemble to built positions"
+    if name == "animate_assembly":
+        return "Render a {}-frame {} animation".format(ti.get("steps", 20), ti.get("direction", "assemble"))
     if name == "export_bom":
         return "Export a Bill of Materials"
     if name == "drill_for_hardware":

@@ -432,6 +432,7 @@ SAMPLES = {
     "export_dxf": {},
     "rename_body": {"body_index": 0, "name": "Lid"},
     "explode_assembly": {"factor": 0.6},
+    "animate_assembly": {"steps": 12, "direction": "assemble"},
     "reassemble": {},
     "export_bom": {},
     "list_hardware": {},

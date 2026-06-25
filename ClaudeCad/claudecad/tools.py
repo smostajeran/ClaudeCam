@@ -792,6 +792,24 @@ TOOLS = [
         },
     },
     {
+        "name": "animate_assembly",
+        "description": (
+            "Render an assembly animation as a PNG frame sequence in a home subfolder: the parts "
+            "move step-by-step between assembled and exploded. direction 'assemble' ends assembled "
+            "(parts fly together), 'explode' ends exploded. Fusion's animation workspace isn't "
+            "scriptable, so this produces frames to compile into a GIF/MP4 externally."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "steps": {"type": "integer", "description": "Number of frames (>=2). Default 20."},
+                "factor": {"type": "number", "description": "How far parts spread when exploded. Default 0.8."},
+                "direction": {"type": "string", "enum": ["assemble", "explode"], "description": "Default 'assemble'."},
+                "folder": {"type": "string", "description": "Subfolder name under home. Default 'claudecad_anim'."},
+            },
+        },
+    },
+    {
         "name": "reassemble",
         "description": "Restore every body moved by explode_assembly back to its built position (exact, from the recorded moves).",
         "input_schema": {"type": "object", "properties": {}},
@@ -1022,6 +1040,9 @@ def execute(name, tool_input, cad):
         return cad.place_hardware(ti["hardware_id"], float(ti.get("x", 0.0)), float(ti.get("y", 0.0)), float(ti.get("z", 0.0)))
     if name == "explode_assembly":
         return cad.explode_assembly(float(ti.get("factor", 0.6)))
+    if name == "animate_assembly":
+        return cad.animate_assembly(int(ti.get("steps", 20)), float(ti.get("factor", 0.8)),
+                                    ti.get("direction", "assemble"), ti.get("folder"))
     if name == "reassemble":
         return cad.reassemble()
     if name == "export_bom":
