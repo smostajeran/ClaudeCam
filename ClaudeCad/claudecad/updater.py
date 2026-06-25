@@ -93,7 +93,8 @@ def _validate_staged(staging, expected_version):
         with open(os.path.join(staging, "VERSION"), "r", encoding="utf-8") as fh:
             version = fh.read().strip()
     except Exception as exc:
-        raise RuntimeError("The update archive's VERSION is unreadable ({}); install aborted.".format(exc))
+        raise RuntimeError(
+            "The update archive's VERSION is unreadable ({}); install aborted.".format(exc)) from exc
     if expected_version and version != expected_version:
         raise RuntimeError(
             "The update archive's VERSION '{}' doesn't match the expected '{}'; install aborted.".format(
@@ -110,7 +111,8 @@ def _install_with_backup(staging, dest, rels):
     """
     dest = os.path.normpath(dest)
     backup = tempfile.mkdtemp(prefix="claudecad_backup_")
-    attempted = []  # (rel, target) in order, so we can undo in reverse
+    attempted = []      # (rel, target) in order, so we can undo in reverse
+    created_dirs = []   # directories we had to create, so rollback can remove empties
     try:
         for rel in rels:
             target = os.path.normpath(os.path.join(dest, rel))
@@ -120,7 +122,10 @@ def _install_with_backup(staging, dest, rels):
                 saved = os.path.join(backup, rel)
                 os.makedirs(os.path.dirname(saved), exist_ok=True)
                 shutil.copy2(target, saved)
-            os.makedirs(os.path.dirname(target), exist_ok=True)
+            tdir = os.path.dirname(target)
+            if tdir and not os.path.isdir(tdir):
+                created_dirs.append(tdir)
+            os.makedirs(tdir, exist_ok=True)
             attempted.append((rel, target))
             shutil.copy2(os.path.join(staging, rel), target)
         return len(attempted)
@@ -134,7 +139,17 @@ def _install_with_backup(staging, dest, rels):
                     os.remove(target)                  # it was newly created — remove it
             except Exception:
                 pass
-        raise RuntimeError("Install failed and was rolled back ({}). Your add-in is unchanged.".format(exc))
+        # Remove any now-empty directories we created, walking up to (but not past) dest.
+        for created in reversed(created_dirs):
+            cur = created
+            while cur and cur != dest and cur.startswith(dest + os.sep) and os.path.isdir(cur):
+                try:
+                    os.rmdir(cur)  # only succeeds if empty
+                except OSError:
+                    break
+                cur = os.path.dirname(cur)
+        raise RuntimeError(
+            "Install failed and was rolled back ({}). Your add-in is unchanged.".format(exc)) from exc
     finally:
         shutil.rmtree(backup, ignore_errors=True)
 
@@ -153,27 +168,26 @@ def update(timeout=120):
 
     blob = _get(_ZIPBALL_URL.format(repo=config.REPO, branch=config.UPDATE_BRANCH),
                 "application/vnd.github+json", timeout)
-    archive = zipfile.ZipFile(io.BytesIO(blob))
+    with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+        # The zipball's top folder is <owner>-<repo>-<sha>; locate the add-in inside it.
+        marker = None
+        needle = "/ClaudeCad/ClaudeCad.manifest"
+        for name in archive.namelist():
+            if name.endswith(needle):
+                marker = name[: -len("ClaudeCad.manifest")]  # ".../ClaudeCad/"
+                break
+        if not marker:
+            raise RuntimeError("The update archive did not contain the ClaudeCad add-in.")
 
-    # The zipball's top folder is <owner>-<repo>-<sha>; locate the add-in inside it.
-    marker = None
-    needle = "/ClaudeCad/ClaudeCad.manifest"
-    for name in archive.namelist():
-        if name.endswith(needle):
-            marker = name[: -len("ClaudeCad.manifest")]  # ".../ClaudeCad/"
-            break
-    if not marker:
-        raise RuntimeError("The update archive did not contain the ClaudeCad add-in.")
-
-    staging = tempfile.mkdtemp(prefix="claudecad_update_")
-    try:
-        rels = _extract_addin(archive, marker, staging)
-        if not rels:
-            raise RuntimeError("The update archive was empty; install aborted.")
-        _validate_staged(staging, latest)
-        count = _install_with_backup(staging, os.path.normpath(config.addin_dir()), rels)
-    finally:
-        shutil.rmtree(staging, ignore_errors=True)
+        staging = tempfile.mkdtemp(prefix="claudecad_update_")
+        try:
+            rels = _extract_addin(archive, marker, staging)
+            if not rels:
+                raise RuntimeError("The update archive was empty; install aborted.")
+            _validate_staged(staging, latest)
+            count = _install_with_backup(staging, os.path.normpath(config.addin_dir()), rels)
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
 
     return (
         "Updated {} → {} ({} files, staged & verified). Restart the add-in (Stop, then Run "
