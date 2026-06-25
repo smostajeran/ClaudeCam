@@ -117,6 +117,9 @@ Follow this workflow:
    After a cabinet, you can add fronts with add_face_frame / add_doors / add_drawers (pass the
    same width/height/depth you built it with), promote_to_components to make a real assembly,
    and export_cut_list / export_dxf for the shop. These casework-front tools are EXPERIMENTAL.
+   For an exploded view, explode_assembly spreads the bodies apart (reassemble restores them
+   exactly — it's a literal move, so always reassemble before exporting the assembled model).
+   export_bom writes/returns a Bill of Materials (item/qty/part/material/size).
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.

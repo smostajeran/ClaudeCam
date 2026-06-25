@@ -30,7 +30,8 @@ RISK = {
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
     "drill_holes": MODIFY, "drill_holes_on_face": MODIFY,
     "undo_last": MODIFY, "promote_to_components": MODIFY, "rename_body": MODIFY,
-    "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT,
+    "explode_assembly": MODIFY, "reassemble": MODIFY,
+    "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT, "export_bom": EXPORT,
 }
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
@@ -87,6 +88,12 @@ def summarize_call(name, tool_input):
         return "Add {} drawer(s)".format(ti.get("count", 1))
     if name == "promote_to_components":
         return "Promote all bodies into separate components"
+    if name == "explode_assembly":
+        return "Explode the assembly (factor {})".format(ti.get("factor", 0.6))
+    if name == "reassemble":
+        return "Reassemble to built positions"
+    if name == "export_bom":
+        return "Export a Bill of Materials"
     if name == "undo_last":
         return "Undo the most recent operation"
     if name == "export_cut_list":
@@ -244,6 +251,11 @@ def validate(name, tool_input):
         _check_len("diameter", ti.get("diameter"))
         if ti.get("depth") is not None:
             _check_len("depth", ti.get("depth"))
+    elif name == "explode_assembly":
+        if ti.get("factor") is not None:
+            f = _num(ti.get("factor"))
+            if f is None or f <= 0 or f > 100:
+                raise ValueError("factor must be a number between 0 and 100.")
     elif name == "export_model":
         from . import util
         if util.export_extension(ti.get("format", "step")) is None:

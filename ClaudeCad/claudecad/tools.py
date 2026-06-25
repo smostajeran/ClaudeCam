@@ -638,6 +638,39 @@ TOOLS = [
         },
     },
     {
+        "name": "explode_assembly",
+        "description": (
+            "Move all bodies radially outward from the assembly centre for an exploded view "
+            "(e.g. for a screenshot). Records each move so reassemble restores the built "
+            "positions exactly. 'factor' scales the spread (default 0.6)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "factor": {"type": "number", "description": "How far to spread bodies (multiplier on their offset from centre). Default 0.6."},
+            },
+        },
+    },
+    {
+        "name": "reassemble",
+        "description": "Restore every body moved by explode_assembly back to its built position (exact, from the recorded moves).",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "export_bom",
+        "description": (
+            "Write a Bill of Materials (item #, qty, part name, material, dimensions) as CSV to "
+            "the home folder and return the table — for a drawing's parts list or ordering. "
+            "Grouped by part name (unlike export_cut_list, which groups by size for sheet layout)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Base filename (no extension). Default 'claudecad_bom'."},
+            },
+        },
+    },
+    {
         "name": "rename_body",
         "description": "Give a solid body a readable name in the browser (body indices from inspect_model). Use this to label bodies meaningfully (e.g. 'Lid', 'Bracket') so the model and cut list are clear.",
         "input_schema": {
@@ -807,6 +840,12 @@ def execute(name, tool_input, cad):
         return cad.promote_to_components()
     if name == "export_dxf":
         return cad.export_dxf(ti.get("folder"))
+    if name == "explode_assembly":
+        return cad.explode_assembly(float(ti.get("factor", 0.6)))
+    if name == "reassemble":
+        return cad.reassemble()
+    if name == "export_bom":
+        return cad.export_bom(ti.get("filename"))
     if name == "rename_body":
         return cad.rename_body(int(ti["body_index"]), ti["name"])
     if name == "undo_last":

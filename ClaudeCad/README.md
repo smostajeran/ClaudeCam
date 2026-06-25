@@ -127,6 +127,11 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Naming:** sketches and bodies get readable names (holes, grooves and panels are labelled,
   and `extrude`/`revolve` take a `name`); `rename_body` relabels any body — so the browser
   tree and cut list read clearly instead of `Sketch12` / `Body3`.
+- **Exploded view:** `explode_assembly` spreads the bodies apart (for a screenshot) and
+  `reassemble` restores them to the built positions exactly (it records each move — a literal
+  translate, since Fusion's animated exploded view isn't scriptable).
+- **BOM:** `export_bom` writes/returns a Bill of Materials (item #, qty, part, material,
+  dimensions) grouped by part name — for a drawing's parts list or ordering.
 - **Cabinet fronts & assembly (experimental):** after `build_cabinet`, `add_face_frame`,
   `add_doors` (overlay/inset), and `add_drawers` (fronts + simple boxes) add the front;
   `promote_to_components` moves each panel into its own component to form a real assembly;
