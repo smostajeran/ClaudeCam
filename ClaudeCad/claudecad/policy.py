@@ -32,6 +32,7 @@ RISK = {
     "drill_holes": MODIFY, "drill_holes_on_face": MODIFY, "drill_for_hardware": MODIFY,
     "undo_last": MODIFY, "promote_to_components": MODIFY, "rename_body": MODIFY,
     "explode_assembly": MODIFY, "reassemble": MODIFY,
+    "import_model": MODIFY, "place_hardware": MODIFY,
     "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT, "export_bom": EXPORT,
 }
 
@@ -43,6 +44,7 @@ DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_soli
 REQUIRES_CONFIRMATION = DESTRUCTIVE | {
     "export_model", "move_body", "combine_bodies", "build_cabinet",
     "add_face_frame", "add_doors", "add_drawers", "promote_to_components",
+    "import_model", "place_hardware",
 }
 
 
@@ -98,6 +100,10 @@ def summarize_call(name, tool_input):
     if name == "drill_for_hardware":
         return "Drill the '{}' pattern on face[{}] at u={}, v={}".format(
             ti.get("hardware_id"), ti.get("face_index"), ti.get("u"), ti.get("v"))
+    if name == "import_model":
+        return "Import 3D model {}".format(ti.get("path"))
+    if name == "place_hardware":
+        return "Place the 3D model for '{}'".format(ti.get("hardware_id"))
     if name == "undo_last":
         return "Undo the most recent operation"
     if name == "export_cut_list":

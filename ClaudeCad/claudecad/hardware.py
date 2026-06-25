@@ -55,6 +55,17 @@ def get(hardware_id):
     return load_catalog().get(hardware_id)
 
 
+def model_path(entry):
+    """Full path to an entry's user-supplied 3D model (under ~/.claudecad/hardware/), or None.
+
+    Only the basename is used, so a catalog 'model' field can't point outside that folder.
+    """
+    model = (entry or {}).get("model")
+    if not model:
+        return None
+    return os.path.join(os.path.expanduser("~"), ".claudecad", "hardware", os.path.basename(str(model)))
+
+
 def grouped_holes(entry, u, v):
     """Resolve an entry's pattern to {(diameter, depth): [(u, v), ...]} anchored at (u, v).
 
@@ -74,8 +85,8 @@ def add_hardware(entry):
     """Merge one entry into the user catalog file (creating it if needed)."""
     if not isinstance(entry, dict) or not entry.get("id"):
         raise ValueError("A hardware entry needs at least an 'id'.")
-    if not entry.get("holes"):
-        raise ValueError("A hardware entry needs a non-empty 'holes' list.")
+    if not entry.get("holes") and not entry.get("model"):
+        raise ValueError("A hardware entry needs a 'holes' pattern and/or a 'model' filename.")
     path = _user_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     existing = _read(path)

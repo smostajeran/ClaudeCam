@@ -355,6 +355,8 @@ SAMPLES = {
     "hardware_info": {"hardware_id": "euro_hinge_cup_35"},
     "drill_for_hardware": {"hardware_id": "euro_hinge_cup_35", "body_index": 0, "face_index": 2, "u": 100, "v": 100},
     "add_hardware": {"id": "my_part", "holes": [{"du": 0, "dv": 0, "diameter": 5, "depth": 12}]},
+    "import_model": {"path": "/tmp/part.step"},
+    "place_hardware": {"hardware_id": "euro_hinge_cup_35"},
     "undo_last": {},
     "export_cut_list": {},
     "get_design_summary": {},

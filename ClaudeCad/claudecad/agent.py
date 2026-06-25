@@ -145,8 +145,10 @@ Follow this workflow:
    Hettich / Häfele), use list_hardware to find a part, then drill_for_hardware on a face
    (call list_faces first for its u/v frame) to bore the correct pattern. Catalogued patterns
    are standards — tell the user to verify against the exact SKU's spec sheet; add exact parts
-   with add_hardware. Their proprietary 3D models aren't bundled — to place a real part, ask
-   the user to download its STEP from the brand's CAD portal and import it.
+   with add_hardware. For a part to actually show in renders you need its 3D geometry:
+   import_model brings in a STEP/IGES/SAT/F3D the user supplies and positions it, and
+   place_hardware imports the model linked to a catalog entry. Their proprietary models aren't
+   bundled — ask the user to download the STEP from the brand's CAD portal first.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.

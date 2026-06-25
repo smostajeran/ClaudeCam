@@ -139,6 +139,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   entries are standard patterns (35 mm system, System 32) — verify against the exact SKU's
   spec sheet. Manufacturers' proprietary 3D models aren't bundled (licensing); to place a real
   part, download its STEP from the brand's CAD portal and import it.
+- **Import real 3D parts:** `import_model` brings a STEP / IGES / SAT / SMT / F3D file you
+  supply into the design and positions it (so a real hinge/slide/handle renders); `place_hardware`
+  imports the model linked to a catalog entry (a STEP you've dropped in `~/.claudecad/hardware/`).
 - **Cabinet fronts & assembly (experimental):** after `build_cabinet`, `add_face_frame`,
   `add_doors` (overlay/inset), and `add_drawers` (fronts + simple boxes) add the front;
   `promote_to_components` moves each panel into its own component to form a real assembly;

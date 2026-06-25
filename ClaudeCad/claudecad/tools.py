@@ -693,6 +693,7 @@ TOOLS = [
                 "category": {"type": "string"},
                 "name": {"type": "string"},
                 "notes": {"type": "string"},
+                "model": {"type": "string", "description": "Filename of a 3D model in ~/.claudecad/hardware/ for place_hardware (optional)."},
                 "holes": {
                     "type": "array",
                     "items": {
@@ -706,7 +707,43 @@ TOOLS = [
                     },
                 },
             },
-            "required": ["id", "holes"],
+            "required": ["id"],
+        },
+    },
+    {
+        "name": "import_model",
+        "description": (
+            "Import a 3D file (STEP / IGES / SAT / SMT / F3D) into the design and optionally "
+            "position it at (x, y, z) mm — e.g. a manufacturer's hardware model so it renders. "
+            "The user supplies the file path; proprietary models aren't bundled."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Full path to the 3D file."},
+                "x": {"type": "number", "description": "Position X in mm. Default 0."},
+                "y": {"type": "number", "description": "Position Y in mm. Default 0."},
+                "z": {"type": "number", "description": "Position Z in mm. Default 0."},
+            },
+            "required": ["path"],
+        },
+    },
+    {
+        "name": "place_hardware",
+        "description": (
+            "Import and place the 3D model linked to a catalog hardware entry (a user-supplied "
+            "STEP in ~/.claudecad/hardware/). Use this to put a real hinge/slide/handle into the "
+            "model for rendering. If no model is on file it tells you how to add one."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "hardware_id": {"type": "string", "description": "Catalog id (from list_hardware)."},
+                "x": {"type": "number", "description": "Position X in mm. Default 0."},
+                "y": {"type": "number", "description": "Position Y in mm. Default 0."},
+                "z": {"type": "number", "description": "Position Z in mm. Default 0."},
+            },
+            "required": ["hardware_id"],
         },
     },
     {
@@ -934,8 +971,12 @@ def execute(name, tool_input, cad):
                                       float(ti["u"]), float(ti["v"]))
     if name == "add_hardware":
         from . import hardware
-        entry = {k: ti[k] for k in ("id", "brand", "category", "name", "notes", "holes") if k in ti}
+        entry = {k: ti[k] for k in ("id", "brand", "category", "name", "notes", "model", "holes") if k in ti}
         return "Saved hardware '{}' to your catalog.".format(hardware.add_hardware(entry))
+    if name == "import_model":
+        return cad.import_model(ti["path"], float(ti.get("x", 0.0)), float(ti.get("y", 0.0)), float(ti.get("z", 0.0)))
+    if name == "place_hardware":
+        return cad.place_hardware(ti["hardware_id"], float(ti.get("x", 0.0)), float(ti.get("y", 0.0)), float(ti.get("z", 0.0)))
     if name == "explode_assembly":
         return cad.explode_assembly(float(ti.get("factor", 0.6)))
     if name == "reassemble":
