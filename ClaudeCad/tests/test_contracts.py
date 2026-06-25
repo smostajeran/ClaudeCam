@@ -235,6 +235,24 @@ def test_strip_orphan_tool_use_keeps_text_drops_unanswered_call():
     assert any(b["type"] == "text" for b in last["content"])
 
 
+def test_build_user_content_plain_text():
+    assert agent._build_user_content("make a box") == "make a box"
+    assert agent._build_user_content("make a box", None) == "make a box"
+
+
+def test_build_user_content_with_image():
+    content = agent._build_user_content("build this", {"media_type": "image/jpeg", "data": "QUJD"})
+    assert isinstance(content, list) and len(content) == 2
+    assert content[0]["type"] == "image"
+    assert content[0]["source"]["data"] == "QUJD"
+    assert content[1]["type"] == "text" and content[1]["text"] == "build this"
+
+
+def test_build_user_content_image_default_prompt():
+    content = agent._build_user_content("", {"media_type": "image/png", "data": "QUJD"})
+    assert content[1]["text"]  # falls back to a default build instruction when text is empty
+
+
 def test_strip_orphan_keeps_properly_answered_tool_use():
     messages = [
         {"role": "assistant", "content": [{"type": "tool_use", "id": "abc", "name": "extrude", "input": {}}]},

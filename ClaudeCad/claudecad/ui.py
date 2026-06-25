@@ -200,15 +200,18 @@ class ClaudeCadUI:
             self._show_chat(chat)
         elif action == "send":
             text = (data.get("text") or "").strip()
-            if text:
+            image = data.get("image") if isinstance(data.get("image"), dict) else None
+            if text or image:
                 chat = self.chats.active
                 if chat.busy:
                     self.system_for(chat, "ClaudeCad is still working — please wait.")
                     return
-                self._emit(chat, "user", text)  # render + store the user's message
+                shown = text + (("\n" if text else "") + "🖼 [image attached]" if image else "")
+                self._emit(chat, "user", shown)  # render + store the user's message
                 threading.Thread(
                     target=agent.run_turn,
                     args=(chat, text, self, self.cad, self.dispatcher),
+                    kwargs={"image": image},
                     daemon=True,
                 ).start()
         elif action == "new_chat":

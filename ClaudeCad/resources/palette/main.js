@@ -30,9 +30,49 @@
     var approvalEl = document.getElementById("approval");
     var approvePlanBtn = document.getElementById("approvePlanBtn");
     var rejectPlanBtn = document.getElementById("rejectPlanBtn");
+    var attachBtn = document.getElementById("attachBtn");
+    var imageInput = document.getElementById("imageInput");
+    var attachmentEl = document.getElementById("attachment");
+    var attachNameEl = document.getElementById("attachName");
+    var removeImageBtn = document.getElementById("removeImageBtn");
 
     var busy = false;
     var hasKey = false;
+    var pendingImage = null;  // { media_type, data } for "build from image"
+
+    var MAX_IMAGE_DIM = 1568;  // Anthropic's recommended max edge; keeps tokens/payload sane
+
+    function clearImage() {
+        pendingImage = null;
+        imageInput.value = "";
+        attachmentEl.classList.add("hidden");
+    }
+
+    function loadImage(file) {
+        if (!file || file.type.indexOf("image/") !== 0) {
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var img = new Image();
+            img.onload = function () {
+                var scale = Math.min(1, MAX_IMAGE_DIM / Math.max(img.width, img.height));
+                var w = Math.max(1, Math.round(img.width * scale));
+                var h = Math.max(1, Math.round(img.height * scale));
+                var canvas = document.createElement("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                var dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+                pendingImage = { media_type: "image/jpeg", data: dataUrl.split(",")[1] };
+                attachNameEl.textContent = file.name || "image";
+                attachmentEl.classList.remove("hidden");
+            };
+            img.onerror = function () { clearImage(); };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 
     function openSettings() {
         settingsEl.classList.remove("hidden");
@@ -167,14 +207,27 @@
 
     function submit(text) {
         var value = (text !== undefined ? text : inputEl.value).trim();
-        if (!value || busy) {
+        if ((!value && !pendingImage) || busy) {
             return;
         }
         // Python echoes the user message back (so it lands in this chat's history),
         // so we don't render it optimistically here.
-        sendData("send", { text: value });
+        var payload = { text: value };
+        if (pendingImage) {
+            payload.image = pendingImage;
+        }
+        sendData("send", payload);
         inputEl.value = "";
+        clearImage();
     }
+
+    attachBtn.addEventListener("click", function () { imageInput.click(); });
+    imageInput.addEventListener("change", function () {
+        if (imageInput.files && imageInput.files[0]) {
+            loadImage(imageInput.files[0]);
+        }
+    });
+    removeImageBtn.addEventListener("click", clearImage);
 
     composer.addEventListener("submit", function (e) {
         e.preventDefault();
@@ -272,6 +325,7 @@
                     messagesEl.innerHTML = "";
                     setStatus(false, "");
                     setApproval(false);
+                    clearImage();
                     break;
                 case "chats":
                     renderChats(d.chats);

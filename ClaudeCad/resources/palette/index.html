@@ -62,8 +62,15 @@
         <button id="discardBtn" type="button" class="quick discard">Discard &amp; start over</button>
     </div>
 
+    <div id="attachment" class="attachment hidden">
+        <span class="attach-name">🖼 <span id="attachName">image</span></span>
+        <button id="removeImageBtn" type="button" class="icon-btn" title="Remove image" aria-label="Remove image">✕</button>
+    </div>
+
     <form id="composer" class="composer">
-        <textarea id="input" rows="2" placeholder="Describe the part you want to design…"></textarea>
+        <button id="attachBtn" type="button" class="attach-btn" title="Attach an image to build from" aria-label="Attach image">📎</button>
+        <input id="imageInput" type="file" accept="image/*" hidden />
+        <textarea id="input" rows="2" placeholder="Describe the part, or attach an image to build from…"></textarea>
         <button id="sendBtn" type="submit" class="send">Send</button>
     </form>
 

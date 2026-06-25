@@ -49,6 +49,21 @@ def _await_approval(chat, ui, plan, alive, timeout=600.0):
     return bool(decision)
 
 
+def _build_user_content(text, image=None):
+    """Build the content for a user turn: a plain string, or (when an image is attached) a
+    list with an image block followed by the text, so Claude can 'build from image'."""
+    if image and image.get("data"):
+        return [
+            {"type": "image", "source": {
+                "type": "base64",
+                "media_type": image.get("media_type", "image/jpeg"),
+                "data": image["data"],
+            }},
+            {"type": "text", "text": text or "Build a 3D model of the object shown in this image."},
+        ]
+    return text
+
+
 def _tool_names_in(messages):
     """All tool names already invoked across the conversation (from assistant tool_use blocks)."""
     names = set()
@@ -73,6 +88,12 @@ Follow this workflow:
    method (screws / dowels / dado / auto) — and any unstated key dimensions — and WAIT for
    the user's answer before calling build_cabinet. Never guess or silently default the
    joinery method.
+1b. BUILD FROM IMAGE: when the user attaches an image, study it and describe what you see —
+   the object, its main shapes/features, and proportions. An image carries NO scale, so you
+   MUST ask the user for at least one real dimension (e.g. overall width or height) to set the
+   scale before modeling; infer the other dimensions from the image's proportions and state
+   your assumptions. Then build sketch-first and parametric as usual, and capture_view to
+   compare your result against the reference before asking for approval.
 2. Every design starts with sketches. Create sketches first, then features.
 2a. NAME things so the browser tree is clear: give each sketch a readable name via
    create_sketch's `name`, and name every body you create (pass `name` to extrude/revolve, or
@@ -256,7 +277,7 @@ def _strip_orphan_tool_uses(messages):
     return result
 
 
-def run_turn(chat, user_text, ui, cad, dispatcher):
+def run_turn(chat, user_text, ui, cad, dispatcher, image=None):
     """Process one user message in ``chat``: call Claude, run tool calls, surface replies.
 
     Runs on a background thread. UI updates and CAD tool execution are marshalled to the
@@ -292,7 +313,7 @@ def run_turn(chat, user_text, ui, cad, dispatcher):
     chat.busy = True
     ui.status(chat, True, "Thinking…")
     try:
-        chat.messages.append({"role": "user", "content": user_text})
+        chat.messages.append({"role": "user", "content": _build_user_content(user_text, image)})
 
         while alive():
             # Repair orphaned tool_use from an interrupted turn, then compact old context.

@@ -147,6 +147,10 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   location) for targeting. Meshes are detected but aren't parametric, so they can't be edited.
 - **Vision:** `capture_view` screenshots the viewport so Claude can *see* the model and
   self-correct before asking you to approve.
+- **Build from image:** attach a reference photo or sketch with the **📎** button next to the
+  message box; Claude studies it and builds the model. Because an image has no scale, it asks
+  you for one real dimension (e.g. overall width) first, then infers the rest from the image's
+  proportions. The image is downscaled in the browser before sending.
 
 ## Updating
 
