@@ -82,6 +82,12 @@ def summarize_call(name, tool_input):
         return "Add {} drawer(s)".format(ti.get("count", 1))
     if name == "promote_to_components":
         return "Promote all bodies into separate components"
+    if name == "undo_last":
+        return "Undo the most recent operation"
+    if name == "export_cut_list":
+        return "Export a CSV cut list"
+    if name == "export_dxf":
+        return "Export DXF flat panels"
     return name
 
 # Tools that act on the live viewport selection: get_selection must be read first.

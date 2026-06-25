@@ -100,10 +100,19 @@ class CadBuilder:
                     pass
             self._last_feature = None
             self._last_body = None
+            # Drop any sketch ids whose sketch was just deleted, so they can't be reused.
+            self._sketches = {sid: sk for sid, sk in self._sketches.items() if self._sketch_valid(sk)}
             return "Undid the last operation ('{}') — removed {} feature(s){}.".format(
                 op["name"], len(entities),
                 " and {} parameter(s)".format(len(params)) if params else "")
         return "There's nothing from this session to undo."
+
+    @staticmethod
+    def _sketch_valid(sketch):
+        try:
+            return bool(sketch.isValid)
+        except Exception:
+            return False
 
     def _active_doc_key(self):
         """A stable-ish identifier for the active document (data file id, else its name)."""
@@ -1588,8 +1597,8 @@ class CadBuilder:
             face = self._largest_planar_face(b)
             if not face:
                 continue
+            sketch = self._own(comp.sketches.add(face))
             try:
-                sketch = self._own(comp.sketches.add(face))
                 sketch.project(face)
                 path = os.path.join(outdir, "{}_{}.dxf".format(util.safe_export_basename(b.name), i))
                 sketch.saveAsDXF(path)
@@ -1598,6 +1607,13 @@ class CadBuilder:
                 raise RuntimeError(
                     "DXF export failed for body '{}' ({}). Paste this and I'll adapt it.".format(b.name, exc)
                 )
+            finally:
+                # The sketch is only a means to the DXF; remove it so repeated exports don't
+                # clutter the timeline/browser (export isn't part of an undo group).
+                try:
+                    sketch.deleteMe()
+                except Exception:
+                    pass
         return "Wrote {} DXF panel(s) to {}".format(written, outdir)
 
     def capture_view(self):
