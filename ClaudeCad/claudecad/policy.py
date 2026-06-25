@@ -28,12 +28,14 @@ RISK = {
     "add_face_frame": BUILD, "add_doors": BUILD, "add_drawers": BUILD,
     "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
-    "drill_holes": MODIFY, "undo_last": MODIFY, "promote_to_components": MODIFY,
+    "drill_holes": MODIFY, "drill_holes_on_face": MODIFY,
+    "undo_last": MODIFY, "promote_to_components": MODIFY,
     "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT,
 }
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
-DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid", "drill_holes"}
+DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid",
+               "drill_holes", "drill_holes_on_face"}
 
 # Tools that should be gated behind explicit user confirmation in a preview/approve UI.
 REQUIRES_CONFIRMATION = DESTRUCTIVE | {
@@ -74,6 +76,9 @@ def summarize_call(name, tool_input):
         return "Export the model as {}".format((ti.get("format") or "step").upper())
     if name == "drill_holes":
         return "Drill {} hole(s) into body[{}]".format(len(ti.get("holes") or []), ti.get("body_index"))
+    if name == "drill_holes_on_face":
+        return "Drill {} hole(s) on face[{}] of body[{}]".format(
+            len(ti.get("points") or []), ti.get("face_index"), ti.get("body_index"))
     if name == "add_face_frame":
         return "Add a face frame to the {}x{} mm cabinet front".format(ti.get("width"), ti.get("height"))
     if name == "add_doors":
@@ -97,7 +102,7 @@ REQUIRES_SELECTION = {"fillet_selection", "chamfer_selection", "cut_hole_selecti
 # indices/names are valid against the current model rather than guessed.
 REQUIRES_INSPECTION = {
     "cut_hole", "combine_bodies", "move_body", "fillet_edges", "chamfer_edges",
-    "add_thread", "mesh_to_solid", "change_parameter", "drill_holes",
+    "add_thread", "mesh_to_solid", "change_parameter", "drill_holes", "drill_holes_on_face",
 }
 
 # Calls that count as "inspecting" the model (any one satisfies REQUIRES_INSPECTION).
@@ -232,6 +237,13 @@ def validate(name, tool_input):
                 raise ValueError("Hole {} must be an object.".format(i))
             _check_len("hole {} diameter".format(i), h.get("diameter"))
             _check_len("hole {} depth".format(i), h.get("depth"))
+    elif name == "drill_holes_on_face":
+        pts = ti.get("points")
+        if not isinstance(pts, list) or not pts:
+            raise ValueError("drill_holes_on_face needs a non-empty 'points' list ({u, v} mm).")
+        _check_len("diameter", ti.get("diameter"))
+        if ti.get("depth") is not None:
+            _check_len("depth", ti.get("depth"))
     elif name == "export_model":
         from . import util
         if util.export_extension(ti.get("format", "step")) is None:

@@ -517,6 +517,39 @@ TOOLS = [
         },
     },
     {
+        "name": "drill_holes_on_face",
+        "description": (
+            "Drill holes positioned in a FACE'S OWN 2D frame — the reliable way to place "
+            "dowel / shelf-pin / hinge holes without computing world coordinates. First call "
+            "list_faces to get the target face's u/v directions and extents, then give each "
+            "hole as {u, v} in mm measured from the face's (min u, min v) corner. Holes are cut "
+            "perpendicular into the panel (blind 'depth', or through-all if omitted). Refuses a "
+            "diameter too large for the face."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "Which solid body (from inspect_model)."},
+                "face_index": {"type": "integer", "description": "Planar face from list_faces (use its reported u/v frame)."},
+                "points": {
+                    "type": "array",
+                    "description": "Hole positions in the face's 2D frame.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "u": {"type": "number", "description": "mm along the face's u axis from its corner."},
+                            "v": {"type": "number", "description": "mm along the face's v axis from its corner."},
+                        },
+                        "required": ["u", "v"],
+                    },
+                },
+                "diameter": {"type": "number", "description": "Hole diameter in mm."},
+                "depth": {"type": "number", "description": "Blind-hole depth in mm. Omit for through-all."},
+            },
+            "required": ["body_index", "face_index", "points", "diameter"],
+        },
+    },
+    {
         "name": "add_face_frame",
         "description": (
             "EXPERIMENTAL casework: apply a face frame (left/right stiles + top/bottom rails) to "
@@ -738,6 +771,9 @@ def execute(name, tool_input, cad):
         )
     if name == "drill_holes":
         return cad.drill_holes(int(ti["body_index"]), list(ti["holes"]))
+    if name == "drill_holes_on_face":
+        return cad.drill_holes_on_face(int(ti["body_index"]), int(ti["face_index"]),
+                                       list(ti["points"]), float(ti["diameter"]), ti.get("depth"))
     if name == "add_face_frame":
         return cad.add_face_frame(float(ti["width"]), float(ti["height"]),
                                   float(ti.get("stile", 38.0)), float(ti.get("rail", 38.0)),
