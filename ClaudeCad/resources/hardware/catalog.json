@@ -1,0 +1,85 @@
+{
+  "_about": "Hardware drill-pattern catalog. Coordinates are face-local in mm: du = along the face's u axis, dv = along its v axis, measured from the anchor point you pass to drill_for_hardware. These are STANDARD industry patterns (35 mm system, System 32) seeded from public specs — always verify against the exact SKU's spec sheet. Manufacturers' proprietary 3D models are NOT bundled (licensing); add your own exact entries to ~/.claudecad/hardware.json (same schema under a 'hardware' list).",
+  "hardware": [
+    {
+      "id": "euro_hinge_cup_35",
+      "brand": "Blum / Hettich / Häfele",
+      "category": "hinge",
+      "name": "Concealed hinge cup — 35 mm system",
+      "datum": "cup centre on the door's inner face",
+      "notes": "Universal 35 mm cup. Cup-centre setback from the door edge is typically 3-6 mm of edge-to-cup gap (~21-24 mm edge-to-centre for full overlay); confirm with the hinge's boring chart. Mounting screws are placed per the hinge template (omitted here).",
+      "holes": [
+        {"role": "cup", "du": 0.0, "dv": 0.0, "diameter": 35.0, "depth": 12.0}
+      ]
+    },
+    {
+      "id": "hinge_plate_screws",
+      "brand": "Blum / Hettich / Häfele",
+      "category": "hinge",
+      "name": "Hinge mounting-plate screw pair (System 32)",
+      "datum": "midpoint between the two screw holes on the cabinet side",
+      "notes": "Cabinet-side mounting plate fixes on the 32 mm system line; the two screws sit 32 mm apart vertically. Pilot 4 mm unless your screws differ.",
+      "holes": [
+        {"role": "screw", "du": 0.0, "dv": 16.0, "diameter": 4.0, "depth": 12.0},
+        {"role": "screw", "du": 0.0, "dv": -16.0, "diameter": 4.0, "depth": 12.0}
+      ]
+    },
+    {
+      "id": "shelf_pin_5mm",
+      "brand": "Generic (Häfele / Blum / Hettich)",
+      "category": "support",
+      "name": "Shelf-pin bore — 5 mm (System 32)",
+      "datum": "the hole centre",
+      "notes": "Single 5 mm bore for a shelf pin. For a column, repeat at 32 mm pitch with a 37 mm front setback (System 32) — use drill_holes_on_face for the row, or add a multi-hole entry.",
+      "holes": [
+        {"role": "pin", "du": 0.0, "dv": 0.0, "diameter": 5.0, "depth": 12.0}
+      ]
+    },
+    {
+      "id": "minifix_15_housing",
+      "brand": "Häfele Minifix (and equivalents)",
+      "category": "connector",
+      "name": "Cam-housing bore — 15 mm",
+      "datum": "the housing-bore centre",
+      "notes": "15 mm housing bore in the face; pairs with an 8 mm dowel/bolt on the mating panel (drilled separately). Standard offset from the panel edge ~9.5 mm to bore centre; verify for the exact bolt length.",
+      "holes": [
+        {"role": "housing", "du": 0.0, "dv": 0.0, "diameter": 15.0, "depth": 12.5}
+      ]
+    },
+    {
+      "id": "dowel_8mm",
+      "brand": "Generic",
+      "category": "joinery",
+      "name": "Dowel bore — 8 mm",
+      "datum": "the hole centre",
+      "notes": "Standard 8 mm dowel bore, 12 mm deep (panel face) — pair across mating parts.",
+      "holes": [
+        {"role": "dowel", "du": 0.0, "dv": 0.0, "diameter": 8.0, "depth": 12.0}
+      ]
+    },
+    {
+      "id": "handle_pull_128",
+      "brand": "Generic",
+      "category": "handle",
+      "name": "Bar handle — 128 mm centres",
+      "datum": "midpoint between the two screw holes",
+      "notes": "Two through-holes for M4 handle screws at 128 mm centre-to-centre (common pitches: 96 / 128 / 160). Through-drilled; set depth to the door thickness or leave through-all.",
+      "holes": [
+        {"role": "screw", "du": -64.0, "dv": 0.0, "diameter": 5.0},
+        {"role": "screw", "du": 64.0, "dv": 0.0, "diameter": 5.0}
+      ]
+    },
+    {
+      "id": "drawer_slide_member_pair",
+      "brand": "Blum / Hettich / Häfele (generic)",
+      "category": "slide",
+      "name": "Drawer-slide cabinet-member fixing pair (System 32)",
+      "datum": "front fixing hole",
+      "notes": "Approximate cabinet-member fixing on the 32 mm line: front hole at the datum, rear hole 32 mm back along u. 4 mm pilots. Exact hole positions vary by slide model — verify against the slide's drilling diagram.",
+      "holes": [
+        {"role": "front", "du": 0.0, "dv": 0.0, "diameter": 4.0, "depth": 12.0},
+        {"role": "rear", "du": 32.0, "dv": 0.0, "diameter": 4.0, "depth": 12.0}
+      ]
+    }
+  ]
+}

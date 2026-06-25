@@ -132,6 +132,13 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   translate, since Fusion's animated exploded view isn't scriptable).
 - **BOM:** `export_bom` writes/returns a Bill of Materials (item #, qty, part, material,
   dimensions) grouped by part name — for a drawing's parts list or ordering.
+- **Hardware catalog:** `list_hardware` / `hardware_info` browse a catalog of cabinet hardware
+  (Blum / Hettich / Häfele + generic standards — hinges, slides, shelf pins, connectors,
+  handles), and `drill_for_hardware` bores the correct hole pattern onto a face. The catalog
+  is **extensible**: `add_hardware` saves exact parts to `~/.claudecad/hardware.json`. Seeded
+  entries are standard patterns (35 mm system, System 32) — verify against the exact SKU's
+  spec sheet. Manufacturers' proprietary 3D models aren't bundled (licensing); to place a real
+  part, download its STEP from the brand's CAD portal and import it.
 - **Cabinet fronts & assembly (experimental):** after `build_cabinet`, `add_face_frame`,
   `add_doors` (overlay/inset), and `add_drawers` (fronts + simple boxes) add the front;
   `promote_to_components` moves each panel into its own component to form a real assembly;

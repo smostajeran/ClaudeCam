@@ -141,6 +141,12 @@ Follow this workflow:
    For an exploded view, explode_assembly spreads the bodies apart (reassemble restores them
    exactly — it's a literal move, so always reassemble before exporting the assembled model).
    export_bom writes/returns a Bill of Materials (item/qty/part/material/size).
+   For cabinet hardware (hinges, drawer slides, shelf pins, connectors, handles from Blum /
+   Hettich / Häfele), use list_hardware to find a part, then drill_for_hardware on a face
+   (call list_faces first for its u/v frame) to bore the correct pattern. Catalogued patterns
+   are standards — tell the user to verify against the exact SKU's spec sheet; add exact parts
+   with add_hardware. Their proprietary 3D models aren't bundled — to place a real part, ask
+   the user to download its STEP from the brand's CAD portal and import it.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.

@@ -1006,6 +1006,24 @@ class CadBuilder:
         return "Drilled {} hole(s) on face [{}] of body [{}] (u/v from the face corner).".format(
             placed, face_index, body_index)
 
+    def drill_for_hardware(self, hardware_id, body_index, face_index, u, v):
+        """Drill a catalogued hardware pattern (hinge cup, slide holes, …) onto a face,
+        anchored at face-local (u, v) mm. Each distinct bore size is cut in one pass."""
+        from . import hardware
+        entry = hardware.get(hardware_id)
+        if not entry:
+            raise ValueError("Unknown hardware '{}'. Call list_hardware to see the catalog.".format(hardware_id))
+        groups = hardware.grouped_holes(entry, float(u), float(v))
+        if not groups:
+            raise ValueError("Hardware '{}' has no drill pattern.".format(hardware_id))
+        total = 0
+        for (diameter, depth), pts in groups.items():
+            points = [{"u": pu, "v": pv} for pu, pv in pts]
+            self.drill_holes_on_face(body_index, face_index, points, diameter, depth)
+            total += len(points)
+        return "Drilled {} hole(s) for {} [{}] on face [{}] of body [{}].".format(
+            total, entry.get("name", hardware_id), entry.get("brand", ""), face_index, body_index)
+
     # -- viewport selection (pick in Fusion, act in chat) --------------------
     def _selected_entities(self):
         sels = self.app.userInterface.activeSelections

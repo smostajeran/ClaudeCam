@@ -638,6 +638,78 @@ TOOLS = [
         },
     },
     {
+        "name": "list_hardware",
+        "description": (
+            "List the cabinet-hardware catalog (hinges, slides, shelf pins, connectors, handles "
+            "from Blum / Hettich / Häfele and generic standards), optionally filtered. Each entry "
+            "has a drill pattern you apply with drill_for_hardware. The catalog is extensible "
+            "(add exact parts with add_hardware); seeded patterns are standards — verify the SKU."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"filter_text": {"type": "string", "description": "Filter by id/brand/category/name, e.g. 'hinge'. Omit for all."}},
+        },
+    },
+    {
+        "name": "hardware_info",
+        "description": "Show one hardware item's details and exact drill pattern (hole offsets, diameters, depths, notes).",
+        "input_schema": {
+            "type": "object",
+            "properties": {"hardware_id": {"type": "string", "description": "Catalog id from list_hardware."}},
+            "required": ["hardware_id"],
+        },
+    },
+    {
+        "name": "drill_for_hardware",
+        "description": (
+            "Drill a catalogued hardware pattern onto a face (e.g. a 35 mm hinge cup, slide holes). "
+            "First call list_faces to get the face's u/v frame, then anchor the pattern at face-local "
+            "(u, v) mm. Each bore size is cut in one pass. Refuses oversized holes for the face."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "hardware_id": {"type": "string", "description": "Catalog id (from list_hardware)."},
+                "body_index": {"type": "integer", "description": "Which body (from inspect_model)."},
+                "face_index": {"type": "integer", "description": "Planar face (from list_faces; use its u/v frame)."},
+                "u": {"type": "number", "description": "Anchor position along the face u axis, mm."},
+                "v": {"type": "number", "description": "Anchor position along the face v axis, mm."},
+            },
+            "required": ["hardware_id", "body_index", "face_index", "u", "v"],
+        },
+    },
+    {
+        "name": "add_hardware",
+        "description": (
+            "Add or update a hardware catalog entry (saved to ~/.claudecad/hardware.json) so the "
+            "library grows with exact parts from a manufacturer spec sheet. Provide id, brand, "
+            "category, name, and 'holes' (each {du, dv, diameter, depth?} in mm relative to the anchor)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "brand": {"type": "string"},
+                "category": {"type": "string"},
+                "name": {"type": "string"},
+                "notes": {"type": "string"},
+                "holes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "du": {"type": "number"}, "dv": {"type": "number"},
+                            "diameter": {"type": "number"}, "depth": {"type": "number"},
+                            "role": {"type": "string"},
+                        },
+                        "required": ["diameter"],
+                    },
+                },
+            },
+            "required": ["id", "holes"],
+        },
+    },
+    {
         "name": "explode_assembly",
         "description": (
             "Move all bodies radially outward from the assembly centre for an exploded view "
@@ -840,6 +912,30 @@ def execute(name, tool_input, cad):
         return cad.promote_to_components()
     if name == "export_dxf":
         return cad.export_dxf(ti.get("folder"))
+    if name == "list_hardware":
+        from . import hardware
+        items = hardware.list_hardware(ti.get("filter_text", ""))
+        if not items:
+            return "No hardware matches that filter."
+        rows = ["{} [{}] — {} ({})".format(e.get("id"), e.get("category", ""), e.get("name", ""), e.get("brand", "")) for e in items]
+        return "Hardware catalog ({}):\n  ".format(len(items)) + "\n  ".join(rows)
+    if name == "hardware_info":
+        from . import hardware
+        e = hardware.get(ti["hardware_id"])
+        if not e:
+            return "No hardware with id '{}'. Use list_hardware.".format(ti["hardware_id"])
+        holes = "; ".join("{}@({:g},{:g}) d{:g}{}".format(
+            h.get("role", "hole"), h.get("du", 0), h.get("dv", 0), h["diameter"],
+            " x{:g}deep".format(h["depth"]) if h.get("depth") else " through") for h in e.get("holes", []))
+        return "{} ({}, {})\nDatum: {}\nHoles: {}\nNotes: {}".format(
+            e.get("name"), e.get("brand", ""), e.get("category", ""), e.get("datum", "—"), holes, e.get("notes", ""))
+    if name == "drill_for_hardware":
+        return cad.drill_for_hardware(ti["hardware_id"], int(ti["body_index"]), int(ti["face_index"]),
+                                      float(ti["u"]), float(ti["v"]))
+    if name == "add_hardware":
+        from . import hardware
+        entry = {k: ti[k] for k in ("id", "brand", "category", "name", "notes", "holes") if k in ti}
+        return "Saved hardware '{}' to your catalog.".format(hardware.add_hardware(entry))
     if name == "explode_assembly":
         return cad.explode_assembly(float(ti.get("factor", 0.6)))
     if name == "reassemble":

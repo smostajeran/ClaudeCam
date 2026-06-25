@@ -18,6 +18,7 @@ RISK = {
     "get_design_summary": READ, "inspect_model": READ, "list_faces": READ,
     "list_edges": READ, "get_selection": READ, "get_mass_properties": READ,
     "list_materials": READ, "capture_view": READ,
+    "list_hardware": READ, "hardware_info": READ, "add_hardware": READ,
     "create_parameter": BUILD, "create_sketch": BUILD, "draw_rectangle": BUILD,
     "draw_circle": BUILD, "draw_line": BUILD, "draw_polygon": BUILD,
     "extrude": BUILD, "revolve": BUILD, "loft": BUILD, "sweep": BUILD,
@@ -28,7 +29,7 @@ RISK = {
     "add_face_frame": BUILD, "add_doors": BUILD, "add_drawers": BUILD,
     "change_parameter": MODIFY, "cut_hole": MODIFY, "cut_hole_selection": MODIFY,
     "combine_bodies": MODIFY, "move_body": MODIFY, "mesh_to_solid": MODIFY,
-    "drill_holes": MODIFY, "drill_holes_on_face": MODIFY,
+    "drill_holes": MODIFY, "drill_holes_on_face": MODIFY, "drill_for_hardware": MODIFY,
     "undo_last": MODIFY, "promote_to_components": MODIFY, "rename_body": MODIFY,
     "explode_assembly": MODIFY, "reassemble": MODIFY,
     "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT, "export_bom": EXPORT,
@@ -36,7 +37,7 @@ RISK = {
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
 DESTRUCTIVE = {"combine_bodies", "cut_hole", "cut_hole_selection", "mesh_to_solid",
-               "drill_holes", "drill_holes_on_face"}
+               "drill_holes", "drill_holes_on_face", "drill_for_hardware"}
 
 # Tools that should be gated behind explicit user confirmation in a preview/approve UI.
 REQUIRES_CONFIRMATION = DESTRUCTIVE | {
@@ -94,6 +95,9 @@ def summarize_call(name, tool_input):
         return "Reassemble to built positions"
     if name == "export_bom":
         return "Export a Bill of Materials"
+    if name == "drill_for_hardware":
+        return "Drill the '{}' pattern on face[{}] at u={}, v={}".format(
+            ti.get("hardware_id"), ti.get("face_index"), ti.get("u"), ti.get("v"))
     if name == "undo_last":
         return "Undo the most recent operation"
     if name == "export_cut_list":
@@ -110,6 +114,7 @@ REQUIRES_SELECTION = {"fillet_selection", "chamfer_selection", "cut_hole_selecti
 REQUIRES_INSPECTION = {
     "cut_hole", "combine_bodies", "move_body", "fillet_edges", "chamfer_edges",
     "add_thread", "mesh_to_solid", "change_parameter", "drill_holes", "drill_holes_on_face",
+    "drill_for_hardware",
 }
 
 # Calls that count as "inspecting" the model (any one satisfies REQUIRES_INSPECTION).
