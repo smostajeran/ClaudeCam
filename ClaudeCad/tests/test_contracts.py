@@ -11,10 +11,11 @@ exercised by the manual smoke tests in tests/SMOKE.md, since it needs the host.
 import os
 import re
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from claudecad import agent, hardware, policy, tools, util  # noqa: E402
+from claudecad import agent, hardware, policy, tools, updater, util  # noqa: E402
 
 
 # -- tool schema <-> dispatch parity ----------------------------------------
@@ -124,6 +125,54 @@ def test_build_tools_have_no_prerequisites():
 
 
 # -- unit conversion --------------------------------------------------------
+
+def _make_staged(root, version="9.9.9", complete=True):
+    os.makedirs(os.path.join(root, "claudecad"), exist_ok=True)
+    files = {"ClaudeCad.py": "x", "ClaudeCad.manifest": "{}",
+             "VERSION": version + "\n", os.path.join("claudecad", "__init__.py"): ""}
+    if not complete:
+        del files["VERSION"]
+    for rel, content in files.items():
+        with open(os.path.join(root, rel), "w") as fh:
+            fh.write(content)
+    return list(files.keys())
+
+
+def test_updater_validate_staged_complete_and_version():
+    with tempfile.TemporaryDirectory() as d:
+        _make_staged(d, "9.9.9")
+        assert updater._validate_staged(d, "9.9.9") == "9.9.9"
+
+
+def test_updater_validate_rejects_incomplete_or_mismatched():
+    with tempfile.TemporaryDirectory() as d:
+        _make_staged(d, complete=False)
+        try:
+            updater._validate_staged(d, "9.9.9")
+            assert False, "expected incomplete archive to be rejected"
+        except RuntimeError:
+            pass
+    with tempfile.TemporaryDirectory() as d:
+        _make_staged(d, "1.0.0")
+        try:
+            updater._validate_staged(d, "9.9.9")
+            assert False, "expected version mismatch to be rejected"
+        except RuntimeError:
+            pass
+
+
+def test_updater_install_with_backup_copies_files():
+    with tempfile.TemporaryDirectory() as staging, tempfile.TemporaryDirectory() as dest:
+        rels = _make_staged(staging, "9.9.9")
+        # a pre-existing file in dest should be overwritten (and could be rolled back)
+        with open(os.path.join(dest, "VERSION"), "w") as fh:
+            fh.write("old\n")
+        count = updater._install_with_backup(staging, dest, rels)
+        assert count == len(rels)
+        with open(os.path.join(dest, "VERSION")) as fh:
+            assert fh.read().strip() == "9.9.9"
+        assert os.path.isfile(os.path.join(dest, "claudecad", "__init__.py"))
+
 
 def test_turn_guard_one_at_a_time_and_clear():
     g = util.TurnGuard()

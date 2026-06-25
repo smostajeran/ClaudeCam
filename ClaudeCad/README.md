@@ -166,6 +166,12 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 
 - The current version shows next to the logo (and in **Settings**). It's read from the `VERSION` file and bumped on each change.
 - **Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`), installs it over itself, and then **reloads itself in place** — it tears down and rebuilds the panel from the new code so you don't have to Stop/Run by hand. (The persistent main-thread event bridge is reused rather than re-registered, which is what makes the live reload safe.) If the in-place reload can't complete, it falls back to asking you to **Stop, then Run** the add-in manually. Note: the *first* update to a build that has this feature still needs a manual Stop/Run, because the old code (without auto-reload) is the one performing that update; auto-reload kicks in from then on.
+- Updates are installed **safely**: the new add-in is extracted to a staging folder and
+  validated (it must be a complete add-in whose VERSION matches) before anything is replaced,
+  and each replaced file is backed up so a mid-install failure **rolls back** to the working
+  version — no half-updated state. (Artifacts aren't cryptographically signed yet; that needs a
+  release/signing pipeline.) If your install ever ends up half-updated (e.g. a startup
+  `AttributeError`), re-run the install (a clean copy of the `ClaudeCad/` folder) to fix it.
 - Self-update pulls from `smostajeran/ClaudeCam` via the GitHub API. If that repo is **private**, paste a GitHub token (fine-grained PAT with **Contents: Read**) into the **GitHub token** field in Settings — or set `GITHUB_TOKEN` / add `"github_token"` to `~/.claudecad/config.json`. Otherwise make the repo public. Your API key and settings are untouched by an update.
 
 ## Notes & limitations
