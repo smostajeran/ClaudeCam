@@ -145,6 +145,16 @@ class CadBuilder:
         except Exception:
             return False
 
+    @staticmethod
+    def _name(entity, name):
+        """Give a sketch/body a readable browser name (best-effort)."""
+        try:
+            if entity and name:
+                entity.name = name
+        except Exception:
+            pass
+        return entity
+
     # -- internals -----------------------------------------------------------
     def _design(self):
         design = adsk.fusion.Design.cast(self.app.activeProduct)
@@ -358,7 +368,7 @@ class CadBuilder:
         return "Drew a line in {} from ({:g},{:g}) to ({:g},{:g}) mm.".format(sketch_id, x1, y1, x2, y2)
 
     # -- features ------------------------------------------------------------
-    def extrude(self, sketch_id, distance, operation="new", profile_index=0, symmetric=False, start_offset=None):
+    def extrude(self, sketch_id, distance, operation="new", profile_index=0, symmetric=False, start_offset=None, name=None):
         sketch = self._sketch(sketch_id)
         if sketch.profiles.count == 0:
             raise RuntimeError("Sketch {} has no closed profile to extrude.".format(sketch_id))
@@ -380,6 +390,8 @@ class CadBuilder:
             )
         ext_input.setDistanceExtent(bool(symmetric), adsk.core.ValueInput.createByString(self._length(distance)))
         self._remember(comp.features.extrudeFeatures.add(ext_input))
+        if name and (operation or "new").lower() == "new":
+            self._name(self._last_body, name)
 
         extras = []
         if symmetric:
@@ -391,7 +403,7 @@ class CadBuilder:
             profile_index, sketch_id, self._length(distance), operation, suffix
         )
 
-    def revolve(self, sketch_id, axis="z", angle=360, operation="new", profile_index=0):
+    def revolve(self, sketch_id, axis="z", angle=360, operation="new", profile_index=0, name=None):
         sketch = self._sketch(sketch_id)
         if sketch.profiles.count == 0:
             raise RuntimeError("Sketch {} has no closed profile to revolve.".format(sketch_id))
@@ -405,6 +417,8 @@ class CadBuilder:
         angle_expr = angle if isinstance(angle, str) else "{:g} deg".format(float(angle))
         rev_input.setAngleExtent(False, adsk.core.ValueInput.createByString(angle_expr))
         self._remember(comp.features.revolveFeatures.add(rev_input))
+        if name and (operation or "new").lower() == "new":
+            self._name(self._last_body, name)
         return "Revolved profile {} of {} about the {} axis by {}.".format(profile_index, sketch_id, axis, angle_expr)
 
     def fillet_all_edges(self, radius):
@@ -827,7 +841,7 @@ class CadBuilder:
             )
 
         comp = self._comp()
-        sketch = self._own(comp.sketches.add(face))
+        sketch = self._name(self._own(comp.sketches.add(face)), "Hole")
         center_sketch = sketch.modelToSketchSpace(face.pointOnFace)
         center = adsk.core.Point3D.create(
             center_sketch.x + float(x_offset) * MM, center_sketch.y + float(y_offset) * MM, 0.0
@@ -903,7 +917,7 @@ class CadBuilder:
                 pin = comp.constructionPlanes.createInput()
                 pin.setByOffset(base, adsk.core.ValueInput.createByString("{:g} mm".format(off)))
                 plane = self._own(comp.constructionPlanes.add(pin))
-                sketch = self._own(comp.sketches.add(plane))
+                sketch = self._name(self._own(comp.sketches.add(plane)), "Drilled Hole")
                 sp = sketch.modelToSketchSpace(adsk.core.Point3D.create(x * MM, y * MM, z * MM))
                 sketch.sketchCurves.sketchCircles.addByCenterRadius(
                     adsk.core.Point3D.create(sp.x, sp.y, 0.0), (d / 2.0) * MM)
@@ -958,7 +972,7 @@ class CadBuilder:
             raise ValueError("No points given. Each point is {'u': mm, 'v': mm} from the face corner.")
 
         comp = self._comp()
-        sketch = self._own(comp.sketches.add(face))
+        sketch = self._name(self._own(comp.sketches.add(face)), "Drilled Holes")
         placed = 0
         for p in pts:
             pu, pv = float(p["u"]), float(p["v"])
@@ -1089,6 +1103,15 @@ class CadBuilder:
         # Remember the move feature so a following pattern targets it, not the prior feature.
         self._remember(moves.add(move_input))
         return "Moved body [{}] by ({:g}, {:g}, {:g}) mm.".format(body_index, float(dx), float(dy), float(dz))
+
+    def rename_body(self, body_index, name):
+        """Give a solid body a readable name in the browser (body indices from inspect_model)."""
+        body = self._brep_body(body_index)
+        if not name or not str(name).strip():
+            raise ValueError("Provide a non-empty name.")
+        old = body.name
+        body.name = str(name).strip()
+        return "Renamed body [{}] from '{}' to '{}'.".format(body_index, old, body.name)
 
     def draw_polygon(self, sketch_id, sides, radius, center_x=0.0, center_y=0.0):
         sketch = self._sketch(sketch_id)
@@ -1413,7 +1436,7 @@ class CadBuilder:
             pin = comp.constructionPlanes.createInput()
             pin.setByOffset(comp.xYConstructionPlane, adsk.core.ValueInput.createByString(z0_expr))
             plane = self._own(comp.constructionPlanes.add(pin))
-        sketch = self._own(comp.sketches.add(plane))
+        sketch = self._name(self._own(comp.sketches.add(plane)), "{} Sketch".format(name))
         rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
             adsk.core.Point3D.create(x0 * MM, y0 * MM, 0.0),
             adsk.core.Point3D.create(x1 * MM, y1 * MM, 0.0),
@@ -1444,7 +1467,7 @@ class CadBuilder:
             pin = comp.constructionPlanes.createInput()
             pin.setByOffset(comp.xYConstructionPlane, adsk.core.ValueInput.createByString("{:g} mm".format(z0)))
             plane = self._own(comp.constructionPlanes.add(pin))
-        sketch = self._own(comp.sketches.add(plane))
+        sketch = self._name(self._own(comp.sketches.add(plane)), "Groove")
         sketch.sketchCurves.sketchLines.addTwoPointRectangle(
             adsk.core.Point3D.create(x0 * MM, y0 * MM, 0.0),
             adsk.core.Point3D.create(x1 * MM, y1 * MM, 0.0),
