@@ -305,18 +305,19 @@ def run_turn(chat, user_text, ui, cad, dispatcher, image=None):
         )
         return
 
-    # Document-level guard: only one turn may mutate the shared Fusion design at a time.
-    # Taken non-blocking so a second chat is told to wait rather than silently queuing
-    # and interleaving tool calls into the same document.
-    lock = getattr(cad, "turn_lock", None)
-    if lock is not None and not lock.acquire(blocking=False):
-        ui.system_for(chat, "ClaudeCad is busy with another chat — please wait for it to finish.")
-        return
-
     gen = chat.generation
 
     def alive():
         return chat.generation == gen
+
+    # Document-level guard: only one turn may mutate the shared Fusion design at a time. This
+    # is a marker (not a held lock), so Stop/Discard can free it immediately even while this
+    # worker is still blocked in a network call.
+    turns = getattr(cad, "turns", None)
+    turn_key = (id(chat), gen)
+    if turns is not None and not turns.try_begin(turn_key):
+        ui.system_for(chat, "ClaudeCad is busy with another chat — finish or Stop it first.")
+        return
 
     chat.busy = True
     ui.status(chat, True, "Thinking…")
@@ -435,8 +436,7 @@ def run_turn(chat, user_text, ui, cad, dispatcher, image=None):
         if alive():
             chat.busy = False
             ui.status(chat, False, "")
-        if lock is not None:
-            try:
-                lock.release()
-            except Exception:
-                pass
+        # Release the document slot only if this turn still owns it (Stop/Discard may have
+        # freed it and a newer turn may now hold it — don't clobber that).
+        if turns is not None:
+            turns.end(turn_key)

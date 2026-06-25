@@ -6,8 +6,49 @@ which imports ``adsk`` and can't load outside Fusion) lets the test suite exerci
 
 import os
 import re
+import threading
 
 MM = 0.1  # millimetres -> centimetres (Fusion's internal length unit)
+
+
+class TurnGuard:
+    """One-CAD-turn-at-a-time guard for the shared document.
+
+    Unlike a held lock (which a cancelled/blocked worker can't release from another thread),
+    this is a marker: ``try_begin`` claims the slot for a key, ``end`` releases it only if the
+    key still owns it, and ``clear_owner`` (Stop/Discard) frees the slot immediately so a new
+    turn can start even while the old worker is still unwinding a blocked network call.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._active = None  # the key (e.g. (chat_id, generation)) currently running
+
+    def try_begin(self, key):
+        with self._lock:
+            if self._active is not None:
+                return False
+            self._active = key
+            return True
+
+    def end(self, key):
+        with self._lock:
+            if self._active == key:
+                self._active = None
+                return True
+            return False
+
+    def clear_owner(self, owner):
+        """Free the slot if its key's first element matches ``owner`` (e.g. a chat id)."""
+        with self._lock:
+            if self._active is not None and self._active[0] == owner:
+                self._active = None
+                return True
+            return False
+
+    def active(self):
+        with self._lock:
+            return self._active
 
 
 def mm_to_cm(mm):
