@@ -105,8 +105,11 @@ Follow this workflow:
    squares the carcass — prefer this over a flush back unless the user asks for 'inset' or
    'overlay'. build_cabinet builds fixed geometry by default; only pass parametric=true if the
    user explicitly wants named parameters (it's still being validated). To add dowel /
-   shelf-pin / fastener holes, prefer drill_holes (absolute coordinates + boolean cut) over
-   cut_hole — it's deterministic, won't be thrown off by a panel's frame; pass numeric mm.
+   shelf-pin / fastener holes, prefer drill_holes_on_face: call list_faces first to read the
+   target face's u/v directions and extents, then place each hole as {u, v} in mm from the
+   face corner (e.g. shelf-pins 37 mm from the front edge, every 32 mm up). This keeps you in
+   the panel's own frame so positions don't drift. Use drill_holes (absolute world coords) only
+   when you genuinely know the world position; both refuse a diameter too big for the face.
    After a cabinet, you can add fronts with add_face_frame / add_doors / add_drawers (pass the
    same width/height/depth you built it with), promote_to_components to make a real assembly,
    and export_cut_list / export_dxf for the shop. These casework-front tools are EXPERIMENTAL.

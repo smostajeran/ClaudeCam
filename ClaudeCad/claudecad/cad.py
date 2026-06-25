@@ -609,9 +609,15 @@ class CadBuilder:
                 vol = " volume {:.2f} cm^3".format(b.volume)
             except Exception:
                 vol = ""
+            bb = b.boundingBox
+            pos = " at X[{:.1f}..{:.1f}] Y[{:.1f}..{:.1f}] Z[{:.1f}..{:.1f}] mm".format(
+                self._mm(bb.minPoint.x), self._mm(bb.maxPoint.x),
+                self._mm(bb.minPoint.y), self._mm(bb.maxPoint.y),
+                self._mm(bb.minPoint.z), self._mm(bb.maxPoint.z),
+            )
             lines.append(
-                "  [{}] '{}' — size {:.1f} x {:.1f} x {:.1f} mm, faces {}, edges {}{}, visible {}".format(
-                    i, b.name, dx, dy, dz, b.faces.count, b.edges.count, vol, b.isVisible
+                "  [{}] '{}' — size {:.1f} x {:.1f} x {:.1f} mm{}, faces {}, edges {}{}, visible {}".format(
+                    i, b.name, dx, dy, dz, pos, b.faces.count, b.edges.count, vol, b.isVisible
                 )
             )
 
@@ -648,17 +654,25 @@ class CadBuilder:
             except Exception:
                 loc = self._fmt_pt(f.boundingBox.minPoint)
             normal = ""
+            frame = ""
             if kind == "plane":
                 try:
                     n = adsk.core.Plane.cast(f.geometry).normal
                     normal = " normal ({:.2f}, {:.2f}, {:.2f})".format(n.x, n.y, n.z)
                 except Exception:
                     pass
+                uv = self._face_uv(f)
+                if uv:
+                    _o, u, v, us, vs = uv
+                    frame = (" | face frame for drill_holes_on_face: "
+                             "u 0..{:.0f}mm along ({:.2f},{:.2f},{:.2f}), "
+                             "v 0..{:.0f}mm along ({:.2f},{:.2f},{:.2f})".format(
+                                 us, u.x, u.y, u.z, vs, v.x, v.y, v.z))
             try:
                 area = " area {:.1f} mm^2".format(f.area / (MM * MM))
             except Exception:
                 area = ""
-            rows.append("  [{}] {}{} at {} mm{}".format(i, kind, area, loc, normal))
+            rows.append("  [{}] {}{} at {} mm{}{}".format(i, kind, area, loc, normal, frame))
         header = "Body [{}] '{}' has {} faces".format(body_index, body.name, total)
         if total > limit:
             header += " (showing first {})".format(limit)
@@ -735,31 +749,47 @@ class CadBuilder:
         depth_note = self._length(depth) if depth else "through all"
         return "Cut a {:g} mm hole through face [{}] of body [{}] ({}).".format(r_mm, face_index, body_index, depth_note)
 
-    def _face_min_span(self, face):
-        """Smaller of the face's two in-plane extents, in mm.
+    def _face_uv(self, face):
+        """Return the face's local 2D frame: (origin_point, u_dir, v_dir, u_size_mm, v_size_mm).
 
-        Projects the face's edge vertices onto its own plane (u, v) axes so the result is
-        correct for rotated/angled faces, not just axis-aligned ones. Falls back to the world
-        axis-aligned bounding box if the plane/vertex query isn't available.
+        ``origin`` is the (min u, min v) corner of the face in world space; ``u_dir``/``v_dir``
+        are unit world vectors along the face plane. Face-local coordinates (u, v) in mm map to
+        the world point ``origin + u*u_dir + v*v_dir``. Returns None if it can't be determined.
         """
         plane = adsk.core.Plane.cast(face.geometry)
+        if not plane:
+            return None
         try:
             dirs = plane.getUVDirections()
             u, v = dirs[-2], dirs[-1]  # binding may return (u, v) or (success, u, v)
-            origin = plane.origin
+            o = plane.origin
             us, vs = [], []
             edges = face.edges
             for i in range(edges.count):
                 e = edges.item(i)
                 for vert in (e.startVertex, e.endVertex):
                     p = vert.geometry
-                    dx, dy, dz = p.x - origin.x, p.y - origin.y, p.z - origin.z
+                    dx, dy, dz = p.x - o.x, p.y - o.y, p.z - o.z
                     us.append(dx * u.x + dy * u.y + dz * u.z)
                     vs.append(dx * v.x + dy * v.y + dz * v.z)
-            if us and vs:
-                return min(self._mm(max(us) - min(us)), self._mm(max(vs) - min(vs)))
+            if not us:
+                return None
+            umin, umax, vmin, vmax = min(us), max(us), min(vs), max(vs)
+            origin = adsk.core.Point3D.create(
+                o.x + umin * u.x + vmin * v.x,
+                o.y + umin * u.y + vmin * v.y,
+                o.z + umin * u.z + vmin * v.z,
+            )
+            return (origin, u, v, self._mm(umax - umin), self._mm(vmax - vmin))
         except Exception:
-            pass
+            return None
+
+    def _face_min_span(self, face):
+        """Smaller of the face's two in-plane extents, in mm. Falls back to the world
+        axis-aligned bounding box if the face's own (u, v) frame can't be computed."""
+        frame = self._face_uv(face)
+        if frame:
+            return min(frame[3], frame[4])
         bb = face.boundingBox
         spans = sorted([
             self._mm(bb.maxPoint.x - bb.minPoint.x),
@@ -886,6 +916,71 @@ class CadBuilder:
         if drilled == 0:
             raise ValueError("No holes were given to drill.")
         return "Drilled {} hole(s) into body [{}] '{}' by absolute coordinates.".format(drilled, body_index, body.name)
+
+    def drill_holes_on_face(self, body_index, face_index, points, diameter, depth=None):
+        """Drill holes positioned in a face's own 2D (u, v) frame — the easy, reliable way.
+
+        Get the face's u/v directions and extents from list_faces, then give each hole as
+        ``{"u": .., "v": ..}`` in mm from the face's (min u, min v) corner. The holes are cut
+        perpendicular into the body (blind ``depth``, or through-all if omitted). This avoids
+        having to compute absolute world coordinates, which is error-prone.
+        """
+        body = self._brep_body(body_index)
+        if face_index < 0 or face_index >= body.faces.count:
+            raise ValueError("face_index {} out of range (body has {} faces).".format(face_index, body.faces.count))
+        face = body.faces.item(face_index)
+        if not adsk.core.Plane.cast(face.geometry):
+            raise RuntimeError("Face [{}] is not planar; pick a flat face from list_faces.".format(face_index))
+        d = float(diameter)
+        if d <= 0:
+            raise ValueError("diameter must be greater than 0.")
+        face_min = self._face_min_span(face)
+        if d >= 0.95 * face_min:
+            raise ValueError(
+                "Hole diameter {:g} mm is too large for this face (~{:.1f} mm). Refusing so the "
+                "panel isn't destroyed.".format(d, face_min))
+        frame = self._face_uv(face)
+        if not frame:
+            raise RuntimeError(
+                "Couldn't determine the face's 2D frame. Use drill_holes with absolute "
+                "coordinates instead, or pick a different face.")
+        origin, u, v, usize, vsize = frame
+        pts = list(points or [])
+        if not pts:
+            raise ValueError("No points given. Each point is {'u': mm, 'v': mm} from the face corner.")
+
+        comp = self._comp()
+        sketch = self._own(comp.sketches.add(face))
+        placed = 0
+        for p in pts:
+            pu, pv = float(p["u"]), float(p["v"])
+            world = adsk.core.Point3D.create(
+                origin.x + (pu * u.x + pv * v.x) * MM,
+                origin.y + (pu * u.y + pv * v.y) * MM,
+                origin.z + (pu * u.z + pv * v.z) * MM,
+            )
+            sp = sketch.modelToSketchSpace(world)
+            sketch.sketchCurves.sketchCircles.addByCenterRadius(
+                adsk.core.Point3D.create(sp.x, sp.y, 0.0), (d / 2.0) * MM)
+            placed += 1
+
+        profiles = adsk.core.ObjectCollection.create()
+        for i in range(sketch.profiles.count):
+            profiles.add(sketch.profiles.item(i))
+        ext = comp.features.extrudeFeatures
+        ext_input = ext.createInput(profiles, adsk.fusion.FeatureOperations.CutFeatureOperation)
+        if depth is not None and not (isinstance(depth, (int, float)) and float(depth) == 0.0):
+            ext_input.setDistanceExtent(False, adsk.core.ValueInput.createByString("-(" + self._length(depth) + ")"))
+        else:
+            ext_input.setAllExtent(adsk.fusion.ExtentDirections.NegativeExtentDirection)
+        try:
+            self._remember(ext.add(ext_input))
+        except Exception as exc:
+            raise RuntimeError(
+                "Couldn't cut the holes on face [{}] ({}). Check the points lie on the face "
+                "(0..{:.0f} in u, 0..{:.0f} in v).".format(face_index, exc, usize, vsize))
+        return "Drilled {} hole(s) on face [{}] of body [{}] (u/v from the face corner).".format(
+            placed, face_index, body_index)
 
     # -- viewport selection (pick in Fusion, act in chat) --------------------
     def _selected_entities(self):
