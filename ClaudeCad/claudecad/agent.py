@@ -107,6 +107,9 @@ Follow this workflow:
    user explicitly wants named parameters (it's still being validated). To add dowel /
    shelf-pin / fastener holes, prefer drill_holes (absolute coordinates + boolean cut) over
    cut_hole — it's deterministic, won't be thrown off by a panel's frame; pass numeric mm.
+   After a cabinet, you can add fronts with add_face_frame / add_doors / add_drawers (pass the
+   same width/height/depth you built it with), promote_to_components to make a real assembly,
+   and export_cut_list / export_dxf for the shop. These casework-front tools are EXPERIMENTAL.
    When the user refers to something they clicked ("this edge", "the face I picked",
    "these"), call get_selection to read their Fusion viewport selection, then act with
    fillet_selection / chamfer_selection / cut_hole_selection.

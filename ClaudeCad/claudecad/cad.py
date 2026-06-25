@@ -1462,6 +1462,144 @@ class CadBuilder:
             )
         )
 
+    # -- cabinet fronts (front=y=0, outward=-Y; same frame as build_cabinet) --
+    def add_face_frame(self, width, height, stile=38.0, rail=38.0, frame_thickness=19.0):
+        """Apply a face frame (left/right stiles + top/bottom rails) to the cabinet front."""
+        W, H = float(width), float(height)
+        sw, rw, ft = float(stile), float(rail), float(frame_thickness)
+        if sw * 2 >= W or rw * 2 >= H:
+            raise ValueError("Stile/rail widths are too large for the cabinet face.")
+        y0, y1 = -ft, 0.0  # frame sits proud of the carcass front (y=0), extending outward (-Y)
+        self._box("FF Left Stile", 0, y0, 0, sw, y1, H)
+        self._box("FF Right Stile", W - sw, y0, 0, W, y1, H)
+        self._box("FF Top Rail", sw, y0, H - rw, W - sw, y1, H)
+        self._box("FF Bottom Rail", sw, y0, 0, W - sw, y1, rw)
+        return "Added a face frame ({:g} mm stiles, {:g} mm rails, {:g} mm thick) to the front.".format(sw, rw, ft)
+
+    def add_doors(self, width, height, count=1, thickness=18.0, gap=3.0, reveal=2.0,
+                  style="overlay", carcass_thickness=18.0):
+        """Add overlay or inset door fronts across the cabinet face."""
+        W, H = float(width), float(height)
+        t, gap, rev = float(thickness), float(gap), float(reveal)
+        n = max(1, int(count))
+        style = (style or "overlay").lower()
+        if style == "inset":
+            ct = float(carcass_thickness)
+            ox0, oz0, ox1, oz1 = ct, ct, W - ct, H - ct  # opening between the panels
+            clr = 2.0
+            avail = (ox1 - ox0) - 2 * clr - (n - 1) * gap
+            if avail <= 0:
+                raise ValueError("Opening too small for {} inset door(s).".format(n))
+            dw, dh = avail / n, (oz1 - oz0) - 2 * clr
+            y0, y1 = 0.0, t  # flush with the carcass front, extending back into the opening
+            x_start, z0 = ox0 + clr, oz0 + clr
+        else:  # overlay
+            avail = (W - 2 * rev) - (n - 1) * gap
+            if avail <= 0:
+                raise ValueError("Face too small for {} overlay door(s).".format(n))
+            dw, dh = avail / n, H - 2 * rev
+            y0, y1 = -t, 0.0  # proud of the carcass front
+            x_start, z0 = rev, rev
+        for i in range(n):
+            x0 = x_start + i * (dw + gap)
+            self._box("Door {}".format(i + 1), x0, y0, z0, x0 + dw, y1, z0 + dh)
+        return "Added {} {} door(s) ({:g} x {:g} mm each, {:g} mm thick).".format(n, style, dw, dh, t)
+
+    def add_drawers(self, width, height, depth, count=1, front_thickness=18.0, gap=3.0,
+                    reveal=2.0, carcass_thickness=18.0, box_thickness=12.0, slide_clearance=13.0,
+                    boxes=True):
+        """Add stacked overlay drawer fronts, and (optionally) a simple box behind each."""
+        W, H, D = float(width), float(height), float(depth)
+        ft, gap, rev = float(front_thickness), float(gap), float(reveal)
+        ct, bt, slc = float(carcass_thickness), float(box_thickness), float(slide_clearance)
+        n = max(1, int(count))
+        avail = (H - 2 * rev) - (n - 1) * gap
+        if avail <= 0:
+            raise ValueError("Face too small for {} drawer(s).".format(n))
+        fh, fw = avail / n, W - 2 * rev
+        # Drawer box footprint: inside the opening, minus slide clearance each side.
+        bx0, bx1 = ct + slc, W - ct - slc
+        by1 = D - ct  # leave the carcass back clear; box runs from the front into the cabinet
+        for i in range(n):
+            z0 = rev + i * (fh + gap)
+            self._box("Drawer Front {}".format(i + 1), rev, -ft, z0, W - rev, 0.0, z0 + fh)
+            if boxes and bx1 - bx0 > 10:
+                bz0 = z0 + 5.0          # box bottom sits a little above the front's lower edge
+                bh = max(40.0, fh - 25.0)  # box height a bit less than the front
+                bz1 = bz0 + bh
+                by0 = 5.0               # start just inside the front
+                self._box("Drawer {} Bottom".format(i + 1), bx0, by0, bz0, bx1, by1, bz0 + bt)
+                self._box("Drawer {} Left".format(i + 1), bx0, by0, bz0, bx0 + bt, by1, bz1)
+                self._box("Drawer {} Right".format(i + 1), bx1 - bt, by0, bz0, bx1, by1, bz1)
+                self._box("Drawer {} Back".format(i + 1), bx0, by1 - bt, bz0, bx1, by1, bz1)
+        return "Added {} drawer(s){} ({:g} x {:g} mm fronts).".format(
+            n, " with boxes" if boxes else "", fw, fh)
+
+    def promote_to_components(self):
+        """Move each solid body into its own component/occurrence to form a real assembly."""
+        comp = self._comp()
+        count = comp.bRepBodies.count
+        if count == 0:
+            raise RuntimeError("There are no solid bodies to promote.")
+        bodies = [comp.bRepBodies.item(i) for i in range(count)]
+        moved = 0
+        for b in bodies:
+            name = b.name
+            try:
+                occ = comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+                occ.component.name = name
+                b.moveToComponent(occ)
+                moved += 1
+            except Exception as exc:
+                raise RuntimeError(
+                    "Couldn't promote body '{}' to a component ({}). Paste this and I'll adapt "
+                    "it for your Fusion version.".format(name, exc)
+                )
+        return "Promoted {} body(ies) into their own components (a real assembly).".format(moved)
+
+    def _largest_planar_face(self, body):
+        best, best_area = None, -1.0
+        for i in range(body.faces.count):
+            f = body.faces.item(i)
+            if not adsk.core.Plane.cast(f.geometry):
+                continue
+            try:
+                area = f.area
+            except Exception:
+                continue
+            if area > best_area:
+                best, best_area = f, area
+        return best
+
+    def export_dxf(self, folder=None):
+        """Export each body's largest flat face as a DXF (for CNC/laser) into a home subfolder."""
+        comp = self._comp()
+        if comp.bRepBodies.count == 0:
+            raise RuntimeError("There are no solid bodies to export.")
+        base = util.safe_export_basename(folder if folder else "claudecad_dxf")
+        home = os.path.realpath(os.path.expanduser("~"))
+        outdir = os.path.realpath(os.path.join(home, base))
+        if os.path.dirname(outdir) != home:
+            raise ValueError("Refusing to write outside your home folder.")
+        os.makedirs(outdir, exist_ok=True)
+        written = 0
+        for i in range(comp.bRepBodies.count):
+            b = comp.bRepBodies.item(i)
+            face = self._largest_planar_face(b)
+            if not face:
+                continue
+            try:
+                sketch = self._own(comp.sketches.add(face))
+                sketch.project(face)
+                path = os.path.join(outdir, "{}_{}.dxf".format(util.safe_export_basename(b.name), i))
+                sketch.saveAsDXF(path)
+                written += 1
+            except Exception as exc:
+                raise RuntimeError(
+                    "DXF export failed for body '{}' ({}). Paste this and I'll adapt it.".format(b.name, exc)
+                )
+        return "Wrote {} DXF panel(s) to {}".format(written, outdir)
+
     def capture_view(self):
         """Fit the camera and return a PNG of the active viewport as image content blocks."""
         viewport = self.app.activeViewport
