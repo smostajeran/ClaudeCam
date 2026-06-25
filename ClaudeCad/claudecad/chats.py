@@ -26,6 +26,12 @@ class Chat:
         self.busy = False
         self.generation += 1
 
+    def cancel(self):
+        """Stop the in-flight turn (bump the generation so the worker aborts) but KEEP the
+        conversation and geometry — used by the Stop button, unlike reset()/Discard."""
+        self.busy = False
+        self.generation += 1
+
 
 MAX_CHATS = 20  # soft cap; the oldest chat is evicted past this to bound memory
 

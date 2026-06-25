@@ -75,7 +75,7 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 
 - Use the chat dropdown and **+ New** (above the message area) to keep separate conversation threads. Each chat has its own history and **never carries over** anything from another chat.
 - Chats live only in memory for the current Fusion session — nothing is written to disk, so when you restart Fusion you start fresh with a single empty chat.
-- While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck.
+- While Claude is working you'll see an animated **Working…** indicator (with the current step, e.g. *Building: extrude…*), so it's clear it's actively thinking rather than stuck. A **Stop** button next to it cancels the current operation — it halts the turn (and unblocks a pending approval) but **keeps your model and conversation**, unlike *Discard & start over*.
 - Assistant replies render **formatted Markdown** (headings, bold, bullet/numbered lists, inline and fenced code) rather than showing raw `**`/`#`/`-` characters. Expression-like text (`2 * width`) and parameter names (`back_thickness`) are left untouched.
 - Note: all chats build into the one active Fusion document (geometry is shared); chat isolation is about the *conversation*, not separate 3D models.
 

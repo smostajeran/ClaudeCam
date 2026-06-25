@@ -22,6 +22,7 @@
     var newChatBtn = document.getElementById("newChatBtn");
     var workingEl = document.getElementById("working");
     var workingTextEl = document.getElementById("workingText");
+    var stopBtn = document.getElementById("stopBtn");
     var versionEl = document.getElementById("version");
     var versionSettingsEl = document.getElementById("versionSettings");
     var updateBtn = document.getElementById("updateBtn");
@@ -228,6 +229,8 @@
         }
     });
     removeImageBtn.addEventListener("click", clearImage);
+
+    stopBtn.addEventListener("click", function () { sendData("stop", {}); });
 
     composer.addEventListener("submit", function (e) {
         e.preventDefault();

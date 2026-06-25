@@ -166,6 +166,19 @@ body {
 
 .working-text { color: var(--muted); }
 
+.stop-btn {
+    margin-left: auto;
+    padding: 4px 12px;
+    border: 1px solid #b05050;
+    border-radius: 8px;
+    background: rgba(176, 80, 80, 0.15);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.stop-btn:hover { border-color: #d06060; background: rgba(176, 80, 80, 0.28); }
+
 .dots {
     display: inline-flex;
     gap: 4px;
