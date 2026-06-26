@@ -30,6 +30,21 @@
     panel: frame('<path d="M8 16 L40 16 L40 40 L8 40 Z" fill="#b9c4d6" opacity="0.9"/>'),
   };
 
+  // Own, simple part icons per family for the catalogue toolbox (not the USM artwork).
+  function ico(inner) { return '<svg viewBox="0 0 48 40">' + inner + '</svg>'; }
+  var FAMILY_ICON = {
+    connector: ico('<circle cx="24" cy="20" r="8" fill="#9aa0a6"/><g stroke="#9aa0a6" stroke-width="3"><path d="M24 20 L10 12"/><path d="M24 20 L38 12"/><path d="M24 20 L24 34"/></g>'),
+    tube: ico('<rect x="6" y="17" width="36" height="6" rx="3" fill="#9aa0a6"/><circle cx="6" cy="20" r="3" fill="#6e7378"/><circle cx="42" cy="20" r="3" fill="#6e7378"/>'),
+    panel: ico('<rect x="9" y="7" width="30" height="26" rx="1" fill="#c2c6cb" stroke="#8a8c8f"/>'),
+    door: ico('<rect x="9" y="7" width="30" height="26" rx="1" fill="#cfd2d6" stroke="#8a8c8f"/><circle cx="34" cy="20" r="1.6" fill="#6e7378"/><path d="M12 7 L12 33" stroke="#8a8c8f"/>'),
+    drawer: ico('<rect x="8" y="11" width="32" height="18" rx="1" fill="#cfd2d6" stroke="#8a8c8f"/><rect x="20" y="18" width="8" height="3" rx="1.5" fill="#6e7378"/>'),
+    glass: ico('<rect x="9" y="7" width="30" height="26" rx="1" fill="#bcd6e6" opacity="0.55" stroke="#9bb6c6"/><path d="M13 30 L33 10" stroke="#dff0fa" stroke-width="2"/>'),
+    fitting: ico('<path d="M14 10 L14 30 L30 30" fill="none" stroke="#9aa0a6" stroke-width="4"/><circle cx="14" cy="10" r="3" fill="#6e7378"/>'),
+    hardware: ico('<circle cx="24" cy="20" r="7" fill="none" stroke="#9aa0a6" stroke-width="3"/><path d="M24 13 L24 8 M24 27 L24 32 M17 20 L12 20 M31 20 L36 20" stroke="#9aa0a6" stroke-width="3"/>'),
+    other: ico('<rect x="10" y="10" width="28" height="20" rx="1" fill="#d3d6da" stroke="#8a8c8f"/>'),
+  };
+  function familyIcon(f) { return FAMILY_ICON[f] || FAMILY_ICON.other; }
+
   var state = {
     width: 750, height: 350, depth: 350, cols: 2, rows: 1,
     cell: "closed", color: "USM Matte Silver",
@@ -81,16 +96,19 @@
     if (!fams.length) { host.appendChild(el("div", "muted", catalogParts.length ? "No matches." : "")); return; }
     fams.forEach(function (fam) {
       host.appendChild(el("div", "catgroup", fam + " (" + groups[fam].length + ")"));
+      var grid = el("div", "cattiles");
       groups[fam].forEach(function (p) {
-        var dims = (p.dims && p.dims.length) ? " · " + p.dims.join("×") + " mm" : "";
-        var row = el("div", "catrow", "<span>" + p.label + "</span><span class='catid'>" + p.part + dims + "</span>");
-        row.title = "Click to place in Fusion";
-        row.onclick = function () {
+        var dims = (p.dims && p.dims.length) ? p.dims.join("×") : "";
+        var tile = el("div", "cattile", familyIcon(p.family) +
+          '<div class="cap">' + p.label + "</div>" + (dims ? '<div class="dim">' + dims + " mm</div>" : ""));
+        tile.title = p.part + " — click to place in Fusion";
+        tile.onclick = function () {
           setStatus("Placing " + p.label + "…");
           sendData("place_part", { part: p.part, family: p.family, dims: p.dims, render: { color: state.color } });
         };
-        host.appendChild(row);
+        grid.appendChild(tile);
       });
+      host.appendChild(grid);
     });
   }
 

@@ -141,19 +141,25 @@ footer {
   box-sizing: border-box;
 }
 .catfilter.hidden { display: none; }
-.catalog { max-height: 240px; overflow-y: auto; }
+.catalog { max-height: 320px; overflow-y: auto; }
 .catgroup {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--muted); background: #ededee; padding: 3px 6px; margin-top: 4px;
-  border-radius: 3px; position: sticky; top: 0;
+  color: var(--muted); background: #ededee; padding: 3px 6px; margin: 6px 0 5px;
+  border-radius: 3px; position: sticky; top: 0; z-index: 1;
 }
-.catrow {
-  display: flex; justify-content: space-between; gap: 8px;
-  padding: 4px 6px; border-bottom: 1px solid #ededee; font-size: 11px;
-  cursor: pointer;
+.cattiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cattile {
+  background: var(--tile-grad); border: 1px solid var(--line); border-radius: 4px;
+  padding: 5px 3px 3px; cursor: pointer; text-align: center; user-select: none;
+  transition: border-color .08s, box-shadow .08s;
 }
-.catrow:hover { background: #eef1f3; }
-.catrow .catid { color: var(--muted); font-size: 9.5px; text-align: right; white-space: nowrap; }
+.cattile:hover { border-color: var(--line-sel); box-shadow: inset 0 0 0 1px var(--line-sel); }
+.cattile svg { width: 100%; height: 34px; display: block; }
+.cattile .cap {
+  font-size: 8.5px; line-height: 1.1; color: var(--ink); margin-top: 2px;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.cattile .dim { font-size: 8px; color: var(--muted); }
 .muted { color: var(--muted); font-size: 11px; padding: 4px 6px; }
 .actions { display: flex; gap: 8px; }
 button.primary, #clear {
