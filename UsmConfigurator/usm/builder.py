@@ -260,6 +260,82 @@ class UsmBuilder:
             return None
         return None
 
+    # Frame families are chrome; everything else takes the chosen panel colour.
+    _FRAME_FAMILIES = {"connector", "tube", "support", "fitting", "hardware"}
+
+    def place_mesh(self, part, mesh, index=0, label=None, family=None, render=None):
+        """Load the engine's REAL part mesh (metres) into Fusion as a mesh body.
+
+        ``mesh`` is the ``/api/part-mesh`` payload. Positions are scaled m->cm and
+        offset along X by ``index`` so successive placements don't overlap. No
+        geometry is fabricated — if the payload has no triangles, nothing is built.
+        """
+        from . import payload as payload_mod
+        positions = mesh.get("positions") or []
+        triangles = mesh.get("triangles") or []
+        if not positions or not triangles:
+            return "The engine returned no mesh for '{}'.".format(part)
+
+        scale = 100.0  # metres -> centimetres (Fusion internal unit)
+        ox = index * 80.0
+        coords = []
+        for v in positions:
+            coords.append(float(v[0]) * scale + ox)
+            coords.append(float(v[1]) * scale)
+            coords.append(float(v[2]) * scale)
+        tris = [int(i) for i in triangles]
+
+        design = self._design()
+        comp = design.rootComponent
+        body = self._add_mesh_body(design, comp, coords, tris)
+        if body is None:
+            return ("Could not load the mesh for '{}' (this Fusion version may not support "
+                    "addByTriangleMeshData).".format(part))
+
+        name = label or part
+        try:
+            body.name = name
+        except Exception:
+            pass
+        self._own(body)
+        frame = (family in self._FRAME_FAMILIES)
+        rgb = payload_mod.CHROME_RGB
+        if not frame and render and render.get("color"):
+            from .ui import COLORS
+            rgb = COLORS.get(render["color"], payload_mod.DEFAULT_PANEL_RGB)
+        self._apply_appearance(design, body, rgb, frame)
+        if self.engine is not None:
+            try:
+                self.engine.set_material(0, "Steel", all_bodies=True)
+            except Exception:
+                pass
+        return "Placed {} — real mesh ({} triangles).".format(name, len(tris) // 3)
+
+    def _add_mesh_body(self, design, comp, coords, tris):
+        """Create a real mesh body from flat coordinates (cm) + triangle indices."""
+        try:
+            parametric = design.designType == adsk.fusion.DesignTypes.ParametricDesignType
+        except Exception:
+            parametric = False
+        try:
+            if parametric:
+                base = comp.features.baseFeatures.add()
+                base.startEdit()
+                try:
+                    body = comp.meshBodies.addByTriangleMeshData(coords, tris, [], [])
+                finally:
+                    base.finishEdit()
+                self._own(base)
+            else:
+                body = comp.meshBodies.addByTriangleMeshData(coords, tris, [], [])
+            # Some API versions return a list-like; normalise to a single body.
+            try:
+                return body.item(0) if hasattr(body, "count") else body
+            except Exception:
+                return body
+        except Exception:
+            return None
+
     def place_part(self, part, family, dims, index=0, render=None):
         """Place a single catalogue part as a sized primitive. Returns a summary string."""
         from . import payload as payload_mod

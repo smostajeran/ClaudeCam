@@ -35,11 +35,13 @@ from the exact `quad` corners), converting metres/Y-up → Fusion cm/Z-up.
 1. **Utilities → Add-Ins → Scripts and Add-Ins → `UsmConfigurator` → Run.** The
    **USM Haller** palette docks on the right.
 2. Open **⚙** and set your **usm-engine URL** (defaults to the known deployment)
-   and the **username / password** your deployment requires (sent as HTTP Basic
-   auth); **Test** checks `/health`. **Load catalogue** pulls the engine's IP-safe
-   part catalogue (≈471 one52 parts) into a filterable, family-grouped browser;
-   **click a part to place** it (a primitive sized from its dims) in the active
-   design — placements row up along X. **Clear** removes them.
+   and the **username / password** your deployment requires (a Supabase login,
+   exchanged for a JWT — see Auth below); **Test** signs in and checks `/health`.
+   **Load catalogue** pulls the engine's IP-safe part catalogue (≈471 one52
+   parts) into a filterable, family-grouped **tile toolbox**; **click a part to
+   place** its **real mesh** — fetched from the engine's `/api/part-mesh` and
+   loaded as a Fusion mesh body (no fabricated geometry). Placements row up along
+   X; **Clear** removes them.
 3. Pick the **Width/Height/Depth** modules, **Columns/Rows**, the **Cell content**,
    and a **Panel colour**.
 4. **Build** calls the engine and materialises the parts in the active design;

@@ -103,8 +103,8 @@
           '<div class="cap">' + p.label + "</div>" + (dims ? '<div class="dim">' + dims + " mm</div>" : ""));
         tile.title = p.part + " — click to place in Fusion";
         tile.onclick = function () {
-          setStatus("Placing " + p.label + "…");
-          sendData("place_part", { part: p.part, family: p.family, dims: p.dims, render: { color: state.color } });
+          setStatus("Loading mesh for " + p.label + "…");
+          sendData("place_part", { part: p.part, label: p.label, family: p.family, dims: p.dims, render: { color: state.color } });
         };
         grid.appendChild(tile);
       });

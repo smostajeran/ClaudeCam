@@ -157,6 +157,22 @@ def catalog(path="/api/manifest", timeout=30):
     return _parse(_request(base + path, timeout=timeout))
 
 
+def part_mesh(part, acoustic=False, timeout=45):
+    """Fetch the real mesh for a one52 part id from ``/api/part-mesh``.
+
+    Returns ``{units:'m', positions:[[x,y,z]…], normals, triangles:[…]}`` — the
+    actual oriented geometry (IP-safe, geometry only). Raises :class:`EngineError`
+    (e.g. HTTP 404) if the engine has no mesh for the part.
+    """
+    base = config.get_engine_url()
+    if not base:
+        raise EngineError("No engine URL configured. Set it in the palette's Settings.")
+    q = {"part": part}
+    if acoustic:
+        q["acoustic"] = "1"
+    return _parse(_request(base + "/api/part-mesh?" + urllib.parse.urlencode(q), timeout=timeout))
+
+
 def health(timeout=15):
     """Return the engine's /health dict (open endpoint, no auth)."""
     return _parse(_request(config.get_engine_url() + "/health", timeout=timeout, authed=False))

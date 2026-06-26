@@ -187,20 +187,34 @@ class UsmConfiguratorUI:
         self._on_main(do)
 
     def _place_part(self, data):
-        """Place one catalogue part (clicked in the browser) into the design."""
-        index = self._placed
-        self._placed += 1
+        """Place one catalogue part by loading its REAL mesh from the engine.
 
-        def do():
+        Fetches /api/part-mesh off the main thread, then builds the mesh body on
+        it. No geometry is fabricated — if the engine has no mesh, we say so.
+        """
+        index = self._placed
+        part = data.get("part")
+        label = data.get("label")
+        family = data.get("family")
+        render = data.get("render")
+
+        def work():
             try:
-                from .builder import UsmBuilder
-                msg = UsmBuilder(self.app).place_part(
-                    data.get("part"), data.get("family"), data.get("dims") or [],
-                    index, data.get("render"))
-                self._result(msg, "ok")
-            except Exception:
-                self._result("Place failed in Fusion:\n{}".format(traceback.format_exc()), "error")
-        self._on_main(do)
+                mesh = engine_client.part_mesh(part)
+            except engine_client.EngineError as exc:
+                self._result("No mesh for {} — {}".format(label or part, exc), "error")
+                return
+            self._placed += 1
+
+            def do():
+                try:
+                    from .builder import UsmBuilder
+                    self._result(UsmBuilder(self.app).place_mesh(part, mesh, index, label, family, render), "ok")
+                except Exception:
+                    self._result("Place failed in Fusion:\n{}".format(traceback.format_exc()), "error")
+            self._on_main(do)
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _save_settings(self, data):
         try:
