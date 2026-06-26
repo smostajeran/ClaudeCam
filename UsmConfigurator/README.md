@@ -9,6 +9,14 @@ It is **independent of the ClaudeCad chat add-in** — its own command, dialog a
 geometry — but its builder **reuses ClaudeCad's proven CAD engine** when that
 add-in is present, for design binding, unit handling and material assignment.
 
+![Bookshelf preset](docs/preview_bookshelf.png)
+![Accent shelf preset](docs/preview_accent.png)
+
+*Previews rendered straight from `usm/geometry.py` — the same balls, tubes and
+panels the Fusion builder turns into solids. Left: the Bookshelf Tall preset
+(open lattice, shelves + dividers). Right: the Accent Shelf preset, showing
+per-cell coloured back panels.*
+
 ## Workflow
 
 1. **Utilities → Add-Ins → Scripts and Add-Ins → `UsmConfigurator` → Run.**
