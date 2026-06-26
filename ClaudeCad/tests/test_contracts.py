@@ -15,7 +15,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from claudecad import agent, hardware, policy, tools, updater, util  # noqa: E402
+from claudecad import agent, configs, hardware, policy, tools, updater, util  # noqa: E402
 
 
 # -- tool schema <-> dispatch parity ----------------------------------------
@@ -269,6 +269,47 @@ def test_bom_numbers_items_and_groups_by_part():
     assert lines[2].startswith("2,1,Shelf")
 
 
+# -- sheet nesting ----------------------------------------------------------
+
+def test_nest_panels_single_sheet_and_utilisation():
+    # four 1200x600 panels (each a quarter of a 2440x1220 sheet) fit on one sheet.
+    stats = util.nest_panels([(1200, 600)] * 4, sheet_w=2440, sheet_h=1220, kerf=0)
+    assert stats["sheets"] == 1
+    assert 0 < stats["utilization_pct"] <= 100
+    assert stats["oversized"] == []
+
+
+def test_nest_panels_multiple_sheets():
+    # ten near-full-width panels can't share a sheet vertically -> several sheets.
+    stats = util.nest_panels([(2400, 700)] * 10, sheet_w=2440, sheet_h=1220, kerf=3)
+    assert stats["sheets"] >= 5
+
+
+def test_nest_panels_flags_oversized():
+    stats = util.nest_panels([(3000, 1500), (600, 400)], sheet_w=2440, sheet_h=1220)
+    assert (3000, 1500) in stats["oversized"]
+    assert stats["sheets"] == 1  # only the fitting panel is packed
+    assert stats["utilization_pct"] <= 100.0  # oversized area excluded from the ratio
+
+
+def test_nest_panels_portrait_sheet_does_not_hang():
+    # A sheet entered portrait (short x long) must pack the same as landscape — not spin forever.
+    stats = util.nest_panels([(2400, 700)] * 3, sheet_w=1220, sheet_h=2440, kerf=3)
+    assert stats["sheets"] >= 1 and not stats["oversized"]
+    landscape = util.nest_panels([(2400, 700)] * 3, sheet_w=2440, sheet_h=1220, kerf=3)
+    assert stats["sheets"] == landscape["sheets"]  # orientation-agnostic
+
+
+def test_validation_new_tools():
+    assert _rejects("build_kitchen_run", {"widths": []})
+    assert _rejects("build_kitchen_run", {"widths": [600, -10]})
+    assert not _rejects("build_kitchen_run", {"widths": [600, 900]})
+    assert _rejects("add_door_hardware", {"body_index": 0, "face_index": 0, "hinges": 0})
+    assert not _rejects("add_door_hardware", {"body_index": 0, "face_index": 0, "hinges": 2})
+    assert _rejects("estimate_materials", {"sheet_width": -1})
+    assert not _rejects("estimate_materials", {"sheet_width": 2440, "kerf": 0})
+
+
 # -- history compaction -----------------------------------------------------
 
 def _img_msg():
@@ -360,6 +401,37 @@ def test_hardware_list_filter():
         " ".join(str(e.get(k, "")) for k in ("id", "brand", "category", "name")).lower() for e in hinges)
 
 
+def test_cabinet_configs_catalog_loads_and_has_base_600():
+    catalog = configs.load_catalog()
+    assert catalog, "bundled cabinet config catalog should load"
+    assert "base-600" in catalog
+    base600 = catalog["base-600"]
+    assert base600["width"] == 600 and base600["doors"] == 2
+
+
+def test_cabinet_configs_list_sorted_and_filtered():
+    talls = configs.list_configs("tall")
+    assert talls and all("tall" in
+        " ".join(str(e.get(k, "")) for k in ("id", "name", "cabinet_type", "notes")).lower()
+        for e in talls)
+    # base configs come back ordered by width
+    bases = [e for e in configs.list_configs() if e.get("cabinet_type") == "base"]
+    widths = [float(e["width"]) for e in bases]
+    assert widths == sorted(widths)
+
+
+def test_config_table_csv_header_and_rows():
+    csv = util.config_table_csv([
+        {"name": "Base-600", "cabinet_type": "base", "width": 600, "height": 720,
+         "depth": 560, "thickness": 18, "front": "doors", "doors": 2, "shelves": 2, "notes": "two doors"},
+        {"id": "min", "width": 300},  # sparse row: missing fields render blank, not crash
+    ])
+    lines = csv.strip().split("\n")
+    assert lines[0].startswith("Config,Type,Width(mm)")
+    assert lines[1].startswith("Base-600,base,600,720,560,18,doors,2,2")
+    assert lines[2].startswith("min,,300,,,,,,")  # only id + width populated
+
+
 def test_strip_orphan_keeps_properly_answered_tool_use():
     messages = [
         {"role": "assistant", "content": [{"type": "tool_use", "id": "abc", "name": "extrude", "input": {}}]},
@@ -421,6 +493,14 @@ SAMPLES = {
     "chamfer_selection": {"distance": 2},
     "cut_hole_selection": {"diameter": 6},
     "build_cabinet": {"width": 600, "height": 720, "depth": 580, "joinery": "screws"},
+    "build_kitchen_cabinet": {"width": 600, "cabinet_type": "base", "front": "doors", "joinery": "screws"},
+    "build_kitchen_run": {"widths": [600, 600, 900], "cabinet_type": "base", "front": "doors", "joinery": "screws"},
+    "add_door_hardware": {"body_index": 5, "face_index": 0, "hinge_side": "left", "hinges": 2},
+    "estimate_materials": {"sheet_width": 2440, "sheet_height": 1220, "sheet_price": 60, "kerf": 3},
+    "list_cabinet_configs": {},
+    "apply_cabinet_config": {"config_id": "base-600"},
+    "save_cabinet_config": {"id": "test_cfg", "name": "Test", "width": 600},
+    "export_config_table": {},
     "drill_holes": {"body_index": 0, "holes": [{"x": 10, "y": 37, "z": 100, "axis": "x", "depth": 12, "diameter": 5}]},
     "drill_holes_on_face": {"body_index": 0, "face_index": 2, "diameter": 5, "depth": 12,
                             "points": [{"u": 37, "v": 100}, {"u": 37, "v": 132}]},
@@ -431,6 +511,7 @@ SAMPLES = {
     "export_dxf": {},
     "rename_body": {"body_index": 0, "name": "Lid"},
     "explode_assembly": {"factor": 0.6},
+    "animate_assembly": {"steps": 12, "direction": "assemble"},
     "reassemble": {},
     "export_bom": {},
     "list_hardware": {},
@@ -450,7 +531,8 @@ def test_samples_cover_every_tool():
 
 
 # Tools that are served by the catalog module directly, not the CadBuilder.
-_MODULE_TOOLS = {"list_hardware", "hardware_info", "add_hardware"}
+_MODULE_TOOLS = {"list_hardware", "hardware_info", "add_hardware",
+                 "list_cabinet_configs", "save_cabinet_config"}
 
 
 def test_execute_routes_every_tool_to_a_cad_method():
@@ -460,6 +542,18 @@ def test_execute_routes_every_tool_to_a_cad_method():
         assert result is not None, "execute({}) returned None".format(name)
         if name not in _MODULE_TOOLS:
             assert cad.calls, "execute({}) did not call any CadBuilder method".format(name)
+
+
+def test_kitchen_build_tools_require_joinery():
+    # Like build_cabinet, the kitchen builders must not silently guess joinery.
+    for name, ti in (("build_kitchen_cabinet", {"width": 600}),
+                     ("build_kitchen_run", {"widths": [600, 600]})):
+        cad = MockCad()
+        try:
+            tools.execute(name, ti, cad)
+            assert False, "{} should refuse to build without joinery".format(name)
+        except ValueError:
+            pass
 
 
 def test_execute_validates_before_dispatch():

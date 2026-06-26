@@ -90,6 +90,36 @@ def _csv_cell(value):
     return s
 
 
+def _num_cell(value):
+    """Format a numeric cell with {:g}; pass non-numbers through as text, blanks as ''."""
+    if value is None or value == "":
+        return ""
+    try:
+        return "{:g}".format(float(value))
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def config_table_csv(configs):
+    """Build a cabinet-configuration reference sheet (CSV) from a list of config dicts.
+
+    Each config has ``name``/``id`` and any of ``cabinet_type`` / ``width`` / ``height`` /
+    ``depth`` / ``thickness`` / ``front`` / ``doors`` / ``shelves`` / ``notes``. This is the
+    practical equivalent of exporting Fusion's Configurations table.
+    """
+    rows = ["Config,Type,Width(mm),Height(mm),Depth(mm),Thickness(mm),Front,Doors,Shelves,Notes"]
+    for c in configs:
+        rows.append(",".join(_csv_cell(v) for v in (
+            c.get("name") or c.get("id") or "",
+            c.get("cabinet_type", ""),
+            _num_cell(c.get("width")), _num_cell(c.get("height")), _num_cell(c.get("depth")),
+            _num_cell(c.get("thickness")),
+            c.get("front", ""), _num_cell(c.get("doors")), _num_cell(c.get("shelves")),
+            c.get("notes", ""),
+        )))
+    return "\n".join(rows) + "\n"
+
+
 def cut_list_csv(parts):
     """Build a cut-list CSV from a list of parts.
 
@@ -119,6 +149,61 @@ def cut_list_csv(parts):
             "{:g}".format(thickness), material, "; ".join(g["names"]),
         )))
     return "\n".join(rows) + "\n"
+
+
+def nest_panels(panels, sheet_w=2440.0, sheet_h=1220.0, kerf=3.0):
+    """Shelf-pack rectangular panels onto standard sheets; return usage stats.
+
+    ``panels`` is a list of (width, height) mm. Returns a dict with the number of sheets, the
+    total sheet vs used area, utilisation %, and any oversized panels that don't fit a sheet.
+    Approximate (first-fit-decreasing shelf packing) but good for an estimate.
+    """
+    # Normalise the sheet to long/short axes and always pack a panel's long side along the
+    # sheet's long axis. This makes packing orientation-agnostic — a panel and a sheet given in
+    # either orientation are treated the same — and (critically) prevents an accepted panel from
+    # never fitting the pack axis, which would spin `while remaining` forever (e.g. a 2400x700
+    # panel on a 1220x2440 sheet entered portrait).
+    usable_long = max(float(sheet_w), float(sheet_h))
+    usable_short = min(float(sheet_w), float(sheet_h))
+    kerf = float(kerf)
+    items, oversized, used_area = [], [], 0.0
+    for w, h in panels:
+        w, h = float(w), float(h)
+        a, b = max(w + kerf, h + kerf), min(w + kerf, h + kerf)  # longer side first
+        if a > usable_long + 1e-6 or b > usable_short + 1e-6:
+            oversized.append((w, h))  # excluded from packing, so excluded from used area too
+            continue
+        used_area += w * h
+        items.append((a, b))
+    items.sort(key=lambda t: (-t[1], -t[0]))  # tallest first
+
+    remaining = list(items)
+    sheets = 0
+    while remaining:
+        sheets += 1
+        y = 0.0
+        while remaining:
+            # open a shelf with the first remaining panel that still fits the remaining short span
+            idx = next((i for i, (a, b) in enumerate(remaining)
+                        if b <= usable_short - y + 1e-6 and a <= usable_long + 1e-6), None)
+            if idx is None:
+                break
+            a, b = remaining.pop(idx)
+            shelf_h, x = b, a
+            i = 0
+            while i < len(remaining):  # fill the shelf along the long axis
+                aa, bb = remaining[i]
+                if bb <= shelf_h + 1e-6 and x + aa <= usable_long + 1e-6:
+                    x += aa
+                    remaining.pop(i)
+                else:
+                    i += 1
+            y += shelf_h
+
+    sheet_area = usable_long * usable_short * sheets
+    utilization = (used_area / sheet_area * 100.0) if sheet_area else 0.0
+    return {"sheets": sheets, "sheet_area_mm2": sheet_area, "used_area_mm2": used_area,
+            "utilization_pct": utilization, "oversized": oversized}
 
 
 def bom_csv(parts):

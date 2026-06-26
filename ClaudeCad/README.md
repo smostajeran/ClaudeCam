@@ -99,6 +99,30 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   `drill_holes` is the alternative by **absolute coordinates** (cylinder + boolean cut). Both
   refuse a diameter too large for the face/body.
 - **Advanced shapes:** `loft` (blend through profiles), `sweep` (profile along a path).
+- **Kitchen cabinets:** `build_kitchen_cabinet` builds a **configurable** kitchen cabinet in one
+  call — carcass + recessed toe kick + shelves + a front — with kitchen-standard
+  defaults per type: **base** (720×560 mm + toe kick), **wall** (720×320, no toe kick), **tall**
+  (2100×580 + toe kick). The **front** can be `doors`, `drawers`, `door_drawer` (a drawer over
+  door(s) — the classic base cabinet), `sink` (a false top front over doors), or `open`/`none`.
+  Configure width, counts, joinery, toe kick, etc. It composes the casework tools below.
+- **Kitchen runs + countertop:** `build_kitchen_run` builds a **row** of cabinets side by side
+  from a list of widths (e.g. `[600, 600, 900]`), positions each in its slot, and lays a single
+  **countertop** slab over base/tall runs (configurable thickness/overhang) — a whole wall of
+  cabinets in one call.
+- **Auto hinge & handle placement:** `add_door_hardware` reads a door's inner face and
+  automatically bores the **concealed hinge cups** along one edge (more for taller doors) and a
+  **pull handle** on the opposite edge, using the hardware catalog — no need to compute each hole.
+- **Sheet nesting + costing:** `estimate_materials` nests every panel (each body's largest face)
+  onto standard **sheet goods** and reports how many sheets you need, the **utilisation %**, and
+  optional **cost** (per-sheet price). Use a thickness filter to cost one material at a time
+  (e.g. 18 mm carcass vs 6 mm backs). Read-only — it doesn't change the model.
+- **Cabinet configurations (presets):** Fusion's Configurations table can't be authored through
+  the add-in API, so the add-in ships the practical equivalent: a set of named cabinet **presets**
+  (Base-300 … Tall-600). `list_cabinet_configs` shows the rows, `apply_cabinet_config` rebuilds a
+  cabinet to a chosen row (override individual fields for a one-off variant — door/shelf counts
+  change the body count, so applying *rebuilds*), `save_cabinet_config` stores a new preset to
+  `~/.claudecad/cabinet_configs.json`, and `export_config_table` writes the whole table as a CSV
+  reference sheet.
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
   together — and returns a cut list plus a joinery plan for the method you choose
@@ -130,6 +154,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 - **Exploded view:** `explode_assembly` spreads the bodies apart (for a screenshot) and
   `reassemble` restores them to the built positions exactly (it records each move — a literal
   translate, since Fusion's animated exploded view isn't scriptable).
+- **Assembly animation:** `animate_assembly` renders a PNG **frame sequence** of the parts
+  moving together (`assemble`) or apart (`explode`) into a home subfolder — compile to a
+  GIF/MP4 externally, since Fusion's animation workspace can't be driven by the add-in API.
 - **BOM:** `export_bom` writes/returns a Bill of Materials (item #, qty, part, material,
   dimensions) grouped by part name — for a drawing's parts list or ordering.
 - **Hardware catalog:** `list_hardware` / `hardware_info` browse a catalog of cabinet hardware
@@ -165,7 +192,9 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
 ## Updating
 
 - The current version shows next to the logo (and in **Settings**). It's read from the `VERSION` file and bumped on each change.
-- **Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`), installs it over itself, and then **reloads itself in place** — it tears down and rebuilds the panel from the new code so you don't have to Stop/Run by hand. (The persistent main-thread event bridge is reused rather than re-registered, which is what makes the live reload safe.) If the in-place reload can't complete, it falls back to asking you to **Stop, then Run** the add-in manually. Note: the *first* update to a build that has this feature still needs a manual Stop/Run, because the old code (without auto-reload) is the one performing that update; auto-reload kicks in from then on.
+- **Reloading code:** each time you **Run** the add-in, it drops its cached Python modules and re-imports from disk, so a plain **Stop → Run** now reliably loads the latest files after an update or manual reinstall (no full Fusion restart needed). If you ever see a stale-module error after a *manual* file copy on a build older than 1.18.3, fully quit and reopen Fusion once to clear the old modules.
+
+**Update from inside the app:** Settings (gear) → **Check for updates**. ClaudeCad downloads the latest `ClaudeCad/` from GitHub (`main`), installs it over itself, and then **reloads itself in place** — it tears down and rebuilds the panel from the new code so you don't have to Stop/Run by hand. (The persistent main-thread event bridge is reused rather than re-registered, which is what makes the live reload safe.) If the in-place reload can't complete, it falls back to asking you to **Stop, then Run** the add-in manually. Note: the *first* update to a build that has this feature still needs a manual Stop/Run, because the old code (without auto-reload) is the one performing that update; auto-reload kicks in from then on.
 - Updates are installed **safely**: the new add-in is extracted to a staging folder and
   validated (it must be a complete add-in whose VERSION matches) before anything is replaced,
   and each replaced file is backed up so a mid-install failure **rolls back** to the working

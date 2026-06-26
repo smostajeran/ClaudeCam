@@ -120,7 +120,23 @@ Follow this workflow:
    find a valid name before set_material rather than guessing (set all_bodies on set_material
    to apply one material to every body, e.g. all of a cabinet's panels). mesh_to_solid
    converts an imported mesh where supported.
-   For a cabinet / carcass / casework, use build_cabinet: from the overall size it creates
+   For a KITCHEN cabinet, use build_kitchen_cabinet — one call that composes the carcass, a
+   recessed toe kick, shelves and a front with kitchen-standard defaults for base / wall /
+   tall types. The 'front' can be doors, drawers, door_drawer (a drawer over door(s) —
+   the common base cabinet), sink (a false top front over doors), open, or none. Ask the user
+   for type, width, front, and the joinery method if unstated. For a whole RUN of cabinets in
+   a row, use build_kitchen_run with the list of cabinet widths — it builds and positions each
+   cabinet side by side and lays a countertop over base/tall runs in one call. To place door
+   hardware, use add_door_hardware (call list_faces on the door first, give the flat inner
+   face): it auto-bores the hinge cups along one edge and a handle on the opposite edge.
+   To estimate sheet goods / cost, use estimate_materials — it nests the panels onto standard
+   sheets and reports sheet count, utilisation and optional cost (use thickness_filter to cost
+   one material at a time, e.g. 18 mm carcass vs 6 mm backs).
+   Fusion's Configurations table can't be authored through this API; the stand-in is the cabinet
+   PRESETS — list_cabinet_configs shows named rows (Base-300 … Tall-600), apply_cabinet_config
+   rebuilds the cabinet to a chosen row (override individual fields for a one-off), save_cabinet_config
+   stores a new preset, and export_config_table writes the table as CSV. Use these when the user
+   asks for cabinet 'configurations'/'variants'/'a config table'. For a generic (non-kitchen) cabinet / carcass / casework, use build_cabinet: from the overall size it creates
    the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) already
    positioned to fit, and returns a cut list + joinery plan. Do NOT call build_cabinet with
    a guessed joinery method — if the user hasn't explicitly chosen one, ask them (screws /
@@ -140,6 +156,8 @@ Follow this workflow:
    and export_cut_list / export_dxf for the shop. These casework-front tools are EXPERIMENTAL.
    For an exploded view, explode_assembly spreads the bodies apart (reassemble restores them
    exactly — it's a literal move, so always reassemble before exporting the assembled model).
+   For an assembly animation, animate_assembly renders a PNG frame sequence of the parts moving
+   together/apart (Fusion's animation workspace isn't scriptable; compile the frames externally).
    export_bom writes/returns a Bill of Materials (item/qty/part/material/size).
    For cabinet hardware (hinges, drawer slides, shelf pins, connectors, handles from Blum /
    Hettich / Häfele), use list_hardware to find a part, then drill_for_hardware on a face

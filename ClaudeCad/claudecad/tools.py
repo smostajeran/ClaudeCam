@@ -552,6 +552,184 @@ TOOLS = [
         },
     },
     {
+        "name": "build_kitchen_cabinet",
+        "description": (
+            "Build a CONFIGURABLE kitchen cabinet in one step, composing the carcass, an optional "
+            "recessed toe kick, shelves, and a door or drawer front using kitchen-standard "
+            "defaults per type (base / wall / tall). Use this for kitchen cabinets instead of "
+            "wiring build_cabinet + add_doors yourself. Ask the user for type, width, and front "
+            "(doors/drawers) and the joinery method if not given. Sensible defaults: base = 720 "
+            "high x 560 deep + toe kick; wall = 720 x 320, no toe kick; tall = 2100 x 580 + toe kick."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "width": {"type": "number", "description": "Cabinet width in mm (e.g. 600)."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Default 'base'."},
+                "height": {"type": "number", "description": "Override carcass height in mm (default per type)."},
+                "depth": {"type": "number", "description": "Override depth in mm (default per type)."},
+                "thickness": {"type": "number", "description": "Panel thickness in mm. Default 18."},
+                "back_thickness": {"type": "number", "description": "Back panel thickness in mm. Default 6."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Front type: doors, drawers, door_drawer (drawer over door), sink (false front over doors), or open/none. Default 'doors'."},
+                "doors": {"type": "integer", "description": "Number of doors (default 1 if width<=600 else 2)."},
+                "drawers": {"type": "integer", "description": "Number of drawers when front='drawers'. Default 3."},
+                "shelves": {"type": "integer", "description": "Interior shelves (default per type)."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Carcass joinery. Default 'screws'."},
+                "back_joint": {"type": "string", "enum": ["groove", "inset", "overlay"], "description": "Back panel joint. Default 'groove'."},
+                "toe_kick_height": {"type": "number", "description": "Toe-kick height in mm (base/tall). Default 100."},
+                "toe_kick_recess": {"type": "number", "description": "Toe-kick setback from the front in mm. Default 50."},
+            },
+            "required": ["width"],
+        },
+    },
+    {
+        "name": "build_kitchen_run",
+        "description": (
+            "Build a ROW of kitchen cabinets side by side along X in one step, with an optional "
+            "countertop slab laid over the whole run. Give the individual cabinet 'widths' (mm) "
+            "in left-to-right order; each is built with build_kitchen_cabinet and positioned in "
+            "its slot. Use this for a kitchen wall/run rather than placing cabinets one by one. "
+            "Countertop is added for base/tall runs by default."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "widths": {"type": "array", "items": {"type": "number"}, "description": "Cabinet widths in mm, left to right (e.g. [600, 600, 900])."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Applies to every cabinet in the run. Default 'base'."},
+                "height": {"type": "number", "description": "Override carcass height in mm (default per type)."},
+                "depth": {"type": "number", "description": "Override depth in mm (default per type)."},
+                "thickness": {"type": "number", "description": "Panel thickness in mm. Default 18."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Front type for every cabinet. Default 'doors'."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Carcass joinery. Default 'screws'."},
+                "gap": {"type": "number", "description": "Gap between cabinets in mm. Default 0 (gang them)."},
+                "countertop": {"type": "boolean", "description": "Lay a countertop over base/tall runs. Default true."},
+                "countertop_thickness": {"type": "number", "description": "Countertop thickness in mm. Default 38."},
+                "countertop_overhang": {"type": "number", "description": "Countertop overhang past the front/ends in mm. Default 25."},
+            },
+            "required": ["widths"],
+        },
+    },
+    {
+        "name": "add_door_hardware",
+        "description": (
+            "Auto-place concealed hinge cups and a pull handle on a door's inner face — no need "
+            "to compute each hole. First call list_faces on the door body to find the flat inner "
+            "face, then give its index. Cups are bored along the chosen hinge edge (more for "
+            "taller doors); a handle is drilled on the opposite edge. Uses the hardware catalog."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body_index": {"type": "integer", "description": "The door body (from inspect_model)."},
+                "face_index": {"type": "integer", "description": "The flat inner face of the door (from list_faces)."},
+                "hinge_side": {"type": "string", "enum": ["left", "right"], "description": "Which long edge carries the hinges. Default 'left'."},
+                "hinges": {"type": "integer", "description": "Number of hinge cups. Default 2 (use 3 for tall doors)."},
+                "handle": {"type": "boolean", "description": "Also drill a pull handle on the opposite edge. Default true."},
+                "hinge_hardware": {"type": "string", "description": "Catalog id for the hinge cup. Default 'euro_hinge_cup_35'."},
+                "handle_hardware": {"type": "string", "description": "Catalog id for the handle. Default 'handle_pull_128'."},
+                "edge_distance": {"type": "number", "description": "Cup/handle setback from the edge in mm. Default 22."},
+                "end_inset": {"type": "number", "description": "Inset of the end hinges from the door ends in mm. Default 100."},
+            },
+            "required": ["body_index", "face_index"],
+        },
+    },
+    {
+        "name": "estimate_materials",
+        "description": (
+            "Estimate the sheet goods for the current model: nest every panel (each body's "
+            "largest face) onto standard sheets and report how many sheets are needed, the "
+            "material utilisation %, and optional cost. Read-only. Use thickness_filter to cost "
+            "one sheet material at a time (e.g. 18 mm carcass vs 6 mm backs)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sheet_width": {"type": "number", "description": "Sheet width in mm. Default 2440."},
+                "sheet_height": {"type": "number", "description": "Sheet height in mm. Default 1220."},
+                "sheet_price": {"type": "number", "description": "Price per sheet (any currency) to also report cost. Optional."},
+                "kerf": {"type": "number", "description": "Saw kerf/spacing between parts in mm. Default 3."},
+                "thickness_filter": {"type": "number", "description": "Only count panels of this thickness (mm, +/-1). Omit for all bodies."},
+            },
+        },
+    },
+    {
+        "name": "list_cabinet_configs",
+        "description": (
+            "List the named cabinet configuration presets (the practical equivalent of Fusion's "
+            "Configurations table, which the add-in can't author directly). Each row names a "
+            "size, type and front. Apply one with apply_cabinet_config. The set is extensible "
+            "with save_cabinet_config (saved to ~/.claudecad/cabinet_configs.json)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"filter_text": {"type": "string", "description": "Filter by id/name/type/notes, e.g. 'base'. Omit for all."}},
+        },
+    },
+    {
+        "name": "apply_cabinet_config",
+        "description": (
+            "Build a cabinet to a named configuration preset (from list_cabinet_configs) — the "
+            "stand-in for picking a Configurations-table row. Rebuilds the cabinet to that "
+            "size/type/front/door/shelf count. You may override individual fields (width, doors, "
+            "etc.) for a one-off variant. This adds geometry; it does not delete existing bodies."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "config_id": {"type": "string", "description": "Configuration id (from list_cabinet_configs), e.g. 'base-600'."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Override cabinet type."},
+                "width": {"type": "number", "description": "Override width in mm."},
+                "height": {"type": "number", "description": "Override height in mm."},
+                "depth": {"type": "number", "description": "Override depth in mm."},
+                "thickness": {"type": "number", "description": "Override panel thickness in mm."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Override front type."},
+                "doors": {"type": "integer", "description": "Override door count."},
+                "shelves": {"type": "integer", "description": "Override shelf count."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Override joinery method."},
+            },
+            "required": ["config_id"],
+        },
+    },
+    {
+        "name": "save_cabinet_config",
+        "description": (
+            "Save (or update) a named cabinet configuration preset to ~/.claudecad/cabinet_configs.json "
+            "so it persists and can be applied later with apply_cabinet_config. Give an id, a width "
+            "and any of the other fields."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "description": "Unique id, e.g. 'base-450'."},
+                "name": {"type": "string", "description": "Readable name, e.g. 'Base-450'."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Default 'base'."},
+                "width": {"type": "number", "description": "Width in mm (required)."},
+                "height": {"type": "number", "description": "Height in mm."},
+                "depth": {"type": "number", "description": "Depth in mm."},
+                "thickness": {"type": "number", "description": "Panel thickness in mm."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Front type."},
+                "doors": {"type": "integer", "description": "Door count."},
+                "shelves": {"type": "integer", "description": "Shelf count."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Joinery method."},
+                "notes": {"type": "string", "description": "Free-text note."},
+            },
+            "required": ["id", "width"],
+        },
+    },
+    {
+        "name": "export_config_table",
+        "description": (
+            "Write the cabinet configuration table as a CSV reference sheet to the user's home "
+            "folder (the practical equivalent of exporting Fusion's Configurations table)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Base filename (no extension). Default 'claudecad_cabinet_configs'."},
+            },
+        },
+    },
+    {
         "name": "add_face_frame",
         "description": (
             "EXPERIMENTAL casework: apply a face frame (left/right stiles + top/bottom rails) to "
@@ -761,6 +939,24 @@ TOOLS = [
         },
     },
     {
+        "name": "animate_assembly",
+        "description": (
+            "Render an assembly animation as a PNG frame sequence in a home subfolder: the parts "
+            "move step-by-step between assembled and exploded. direction 'assemble' ends assembled "
+            "(parts fly together), 'explode' ends exploded. Fusion's animation workspace isn't "
+            "scriptable, so this produces frames to compile into a GIF/MP4 externally."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "steps": {"type": "integer", "description": "Number of frames (>=2). Default 20."},
+                "factor": {"type": "number", "description": "How far parts spread when exploded. Default 0.8."},
+                "direction": {"type": "string", "enum": ["assemble", "explode"], "description": "Default 'assemble'."},
+                "folder": {"type": "string", "description": "Subfolder name under home. Default 'claudecad_anim'."},
+            },
+        },
+    },
+    {
         "name": "reassemble",
         "description": "Restore every body moved by explode_assembly back to its built position (exact, from the recorded moves).",
         "input_schema": {"type": "object", "properties": {}},
@@ -930,6 +1126,81 @@ def execute(name, tool_input, cad):
     if name == "drill_holes_on_face":
         return cad.drill_holes_on_face(int(ti["body_index"]), int(ti["face_index"]),
                                        list(ti["points"]), float(ti["diameter"]), ti.get("depth"))
+    if name == "build_kitchen_cabinet":
+        if not ti.get("joinery"):
+            raise ValueError(
+                "No joinery method was provided. Ask the user which joinery they want "
+                "(screws / dowels / dado / auto) and wait for their answer before building — "
+                "do not guess."
+            )
+        return cad.build_kitchen_cabinet(
+            float(ti["width"]), ti.get("cabinet_type", "base"),
+            (float(ti["height"]) if ti.get("height") is not None else None),
+            (float(ti["depth"]) if ti.get("depth") is not None else None),
+            float(ti.get("thickness", 18.0)), float(ti.get("back_thickness", 6.0)),
+            ti.get("front", "doors"),
+            (int(ti["doors"]) if ti.get("doors") is not None else None),
+            int(ti.get("drawers", 3)),
+            (int(ti["shelves"]) if ti.get("shelves") is not None else None),
+            ti.get("joinery", "screws"), ti.get("back_joint", "groove"),
+            float(ti.get("toe_kick_height", 100.0)), float(ti.get("toe_kick_recess", 50.0)))
+    if name == "build_kitchen_run":
+        if not ti.get("joinery"):
+            raise ValueError(
+                "No joinery method was provided. Ask the user which joinery they want "
+                "(screws / dowels / dado / auto) and wait for their answer before building — "
+                "do not guess."
+            )
+        return cad.build_kitchen_run(
+            [float(w) for w in ti["widths"]], ti.get("cabinet_type", "base"),
+            (float(ti["height"]) if ti.get("height") is not None else None),
+            (float(ti["depth"]) if ti.get("depth") is not None else None),
+            float(ti.get("thickness", 18.0)), ti.get("front", "doors"),
+            ti.get("joinery", "screws"), float(ti.get("gap", 0.0)),
+            bool(ti.get("countertop", True)), float(ti.get("countertop_thickness", 38.0)),
+            float(ti.get("countertop_overhang", 25.0)))
+    if name == "add_door_hardware":
+        return cad.add_door_hardware(
+            int(ti["body_index"]), int(ti["face_index"]), ti.get("hinge_side", "left"),
+            int(ti.get("hinges", 2)), bool(ti.get("handle", True)),
+            ti.get("hinge_hardware", "euro_hinge_cup_35"),
+            ti.get("handle_hardware", "handle_pull_128"),
+            float(ti.get("edge_distance", 22.0)), float(ti.get("end_inset", 100.0)))
+    if name == "estimate_materials":
+        return cad.estimate_materials(
+            float(ti.get("sheet_width", 2440.0)), float(ti.get("sheet_height", 1220.0)),
+            (float(ti["sheet_price"]) if ti.get("sheet_price") is not None else None),
+            float(ti.get("kerf", 3.0)),
+            (float(ti["thickness_filter"]) if ti.get("thickness_filter") is not None else None))
+    if name == "list_cabinet_configs":
+        from . import configs
+        items = configs.list_configs(ti.get("filter_text", ""))
+        if not items:
+            return "No cabinet configurations match that filter."
+        rows = ["{} — {} {:g}x{:g}x{:g} mm, {} door(s), {} shelf(es){}".format(
+            e.get("id"), e.get("cabinet_type", ""), float(e.get("width", 0) or 0),
+            float(e.get("height", 0) or 0), float(e.get("depth", 0) or 0),
+            e.get("doors", "?"), e.get("shelves", "?"),
+            " — " + e["notes"] if e.get("notes") else "") for e in items]
+        return "Cabinet configurations ({}):\n  ".format(len(items)) + "\n  ".join(rows)
+    if name == "apply_cabinet_config":
+        from . import configs
+        entry = configs.get(ti["config_id"])
+        if not entry:
+            return "No cabinet configuration '{}'. Use list_cabinet_configs.".format(ti["config_id"])
+        cfg = dict(entry)
+        for k in ("width", "height", "depth", "thickness", "front", "doors", "shelves", "cabinet_type", "joinery"):
+            if ti.get(k) is not None:
+                cfg[k] = ti[k]
+        return cad.apply_cabinet_config(cfg)
+    if name == "save_cabinet_config":
+        from . import configs
+        entry = {k: ti[k] for k in
+                 ("id", "name", "cabinet_type", "width", "height", "depth", "thickness",
+                  "front", "doors", "shelves", "joinery", "notes") if k in ti}
+        return "Saved cabinet configuration '{}' to your presets.".format(configs.save_config(entry))
+    if name == "export_config_table":
+        return cad.export_config_table(ti.get("filename"))
     if name == "add_face_frame":
         return cad.add_face_frame(float(ti["width"]), float(ti["height"]),
                                   float(ti.get("stile", 38.0)), float(ti.get("rail", 38.0)),
@@ -979,6 +1250,9 @@ def execute(name, tool_input, cad):
         return cad.place_hardware(ti["hardware_id"], float(ti.get("x", 0.0)), float(ti.get("y", 0.0)), float(ti.get("z", 0.0)))
     if name == "explode_assembly":
         return cad.explode_assembly(float(ti.get("factor", 0.6)))
+    if name == "animate_assembly":
+        return cad.animate_assembly(int(ti.get("steps", 20)), float(ti.get("factor", 0.8)),
+                                    ti.get("direction", "assemble"), ti.get("folder"))
     if name == "reassemble":
         return cad.reassemble()
     if name == "export_bom":
