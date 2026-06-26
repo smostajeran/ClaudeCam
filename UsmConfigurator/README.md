@@ -19,16 +19,18 @@ is present, for design binding, unit handling and material assignment.
 source-verified cell-content families (Open / Closed box / Shelf / Pull-out /
 Door / Glass / Back panel). The ⚙ sets the engine URL.*
 
-## The engine is the source of truth
+## The engine is the source of truth — real meshes, no primitives
 
-The add-in does **not** invent USM geometry. On **Build** it sends a *Path P*
-configuration — `{columnWidths, rowHeights, depth, cells}` — to the engine's
-`POST /api/build` and receives the **IP-safe one52 payload**: parts as
-`{id, part, label, family, pos, quat, quad}` with English labels and RealityKit
-geometry (metres, Y-up). No USM codes, article numbers or prices are ever sent to
-the client — the engine enforces that boundary. The add-in maps each part to a
-Fusion primitive (connector→sphere, tube→cylinder, panel/shelf/door/glass→box
-from the exact `quad` corners), converting metres/Y-up → Fusion cm/Z-up.
+The add-in does **not** invent or approximate USM geometry. On **Build** it sends
+a *Path P* configuration — `{columnWidths, rowHeights, depth, cells}` — to
+`POST /api/build` and gets back the **placement** (each part as
+`{id, part, family, pos, quat}`, metres / Y-up, IP-safe). It then fetches every
+placed part's **real mesh** from `GET /api/part-mesh?part=<id>` (actual
+positions/triangles) and loads it into Fusion as a **mesh body**, rotated by the
+part's `quat`, translated by `pos`, and converted metres/Y-up → Fusion cm/Z-up.
+Catalogue clicks place the same real meshes. Nothing is rendered as a
+sphere/cylinder/box; if the engine has no mesh for a part, it is skipped and
+reported — never faked. No USM codes/prices ever reach the client.
 
 ## Workflow
 

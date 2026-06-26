@@ -160,15 +160,25 @@ class UsmConfiguratorUI:
             except Exception as exc:  # noqa: BLE001
                 self._result("Build failed: {}".format(exc), "error")
                 return
-            parsed = payload_mod.parse(payload, {
-                "panel_rgb": COLORS.get(render.get("color"), payload_mod.DEFAULT_PANEL_RGB),
-            })
+            placed = payload_mod.placement_parts(payload)
+            if not placed:
+                self._result("The engine returned no placed parts for this configuration.", "error")
+                return
+            # Fetch each unique part's REAL mesh from the engine.
+            self._result("Loading {} real meshes from the engine…".format(
+                len(payload_mod.unique_part_ids(placed))), "info")
+            meshes = {}
+            for part_id in payload_mod.unique_part_ids(placed):
+                try:
+                    meshes[part_id] = engine_client.part_mesh(part_id)
+                except engine_client.EngineError:
+                    meshes[part_id] = None  # missing mesh -> skipped + reported, never faked
 
             def do_build():
                 try:
                     from .builder import UsmBuilder
-                    summary = UsmBuilder(self.app).build_payload(parsed)
-                    self._result(summary, "ok")
+                    summary = UsmBuilder(self.app).build_from_engine(placed, meshes, render)
+                    self._result(summary + payload_mod.conflict_summary(payload), "ok")
                 except Exception:
                     self._result("Build failed in Fusion:\n{}".format(traceback.format_exc()), "error")
 

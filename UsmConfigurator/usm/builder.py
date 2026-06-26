@@ -53,7 +53,12 @@ def _load_engine():
 
 
 class UsmBuilder:
-    """Builds a USM structure from a :func:`usm.geometry.build_spec` result."""
+    """Builds a USM structure in Fusion from the engine's real placement + meshes.
+
+    Geometry is never fabricated: ``build_from_engine`` loads each placed part's
+    real mesh (from ``/api/part-mesh``) as a Fusion mesh body at its pos/quat, and
+    ``place_mesh`` does the same for a single catalogue part.
+    """
 
     def __init__(self, app):
         self.app = app
@@ -84,32 +89,6 @@ class UsmBuilder:
             return entity.attributes.itemByName(_ATTR_GROUP, _ATTR_NAME) is not None
         except Exception:
             return False
-
-    # -- temp BRep primitives (millimetres in, cm internally) ----------------
-    def _pt(self, x, y, z):
-        return adsk.core.Point3D.create(x * self.MM, y * self.MM, z * self.MM)
-
-    def _sphere(self, tmgr, ball):
-        c = self._pt(ball["x"], ball["y"], ball["z"])
-        return tmgr.createSphere(c, (ball["diameter"] / 2.0) * self.MM)
-
-    def _tube(self, tmgr, tube):
-        p0 = self._pt(*tube["p0"])
-        p1 = self._pt(*tube["p1"])
-        r = (tube["diameter"] / 2.0) * self.MM
-        return tmgr.createCylinderOrCone(p0, r, p1, r)
-
-    def _panel_box(self, tmgr, panel):
-        x0, y0, z0, x1, y1, z1 = panel["box"]
-        center = self._pt((x0 + x1) / 2.0, (y0 + y1) / 2.0, (z0 + z1) / 2.0)
-        length_dir = adsk.core.Vector3D.create(1.0, 0.0, 0.0)
-        width_dir = adsk.core.Vector3D.create(0.0, 1.0, 0.0)
-        obb = adsk.core.OrientedBoundingBox3D.create(
-            center, length_dir, width_dir,
-            max(x1 - x0, 1e-4) * self.MM,
-            max(y1 - y0, 1e-4) * self.MM,
-            max(z1 - z0, 1e-4) * self.MM)
-        return tmgr.createBox(obb)
 
     # -- appearance (colour) -------------------------------------------------
     def _base_appearance(self, names):
@@ -178,97 +157,57 @@ class UsmBuilder:
         except Exception:
             pass
 
-    # -- build ---------------------------------------------------------------
-    def build(self, spec, material=None):
-        """Build the spec's balls, tubes and panels as bodies. Returns a summary string."""
-        design = self._design()
-        comp = design.rootComponent
-        tmgr = adsk.fusion.TemporaryBRepManager.get()
+    # -- real-mesh build (the only path: geometry from usm-engine) -----------
+    def build_from_engine(self, placed, meshes, render=None):
+        """Build a whole configuration from real engine meshes.
 
-        # (temp body, is_frame, rgb, name)
-        queued = []
-        for i, ball in enumerate(spec["balls"]):
-            queued.append((self._sphere(tmgr, ball), True, geometry.CHROME_RGB, "Ball {}".format(i + 1)))
-        for i, tube in enumerate(spec["tubes"]):
-            if tube["length"] <= 1e-6:
-                continue
-            queued.append((self._tube(tmgr, tube), True, geometry.CHROME_RGB,
-                           "Tube {} ({:g}mm)".format(i + 1, tube["length"])))
-        for i, panel in enumerate(spec["panels"]):
-            rgb = geometry.COLORS.get(panel.get("color"), geometry.COLORS[geometry.DEFAULT_COLOR])
-            queued.append((self._panel_box(tmgr, panel), False, rgb,
-                           "Panel {} ({})".format(i + 1, panel.get("face", ""))))
-
-        self._commit(design, comp, queued, material)
-        n_frame = sum(1 for _, f, _, _ in queued if f)
-        n_panel = len(queued) - n_frame
-        return "{}\n\nBuilt {} frame bodies (balls + tubes) and {} panel(s).{}".format(
-            geometry.summary_text(spec), n_frame, n_panel,
-            "" if self.engine_available else
-            "\n(Note: ClaudeCad engine not found — built standalone; materials best-effort.)")
-
-    # -- engine-payload build (the live path: geometry from usm-engine) -------
-    def build_payload(self, parsed, material=None):
-        """Build the parts in a parsed usm-engine payload (see :mod:`usm.payload`).
-
-        ``parsed['primitives']`` carry coordinates already in Fusion centimetres,
-        so they are drawn directly — the engine, not this add-in, decided the
-        geometry. Returns a summary string (incl. any conflicts the engine flagged).
+        ``placed`` = the engine placement (``usm.payload.placement_parts``); each
+        part's real mesh (``usm.payload`` transformed) is loaded as a Fusion mesh
+        body at its ``pos``/``quat``. ``meshes`` maps part id -> /api/part-mesh
+        payload. Nothing is fabricated — parts with no mesh are skipped and
+        reported. Returns a summary string.
         """
         from . import payload as payload_mod
         design = self._design()
         comp = design.rootComponent
-        tmgr = adsk.fusion.TemporaryBRepManager.get()
 
-        queued = []  # (temp body, is_frame, rgb, name)
-        for i, prim in enumerate(parsed.get("primitives", [])):
-            temp = self._primitive(tmgr, prim)
-            if temp is None:
+        panel_rgb = None
+        if render and render.get("color"):
+            from .ui import COLORS
+            panel_rgb = COLORS.get(render["color"], payload_mod.DEFAULT_PANEL_RGB)
+
+        # (flat coords cm, triangles, rgb, name)
+        jobs, missing = [], []
+        for p in placed:
+            mesh = meshes.get(p["part"])
+            positions = (mesh or {}).get("positions") or []
+            triangles = (mesh or {}).get("triangles") or []
+            if not positions or not triangles:
+                missing.append(p["part"])
                 continue
-            name = "{} {}".format(prim.get("label") or prim.get("kind"), i + 1)
-            queued.append((temp, bool(prim.get("frame")), tuple(prim.get("rgb", payload_mod.CHROME_RGB)), name))
+            coords = payload_mod.transform_mesh(positions, p["quat"], p["pos"])
+            frame = p["family"] in payload_mod.FRAME_FAMILIES
+            jobs.append((coords, [int(i) for i in triangles],
+                         payload_mod.rgb_for(p["family"], panel_rgb), p["label"], frame))
 
-        if not queued:
-            return "The engine returned no buildable parts for this configuration."
-        self._commit(design, comp, queued, material)
-        return payload_mod.summary_text(parsed) + (
-            "" if self.engine_available else
-            "\n(ClaudeCad engine not found — materials best-effort.)")
+        if not jobs:
+            return ("No meshes were built. The engine returned {} placed part(s) but no meshes "
+                    "for them ({}).".format(len(placed), ", ".join(sorted(set(missing))) or "—"))
 
-    def _primitive(self, tmgr, prim):
-        """Build one temp BRep body from a payload primitive (cm coordinates)."""
-        try:
-            kind = prim.get("kind")
-            if kind == "sphere":
-                return tmgr.createSphere(self._cm(prim["center"]), prim["radius_cm"])
-            if kind == "cylinder":
-                p0, p1 = self._cm(prim["p0"]), self._cm(prim["p1"])
-                if p0.distanceTo(p1) < 1e-6:
-                    return None
-                return tmgr.createCylinderOrCone(p0, prim["radius_cm"], p1, prim["radius_cm"])
-            if kind == "panel":
-                return self._panel_from_corners(tmgr, prim["corners"], prim["thickness_cm"])
-            if kind == "box":
-                cx, cy, cz = prim["center"]
-                dx, dy, dz = prim["size"]
-                obb = adsk.core.OrientedBoundingBox3D.create(
-                    adsk.core.Point3D.create(cx, cy, cz),
-                    adsk.core.Vector3D.create(1, 0, 0), adsk.core.Vector3D.create(0, 1, 0),
-                    max(dx, 1e-3), max(dy, 1e-3), max(dz, 1e-3))
-                return tmgr.createBox(obb)
-        except Exception:
-            return None
-        return None
-
-    # Frame families are chrome; everything else takes the chosen panel colour.
-    _FRAME_FAMILIES = {"connector", "tube", "support", "fitting", "hardware"}
+        built = self._add_mesh_bodies(design, comp, jobs)
+        note = ""
+        if missing:
+            uniq = sorted(set(missing))
+            note = "  ({} part(s) had no engine mesh: {})".format(
+                len(missing), ", ".join(uniq[:6]) + ("…" if len(uniq) > 6 else ""))
+        return "Built {} real part meshes from the engine.{}".format(built, note)
 
     def place_mesh(self, part, mesh, index=0, label=None, family=None, render=None):
-        """Load the engine's REAL part mesh (metres) into Fusion as a mesh body.
+        """Load one engine part mesh (from /api/part-mesh) into Fusion as a mesh body.
 
-        ``mesh`` is the ``/api/part-mesh`` payload. Positions are scaled m->cm and
-        offset along X by ``index`` so successive placements don't overlap. No
-        geometry is fabricated — if the payload has no triangles, nothing is built.
+        Positions (metres, native axes) are mapped to Fusion cm (Z-up) and offset
+        along X by ``index`` so successive placements don't overlap. No geometry
+        is fabricated — if the payload has no triangles, nothing is built.
         """
         from . import payload as payload_mod
         positions = mesh.get("positions") or []
@@ -276,140 +215,66 @@ class UsmBuilder:
         if not positions or not triangles:
             return "The engine returned no mesh for '{}'.".format(part)
 
-        scale = 100.0  # metres -> centimetres (Fusion internal unit)
-        ox = index * 80.0
-        coords = []
-        for v in positions:
-            coords.append(float(v[0]) * scale + ox)
-            coords.append(float(v[1]) * scale)
-            coords.append(float(v[2]) * scale)
-        tris = [int(i) for i in triangles]
+        coords = payload_mod.transform_mesh(positions, [0, 0, 0, 1], [0, 0, 0])
+        ox = index * 80.0  # cm row offset along X
+        for i in range(0, len(coords), 3):
+            coords[i] += ox
+
+        panel_rgb = None
+        if render and render.get("color"):
+            from .ui import COLORS
+            panel_rgb = COLORS.get(render["color"], payload_mod.DEFAULT_PANEL_RGB)
+        rgb = payload_mod.rgb_for(family, panel_rgb)
+        frame = family in payload_mod.FRAME_FAMILIES
+        name = label or part
 
         design = self._design()
-        comp = design.rootComponent
-        body = self._add_mesh_body(design, comp, coords, tris)
-        if body is None:
+        built = self._add_mesh_bodies(design, design.rootComponent,
+                                      [(coords, [int(i) for i in triangles], rgb, name, frame)])
+        if not built:
             return ("Could not load the mesh for '{}' (this Fusion version may not support "
                     "addByTriangleMeshData).".format(part))
+        return "Placed {} — real mesh ({} triangles).".format(name, len(triangles) // 3)
 
-        name = label or part
-        try:
-            body.name = name
-        except Exception:
-            pass
-        self._own(body)
-        frame = (family in self._FRAME_FAMILIES)
-        rgb = payload_mod.CHROME_RGB
-        if not frame and render and render.get("color"):
-            from .ui import COLORS
-            rgb = COLORS.get(render["color"], payload_mod.DEFAULT_PANEL_RGB)
-        self._apply_appearance(design, body, rgb, frame)
-        if self.engine is not None:
-            try:
-                self.engine.set_material(0, "Steel", all_bodies=True)
-            except Exception:
-                pass
-        return "Placed {} — real mesh ({} triangles).".format(name, len(tris) // 3)
-
-    def _add_mesh_body(self, design, comp, coords, tris):
-        """Create a real mesh body from flat coordinates (cm) + triangle indices."""
+    def _add_mesh_bodies(self, design, comp, jobs):
+        """Add real mesh bodies for a list of (coords_cm, triangles, rgb, name, frame).
+        Groups them in one base feature (parametric) for speed. Returns the count built."""
         try:
             parametric = design.designType == adsk.fusion.DesignTypes.ParametricDesignType
         except Exception:
             parametric = False
-        try:
-            if parametric:
-                base = comp.features.baseFeatures.add()
-                base.startEdit()
-                try:
-                    body = comp.meshBodies.addByTriangleMeshData(coords, tris, [], [])
-                finally:
-                    base.finishEdit()
-                self._own(base)
-            else:
-                body = comp.meshBodies.addByTriangleMeshData(coords, tris, [], [])
-            # Some API versions return a list-like; normalise to a single body.
-            try:
-                return body.item(0) if hasattr(body, "count") else body
-            except Exception:
-                return body
-        except Exception:
-            return None
 
-    def place_part(self, part, family, dims, index=0, render=None):
-        """Place a single catalogue part as a sized primitive. Returns a summary string."""
-        from . import payload as payload_mod
-        opts = {}
-        if render and render.get("color"):
-            from .ui import COLORS  # render colour lookup lives with the palette config
-            opts["panel_rgb"] = COLORS.get(render["color"], payload_mod.DEFAULT_PANEL_RGB)
-        prim = payload_mod.catalog_primitive(part, family, dims, index, opts)
-        temp = self._primitive(adsk.fusion.TemporaryBRepManager.get(), prim)
-        if temp is None:
-            return "Could not build a primitive for '{}'.".format(part)
-        design = self._design()
-        name = prim.get("label") or part
-        self._commit(design, design.rootComponent,
-                     [(temp, bool(prim.get("frame")), tuple(prim.get("rgb", payload_mod.CHROME_RGB)), name)])
-        return "Placed {}.".format(name)
-
-    @staticmethod
-    def _cm(p):
-        return adsk.core.Point3D.create(p[0], p[1], p[2])
-
-    def _panel_from_corners(self, tmgr, corners, thickness_cm):
-        """A thin box spanning the 4 quad corners (cm), thickness along the face normal."""
-        c0, c1, _c2, c3 = [self._cm(c) for c in corners[:4]]
-        e1 = c0.vectorTo(c1)   # length edge
-        e2 = c0.vectorTo(c3)   # width edge
-        ln, wd = e1.length, e2.length
-        if ln < 1e-6 or wd < 1e-6:
-            return None
-        e1.normalize(); e2.normalize()
-        center = adsk.core.Point3D.create(
-            (corners[0][0] + corners[2][0]) / 2.0,
-            (corners[0][1] + corners[2][1]) / 2.0,
-            (corners[0][2] + corners[2][2]) / 2.0)
-        obb = adsk.core.OrientedBoundingBox3D.create(center, e1, e2, ln, wd, max(thickness_cm, 1e-3))
-        return tmgr.createBox(obb)
-
-    def _commit(self, design, comp, queued, material=None):
-        """Commit queued temp bodies (base feature in parametric, direct add otherwise),
-        then name, tag and colour them. Shared by both build paths."""
-        parametric = False
-        try:
-            parametric = design.designType == adsk.fusion.DesignTypes.ParametricDesignType
-        except Exception:
-            pass
-
-        created = []
+        created = []  # (body, rgb, name, frame)
+        base = None
         if parametric:
             base = comp.features.baseFeatures.add()
             base.startEdit()
-            try:
-                for temp, frame, rgb, name in queued:
-                    created.append((comp.bRepBodies.add(temp, base), frame, rgb, name))
-            finally:
+        try:
+            for coords, tris, rgb, name, frame in jobs:
+                try:
+                    body = comp.meshBodies.addByTriangleMeshData(coords, tris, [], [])
+                    body = body.item(0) if hasattr(body, "count") else body
+                    created.append((body, rgb, name, frame))
+                except Exception:
+                    continue
+        finally:
+            if base is not None:
                 base.finishEdit()
-            self._own(base)
-        else:
-            for temp, frame, rgb, name in queued:
-                created.append((comp.bRepBodies.add(temp), frame, rgb, name))
+                self._own(base)
 
-        for body, frame, rgb, name in created:
+        for body, rgb, name, frame in created:
             try:
                 body.name = name
             except Exception:
                 pass
             self._own(body)
             self._apply_appearance(design, body, rgb, frame)
-
         if self.engine is not None:
             try:
-                self.engine.set_material(0, material or "Steel", all_bodies=True)
+                self.engine.set_material(0, "Steel", all_bodies=True)
             except Exception:
                 pass
-        return created
+        return len(created)
 
     def clear(self):
         """Remove everything this add-in created in the active design (tagged bodies/features)."""
