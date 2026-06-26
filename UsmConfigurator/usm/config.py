@@ -29,15 +29,27 @@ def get_engine_url():
             or DEFAULT_ENGINE_URL).rstrip("/")
 
 
+def get_engine_user():
+    return os.environ.get("USM_ENGINE_USER") or _load_settings().get("engine_user") or ""
+
+
+def get_engine_password():
+    return os.environ.get("USM_ENGINE_PASSWORD") or _load_settings().get("engine_password") or ""
+
+
 def get_engine_token():
     return os.environ.get("USM_ENGINE_TOKEN") or _load_settings().get("engine_token") or ""
 
 
-def save_engine_settings(url=None, token=None):
-    """Persist engine url/token to ~/.usmconfigurator/config.json (owner-readable)."""
+def save_engine_settings(url=None, user=None, password=None, token=None):
+    """Persist engine url + credentials to ~/.usmconfigurator/config.json (owner-readable)."""
     data = _load_settings()
     if url is not None:
         data["engine_url"] = url.strip().rstrip("/")
+    if user is not None:
+        data["engine_user"] = user.strip()
+    if password is not None:
+        data["engine_password"] = password
     if token is not None:
         data["engine_token"] = token.strip()
     path = _settings_path()

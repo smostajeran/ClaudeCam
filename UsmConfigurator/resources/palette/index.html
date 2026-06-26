@@ -14,12 +14,24 @@
     <section id="settings" class="settings hidden">
       <div class="label">usm-engine URL</div>
       <input id="engineUrl" type="text" placeholder="https://…up.railway.app" />
-      <div class="label">Auth token (optional)</div>
-      <input id="engineToken" type="password" placeholder="Bearer token, if required" />
+      <div class="label">Username</div>
+      <input id="engineUser" type="text" placeholder="username" autocomplete="off" />
+      <div class="label">Password</div>
+      <input id="enginePassword" type="password" placeholder="password" autocomplete="off" />
       <div class="actions">
         <button id="saveSettings" class="primary">Save</button>
         <button id="checkEngine">Test</button>
       </div>
+    </section>
+
+    <!-- Part catalogue -->
+    <section>
+      <div class="label">Part catalogue</div>
+      <div class="actions">
+        <button id="loadCatalog" class="primary">Load catalogue</button>
+      </div>
+      <input id="catFilter" class="catfilter hidden" type="text" placeholder="Filter parts…" />
+      <div id="catalog" class="catalog"></div>
     </section>
 
     <section>

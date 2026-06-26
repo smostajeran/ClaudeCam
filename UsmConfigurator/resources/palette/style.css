@@ -133,6 +133,26 @@ footer {
   border: 1px solid var(--line); border-radius: 4px; font-size: 11px;
   box-sizing: border-box;
 }
+
+/* Catalogue browser */
+.catfilter {
+  width: 100%; padding: 6px 8px; margin: 6px 0;
+  border: 1px solid var(--line); border-radius: 4px; font-size: 11px;
+  box-sizing: border-box;
+}
+.catfilter.hidden { display: none; }
+.catalog { max-height: 240px; overflow-y: auto; }
+.catgroup {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); background: #ededee; padding: 3px 6px; margin-top: 4px;
+  border-radius: 3px; position: sticky; top: 0;
+}
+.catrow {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 4px 6px; border-bottom: 1px solid #ededee; font-size: 11px;
+}
+.catrow .catid { color: var(--muted); font-size: 9.5px; text-align: right; white-space: nowrap; }
+.muted { color: var(--muted); font-size: 11px; padding: 4px 6px; }
 .actions { display: flex; gap: 8px; }
 button.primary, #clear {
   flex: 1;

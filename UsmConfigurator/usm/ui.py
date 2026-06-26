@@ -122,6 +122,8 @@ class UsmConfiguratorUI:
             self._save_settings(data)
         elif action == "check_engine":
             self._check_engine()
+        elif action == "load_catalog":
+            self._load_catalog()
 
     def _send_config(self):
         if not self.palette:
@@ -132,7 +134,7 @@ class UsmConfiguratorUI:
             "depths": DEPTH_DOMAIN,
             "cellTypes": CELL_TYPES,
             "engineUrl": config.get_engine_url(),
-            "hasToken": bool(config.get_engine_token()),
+            "engineUser": config.get_engine_user(),
             "version": config.get_version(),
         }))
 
@@ -182,11 +184,29 @@ class UsmConfiguratorUI:
 
     def _save_settings(self, data):
         try:
-            config.save_engine_settings(url=data.get("engine_url"), token=data.get("engine_token"))
+            config.save_engine_settings(url=data.get("engine_url"),
+                                        user=data.get("engine_user"),
+                                        password=data.get("engine_password"))
             self._send_config()
             self._result("Engine settings saved.", "ok")
         except Exception as exc:  # noqa: BLE001
             self._result("Could not save settings: {}".format(exc), "error")
+
+    def _load_catalog(self):
+        """Load the engine's IP-safe part catalogue and push it to the palette."""
+        def work():
+            try:
+                cat = engine_client.catalog()
+            except engine_client.EngineError as exc:
+                self._result(str(exc), "error")
+                return
+            parts = [{"part": p.get("part"), "label": p.get("label"),
+                      "family": p.get("family"), "dims": p.get("dims") or []}
+                     for p in (cat.get("parts") or []) if p.get("part")]
+            if self.palette:
+                self.palette.sendInfoToHTML("catalog", json.dumps({"parts": parts}))
+            self._result("Loaded {} catalogue parts.".format(len(parts)), "ok")
+        threading.Thread(target=work, daemon=True).start()
 
     def _check_engine(self):
         def work():

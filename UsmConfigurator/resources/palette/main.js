@@ -34,6 +34,7 @@
     width: 750, height: 350, depth: 350, cols: 2, rows: 1,
     cell: "closed", color: "USM Matte Silver",
   };
+  var catalogParts = [];
   var cfg = { colors: {}, widths: [], depths: [], cellTypes: [], engineUrl: "", version: "" };
 
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -68,6 +69,26 @@
       host.appendChild(s);
     });
   }
+  function renderCatalog() {
+    var host = byId("catalog"); host.innerHTML = "";
+    var q = (byId("catFilter").value || "").trim().toLowerCase();
+    var groups = {};
+    catalogParts.forEach(function (p) {
+      if (q && (p.label + " " + p.part + " " + p.family).toLowerCase().indexOf(q) < 0) return;
+      (groups[p.family] = groups[p.family] || []).push(p);
+    });
+    var fams = Object.keys(groups).sort();
+    if (!fams.length) { host.appendChild(el("div", "muted", catalogParts.length ? "No matches." : "")); return; }
+    fams.forEach(function (fam) {
+      host.appendChild(el("div", "catgroup", fam + " (" + groups[fam].length + ")"));
+      groups[fam].forEach(function (p) {
+        var dims = (p.dims && p.dims.length) ? " · " + p.dims.join("×") + " mm" : "";
+        var row = el("div", "catrow", "<span>" + p.label + "</span><span class='catid'>" + p.part + dims + "</span>");
+        host.appendChild(row);
+      });
+    });
+  }
+
   function renderSteppers() { byId("cols").textContent = state.cols; byId("rows").textContent = state.rows; }
   function renderAll() {
     renderChips("widths", cfg.widths, "width");
@@ -100,9 +121,15 @@
     });
     byId("gear").onclick = function () { byId("settings").classList.toggle("hidden"); };
     byId("saveSettings").onclick = function () {
-      sendData("save_settings", { engine_url: byId("engineUrl").value, engine_token: byId("engineToken").value });
+      sendData("save_settings", {
+        engine_url: byId("engineUrl").value,
+        engine_user: byId("engineUser").value,
+        engine_password: byId("enginePassword").value,
+      });
     };
     byId("checkEngine").onclick = function () { setStatus("Checking engine…"); sendData("check_engine", {}); };
+    byId("loadCatalog").onclick = function () { setStatus("Loading catalogue…"); sendData("load_catalog", {}); };
+    byId("catFilter").oninput = renderCatalog;
     byId("build").onclick = function () {
       setStatus("Building via engine…");
       sendData("build", { path_p: pathP(), render: { color: state.color } });
@@ -121,10 +148,15 @@
           if (d.widths && d.widths.indexOf(state.width) < 0) state.width = d.widths[d.widths.length - 1];
           if (d.depths && d.depths.indexOf(state.depth) < 0) state.depth = d.depths[0];
           byId("engineUrl").value = d.engineUrl || "";
+          byId("engineUser").value = d.engineUser || "";
           byId("ver").textContent = "v" + (d.version || "");
           renderAll();
         } else if (action === "result") {
           setStatus(d.text || "", d.level);
+        } else if (action === "catalog") {
+          catalogParts = d.parts || [];
+          byId("catFilter").classList.toggle("hidden", catalogParts.length === 0);
+          renderCatalog();
         }
       } catch (e) {}
       return "OK";
