@@ -653,6 +653,80 @@ TOOLS = [
         },
     },
     {
+        "name": "list_cabinet_configs",
+        "description": (
+            "List the named cabinet configuration presets (the practical equivalent of Fusion's "
+            "Configurations table, which the add-in can't author directly). Each row names a "
+            "size, type and front. Apply one with apply_cabinet_config. The set is extensible "
+            "with save_cabinet_config (saved to ~/.claudecad/cabinet_configs.json)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"filter_text": {"type": "string", "description": "Filter by id/name/type/notes, e.g. 'base'. Omit for all."}},
+        },
+    },
+    {
+        "name": "apply_cabinet_config",
+        "description": (
+            "Build a cabinet to a named configuration preset (from list_cabinet_configs) — the "
+            "stand-in for picking a Configurations-table row. Rebuilds the cabinet to that "
+            "size/type/front/door/shelf count. You may override individual fields (width, doors, "
+            "etc.) for a one-off variant. This adds geometry; it does not delete existing bodies."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "config_id": {"type": "string", "description": "Configuration id (from list_cabinet_configs), e.g. 'base-600'."},
+                "width": {"type": "number", "description": "Override width in mm."},
+                "height": {"type": "number", "description": "Override height in mm."},
+                "depth": {"type": "number", "description": "Override depth in mm."},
+                "thickness": {"type": "number", "description": "Override panel thickness in mm."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Override front type."},
+                "doors": {"type": "integer", "description": "Override door count."},
+                "shelves": {"type": "integer", "description": "Override shelf count."},
+            },
+            "required": ["config_id"],
+        },
+    },
+    {
+        "name": "save_cabinet_config",
+        "description": (
+            "Save (or update) a named cabinet configuration preset to ~/.claudecad/cabinet_configs.json "
+            "so it persists and can be applied later with apply_cabinet_config. Give an id, a width "
+            "and any of the other fields."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "description": "Unique id, e.g. 'base-450'."},
+                "name": {"type": "string", "description": "Readable name, e.g. 'Base-450'."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Default 'base'."},
+                "width": {"type": "number", "description": "Width in mm (required)."},
+                "height": {"type": "number", "description": "Height in mm."},
+                "depth": {"type": "number", "description": "Depth in mm."},
+                "thickness": {"type": "number", "description": "Panel thickness in mm."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Front type."},
+                "doors": {"type": "integer", "description": "Door count."},
+                "shelves": {"type": "integer", "description": "Shelf count."},
+                "notes": {"type": "string", "description": "Free-text note."},
+            },
+            "required": ["id", "width"],
+        },
+    },
+    {
+        "name": "export_config_table",
+        "description": (
+            "Write the cabinet configuration table as a CSV reference sheet to the user's home "
+            "folder (the practical equivalent of exporting Fusion's Configurations table)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Base filename (no extension). Default 'claudecad_cabinet_configs'."},
+            },
+        },
+    },
+    {
         "name": "add_face_frame",
         "description": (
             "EXPERIMENTAL casework: apply a face frame (left/right stiles + top/bottom rails) to "
@@ -1083,6 +1157,35 @@ def execute(name, tool_input, cad):
             (float(ti["sheet_price"]) if ti.get("sheet_price") is not None else None),
             float(ti.get("kerf", 3.0)),
             (float(ti["thickness_filter"]) if ti.get("thickness_filter") is not None else None))
+    if name == "list_cabinet_configs":
+        from . import configs
+        items = configs.list_configs(ti.get("filter_text", ""))
+        if not items:
+            return "No cabinet configurations match that filter."
+        rows = ["{} — {} {:g}x{:g}x{:g} mm, {} door(s), {} shelf(es){}".format(
+            e.get("id"), e.get("cabinet_type", ""), float(e.get("width", 0) or 0),
+            float(e.get("height", 0) or 0), float(e.get("depth", 0) or 0),
+            e.get("doors", "?"), e.get("shelves", "?"),
+            " — " + e["notes"] if e.get("notes") else "") for e in items]
+        return "Cabinet configurations ({}):\n  ".format(len(items)) + "\n  ".join(rows)
+    if name == "apply_cabinet_config":
+        from . import configs
+        entry = configs.get(ti["config_id"])
+        if not entry:
+            return "No cabinet configuration '{}'. Use list_cabinet_configs.".format(ti["config_id"])
+        cfg = dict(entry)
+        for k in ("width", "height", "depth", "thickness", "front", "doors", "shelves", "cabinet_type", "joinery"):
+            if ti.get(k) is not None:
+                cfg[k] = ti[k]
+        return cad.apply_cabinet_config(cfg)
+    if name == "save_cabinet_config":
+        from . import configs
+        entry = {k: ti[k] for k in
+                 ("id", "name", "cabinet_type", "width", "height", "depth", "thickness",
+                  "front", "doors", "shelves", "notes") if k in ti}
+        return "Saved cabinet configuration '{}' to your presets.".format(configs.save_config(entry))
+    if name == "export_config_table":
+        return cad.export_config_table(ti.get("filename"))
     if name == "add_face_frame":
         return cad.add_face_frame(float(ti["width"]), float(ti["height"]),
                                   float(ti.get("stile", 38.0)), float(ti.get("rail", 38.0)),

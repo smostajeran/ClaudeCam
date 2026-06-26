@@ -20,6 +20,8 @@ RISK = {
     "list_materials": READ, "capture_view": READ,
     "list_hardware": READ, "hardware_info": READ, "add_hardware": READ,
     "estimate_materials": READ,
+    "list_cabinet_configs": READ, "save_cabinet_config": READ,
+    "apply_cabinet_config": BUILD,
     "create_parameter": BUILD, "create_sketch": BUILD, "draw_rectangle": BUILD,
     "draw_circle": BUILD, "draw_line": BUILD, "draw_polygon": BUILD,
     "extrude": BUILD, "revolve": BUILD, "loft": BUILD, "sweep": BUILD,
@@ -37,6 +39,7 @@ RISK = {
     "explode_assembly": MODIFY, "reassemble": MODIFY, "animate_assembly": MODIFY,
     "import_model": MODIFY, "place_hardware": MODIFY,
     "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT, "export_bom": EXPORT,
+    "export_config_table": EXPORT,
 }
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
@@ -48,6 +51,7 @@ REQUIRES_CONFIRMATION = DESTRUCTIVE | {
     "export_model", "move_body", "combine_bodies", "build_cabinet",
     "add_face_frame", "add_doors", "add_drawers", "promote_to_components",
     "import_model", "place_hardware", "build_kitchen_cabinet", "build_kitchen_run",
+    "apply_cabinet_config",
 }
 
 
@@ -107,6 +111,12 @@ def summarize_call(name, tool_input):
     if name == "estimate_materials":
         return "Estimate sheet goods ({}x{} mm sheets)".format(
             ti.get("sheet_width", 2440), ti.get("sheet_height", 1220))
+    if name == "apply_cabinet_config":
+        return "Build cabinet from config '{}'".format(ti.get("config_id"))
+    if name == "save_cabinet_config":
+        return "Save cabinet config '{}'".format(ti.get("id"))
+    if name == "export_config_table":
+        return "Export the cabinet configuration table (CSV)"
     if name == "promote_to_components":
         return "Promote all bodies into separate components"
     if name == "explode_assembly":
@@ -300,6 +310,19 @@ def validate(name, tool_input):
         if ti.get("hinges") is not None:
             _check_count("hinges", ti.get("hinges"), 1, 12)
         for k in ("edge_distance", "end_inset"):
+            if ti.get(k) is not None:
+                _check_len(k, ti.get(k))
+    elif name == "apply_cabinet_config":
+        if not (ti.get("config_id") or "").strip():
+            raise ValueError("apply_cabinet_config needs a 'config_id' (from list_cabinet_configs).")
+        for k in ("width", "height", "depth", "thickness"):
+            if ti.get(k) is not None:
+                _check_len(k, ti.get(k))
+    elif name == "save_cabinet_config":
+        if not (ti.get("id") or "").strip():
+            raise ValueError("save_cabinet_config needs an 'id'.")
+        _check_len("width", ti.get("width"))
+        for k in ("height", "depth", "thickness"):
             if ti.get(k) is not None:
                 _check_len(k, ti.get(k))
     elif name == "estimate_materials":

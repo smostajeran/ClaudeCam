@@ -131,7 +131,12 @@ Follow this workflow:
    face): it auto-bores the hinge cups along one edge and a handle on the opposite edge.
    To estimate sheet goods / cost, use estimate_materials — it nests the panels onto standard
    sheets and reports sheet count, utilisation and optional cost (use thickness_filter to cost
-   one material at a time, e.g. 18 mm carcass vs 6 mm backs). For a generic (non-kitchen) cabinet / carcass / casework, use build_cabinet: from the overall size it creates
+   one material at a time, e.g. 18 mm carcass vs 6 mm backs).
+   Fusion's Configurations table can't be authored through this API; the stand-in is the cabinet
+   PRESETS — list_cabinet_configs shows named rows (Base-300 … Tall-600), apply_cabinet_config
+   rebuilds the cabinet to a chosen row (override individual fields for a one-off), save_cabinet_config
+   stores a new preset, and export_config_table writes the table as CSV. Use these when the user
+   asks for cabinet 'configurations'/'variants'/'a config table'. For a generic (non-kitchen) cabinet / carcass / casework, use build_cabinet: from the overall size it creates
    the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) already
    positioned to fit, and returns a cut list + joinery plan. Do NOT call build_cabinet with
    a guessed joinery method — if the user hasn't explicitly chosen one, ask them (screws /

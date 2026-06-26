@@ -1479,6 +1479,47 @@ class CadBuilder:
                 ", ".join("{:.0f}x{:.0f}".format(w, h) for w, h in stats["oversized"])))
         return "\n".join(lines)
 
+    def apply_cabinet_config(self, cfg):
+        """Build a cabinet to a resolved configuration dict — the practical equivalent of
+        selecting a Configurations-table row. Rebuilds via build_kitchen_cabinet (door/shelf
+        counts change the body count, so a row change is a rebuild, not just a parameter switch).
+        """
+        name = cfg.get("name") or cfg.get("id") or "config"
+        if cfg.get("width") in (None, ""):
+            raise ValueError("Configuration '{}' has no width.".format(name))
+        msg = self.build_kitchen_cabinet(
+            float(cfg["width"]),
+            cabinet_type=cfg.get("cabinet_type", "base"),
+            height=(float(cfg["height"]) if cfg.get("height") not in (None, "") else None),
+            depth=(float(cfg["depth"]) if cfg.get("depth") not in (None, "") else None),
+            thickness=float(cfg.get("thickness", 18.0)),
+            front=cfg.get("front", "doors"),
+            doors=(int(cfg["doors"]) if cfg.get("doors") not in (None, "") else None),
+            shelves=(int(cfg["shelves"]) if cfg.get("shelves") not in (None, "") else None),
+            joinery=cfg.get("joinery", "screws"))
+        return "Applied configuration '{}'. {}".format(name, msg)
+
+    def export_config_table(self, filename=None):
+        """Write the cabinet configuration reference table (the practical equivalent of Fusion's
+        Configurations table) as CSV to the user's home folder, and return a summary."""
+        from . import configs
+        rows = configs.list_configs()
+        if not rows:
+            raise RuntimeError("There are no cabinet configurations to export.")
+        csv_text = util.config_table_csv(rows)
+        base = util.safe_export_basename(filename if filename else "claudecad_cabinet_configs")
+        home = os.path.realpath(os.path.expanduser("~"))
+        path = os.path.realpath(os.path.join(home, base + ".csv"))
+        if os.path.dirname(path) != home:
+            raise ValueError("Refusing to write outside your home folder.")
+        suffix = 1
+        while os.path.exists(path):
+            path = os.path.join(home, "{}_{}.csv".format(base, suffix))
+            suffix += 1
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(csv_text)
+        return "Wrote {} cabinet configuration(s) to {}".format(len(rows), path)
+
     # -- advanced features ---------------------------------------------------
     def loft(self, sketch_ids, operation="new"):
         comp = self._comp()

@@ -116,6 +116,13 @@ The script copies the add-in into Fusion's AddIns folder. There is **no dependen
   onto standard **sheet goods** and reports how many sheets you need, the **utilisation %**, and
   optional **cost** (per-sheet price). Use a thickness filter to cost one material at a time
   (e.g. 18 mm carcass vs 6 mm backs). Read-only — it doesn't change the model.
+- **Cabinet configurations (presets):** Fusion's Configurations table can't be authored through
+  the add-in API, so the add-in ships the practical equivalent: a set of named cabinet **presets**
+  (Base-300 … Tall-600). `list_cabinet_configs` shows the rows, `apply_cabinet_config` rebuilds a
+  cabinet to a chosen row (override individual fields for a one-off variant — door/shelf counts
+  change the body count, so applying *rebuilds*), `save_cabinet_config` stores a new preset to
+  `~/.claudecad/cabinet_configs.json`, and `export_config_table` writes the whole table as a CSV
+  reference sheet.
 - **Casework / cabinets:** `build_cabinet` builds a frameless carcass from its overall size —
   the named panels (Left/Right Side, Bottom, Top, Back, optional shelves) positioned to fit
   together — and returns a cut list plus a joinery plan for the method you choose

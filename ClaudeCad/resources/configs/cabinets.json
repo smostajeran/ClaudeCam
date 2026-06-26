@@ -1,0 +1,12 @@
+{
+  "_about": "Cabinet configuration presets — the practical equivalent of Fusion's Configurations table, which the add-in API can't author directly. Each entry names a cabinet's size and front; apply_cabinet_config rebuilds the cabinet to it (rows that change door/shelf counts change the body count, so applying rebuilds rather than just switching a parameter). Extend with your own rows in ~/.claudecad/cabinet_configs.json (same schema, a 'configs' list).",
+  "configs": [
+    {"id": "base-300", "name": "Base-300", "cabinet_type": "base", "width": 300, "height": 720, "depth": 560, "thickness": 18, "front": "doors", "doors": 1, "shelves": 1, "notes": "single door"},
+    {"id": "base-400", "name": "Base-400", "cabinet_type": "base", "width": 400, "height": 720, "depth": 560, "thickness": 18, "front": "doors", "doors": 1, "shelves": 1, "notes": "single door"},
+    {"id": "base-500", "name": "Base-500", "cabinet_type": "base", "width": 500, "height": 720, "depth": 560, "thickness": 18, "front": "doors", "doors": 1, "shelves": 1, "notes": "single door"},
+    {"id": "base-600", "name": "Base-600", "cabinet_type": "base", "width": 600, "height": 720, "depth": 560, "thickness": 18, "front": "doors", "doors": 2, "shelves": 2, "notes": "two doors"},
+    {"id": "base-800", "name": "Base-800", "cabinet_type": "base", "width": 800, "height": 720, "depth": 560, "thickness": 18, "front": "doors", "doors": 2, "shelves": 2, "notes": "two doors"},
+    {"id": "base-900", "name": "Base-900", "cabinet_type": "base", "width": 900, "height": 720, "depth": 560, "thickness": 18, "front": "doors", "doors": 2, "shelves": 2, "notes": "two doors"},
+    {"id": "tall-600", "name": "Tall-600", "cabinet_type": "tall", "width": 600, "height": 2000, "depth": 560, "thickness": 18, "front": "doors", "doors": 2, "shelves": 4, "notes": "pantry"}
+  ]
+}

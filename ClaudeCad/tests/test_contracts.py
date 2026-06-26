@@ -15,7 +15,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from claudecad import agent, hardware, policy, tools, updater, util  # noqa: E402
+from claudecad import agent, configs, hardware, policy, tools, updater, util  # noqa: E402
 
 
 # -- tool schema <-> dispatch parity ----------------------------------------
@@ -392,6 +392,37 @@ def test_hardware_list_filter():
         " ".join(str(e.get(k, "")) for k in ("id", "brand", "category", "name")).lower() for e in hinges)
 
 
+def test_cabinet_configs_catalog_loads_and_has_base_600():
+    catalog = configs.load_catalog()
+    assert catalog, "bundled cabinet config catalog should load"
+    assert "base-600" in catalog
+    base600 = catalog["base-600"]
+    assert base600["width"] == 600 and base600["doors"] == 2
+
+
+def test_cabinet_configs_list_sorted_and_filtered():
+    talls = configs.list_configs("tall")
+    assert talls and all("tall" in
+        " ".join(str(e.get(k, "")) for k in ("id", "name", "cabinet_type", "notes")).lower()
+        for e in talls)
+    # base configs come back ordered by width
+    bases = [e for e in configs.list_configs() if e.get("cabinet_type") == "base"]
+    widths = [float(e["width"]) for e in bases]
+    assert widths == sorted(widths)
+
+
+def test_config_table_csv_header_and_rows():
+    csv = util.config_table_csv([
+        {"name": "Base-600", "cabinet_type": "base", "width": 600, "height": 720,
+         "depth": 560, "thickness": 18, "front": "doors", "doors": 2, "shelves": 2, "notes": "two doors"},
+        {"id": "min", "width": 300},  # sparse row: missing fields render blank, not crash
+    ])
+    lines = csv.strip().split("\n")
+    assert lines[0].startswith("Config,Type,Width(mm)")
+    assert lines[1].startswith("Base-600,base,600,720,560,18,doors,2,2")
+    assert lines[2].startswith("min,,300,,,,,,")  # only id + width populated
+
+
 def test_strip_orphan_keeps_properly_answered_tool_use():
     messages = [
         {"role": "assistant", "content": [{"type": "tool_use", "id": "abc", "name": "extrude", "input": {}}]},
@@ -457,6 +488,10 @@ SAMPLES = {
     "build_kitchen_run": {"widths": [600, 600, 900], "cabinet_type": "base", "front": "doors"},
     "add_door_hardware": {"body_index": 5, "face_index": 0, "hinge_side": "left", "hinges": 2},
     "estimate_materials": {"sheet_width": 2440, "sheet_height": 1220, "sheet_price": 60, "kerf": 3},
+    "list_cabinet_configs": {},
+    "apply_cabinet_config": {"config_id": "base-600"},
+    "save_cabinet_config": {"id": "test_cfg", "name": "Test", "width": 600},
+    "export_config_table": {},
     "drill_holes": {"body_index": 0, "holes": [{"x": 10, "y": 37, "z": 100, "axis": "x", "depth": 12, "diameter": 5}]},
     "drill_holes_on_face": {"body_index": 0, "face_index": 2, "diameter": 5, "depth": 12,
                             "points": [{"u": 37, "v": 100}, {"u": 37, "v": 132}]},
@@ -487,7 +522,8 @@ def test_samples_cover_every_tool():
 
 
 # Tools that are served by the catalog module directly, not the CadBuilder.
-_MODULE_TOOLS = {"list_hardware", "hardware_info", "add_hardware"}
+_MODULE_TOOLS = {"list_hardware", "hardware_info", "add_hardware",
+                 "list_cabinet_configs", "save_cabinet_config"}
 
 
 def test_execute_routes_every_tool_to_a_cad_method():

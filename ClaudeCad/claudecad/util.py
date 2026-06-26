@@ -90,6 +90,36 @@ def _csv_cell(value):
     return s
 
 
+def _num_cell(value):
+    """Format a numeric cell with {:g}; pass non-numbers through as text, blanks as ''."""
+    if value is None or value == "":
+        return ""
+    try:
+        return "{:g}".format(float(value))
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def config_table_csv(configs):
+    """Build a cabinet-configuration reference sheet (CSV) from a list of config dicts.
+
+    Each config has ``name``/``id`` and any of ``cabinet_type`` / ``width`` / ``height`` /
+    ``depth`` / ``thickness`` / ``front`` / ``doors`` / ``shelves`` / ``notes``. This is the
+    practical equivalent of exporting Fusion's Configurations table.
+    """
+    rows = ["Config,Type,Width(mm),Height(mm),Depth(mm),Thickness(mm),Front,Doors,Shelves,Notes"]
+    for c in configs:
+        rows.append(",".join(_csv_cell(v) for v in (
+            c.get("name") or c.get("id") or "",
+            c.get("cabinet_type", ""),
+            _num_cell(c.get("width")), _num_cell(c.get("height")), _num_cell(c.get("depth")),
+            _num_cell(c.get("thickness")),
+            c.get("front", ""), _num_cell(c.get("doors")), _num_cell(c.get("shelves")),
+            c.get("notes", ""),
+        )))
+    return "\n".join(rows) + "\n"
+
+
 def cut_list_csv(parts):
     """Build a cut-list CSV from a list of parts.
 
