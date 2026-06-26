@@ -13,3 +13,20 @@ ClaudeCad/
 ├── claudecad/              # add-in package (agent, tools, cad, ui, dispatcher)
 └── resources/palette/      # chat UI (HTML/CSS/JS)
 ```
+
+## USM Configurator
+
+A **separate, standalone** Fusion add-in that builds parametric **USM Haller**
+modular furniture (chrome ball connectors + tubes + colour panels) from a
+configuration dialog — no chat, no API key. It is independent of ClaudeCad, but
+its builder **reuses ClaudeCad's CAD engine** when present for design plumbing
+and materials. Lives in [`UsmConfigurator/`](UsmConfigurator/); see
+[`UsmConfigurator/README.md`](UsmConfigurator/README.md).
+
+```
+UsmConfigurator/
+├── UsmConfigurator.manifest  # Fusion add-in manifest
+├── UsmConfigurator.py        # entry point (run/stop)
+├── usm/                      # package (geometry, presets, builder, ui, addin)
+└── resources/presets/        # bundled USM configurations
+```

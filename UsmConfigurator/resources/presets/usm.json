@@ -1,0 +1,32 @@
+{
+  "_about": "USM Configurator presets — named, ready-to-build USM Haller configurations. 'columns'/'rows'/'depths' are lists of bay sizes in mm along X/Z/Y. Panel options: back_panels, shelves, dividers (booleans) and/or an explicit 'panels' list of {ix,iy,iz,face,color}. Extend with your own rows in ~/.usmconfigurator/presets.json (same schema, a 'presets' list).",
+  "presets": [
+    {"id": "usm-cube", "name": "Single Cube", "columns": [350], "rows": [350], "depths": [350],
+     "back_panels": true, "shelves": false, "dividers": false, "color": "USM Ruby Red",
+     "notes": "one bay, back panel — the smallest USM module"},
+
+    {"id": "usm-sideboard", "name": "Sideboard 2x2", "columns": [750, 750], "rows": [350, 350], "depths": [350],
+     "back_panels": true, "shelves": true, "dividers": false, "color": "USM Pure Orange",
+     "notes": "classic low sideboard, 1500x700 mm, back panels + shelf"},
+
+    {"id": "usm-credenza", "name": "Credenza 3-wide", "columns": [500, 500, 500], "rows": [400], "depths": [400],
+     "back_panels": true, "shelves": false, "dividers": true, "color": "USM Anthracite",
+     "notes": "three-bay credenza with vertical dividers and backs"},
+
+    {"id": "usm-bookshelf", "name": "Bookshelf Tall", "columns": [500, 500, 500], "rows": [350, 350, 350, 350], "depths": [300],
+     "back_panels": false, "shelves": true, "dividers": true, "color": "USM Matte Silver",
+     "notes": "open bookshelf, 3 wide x 4 tall, shelves + dividers, no backs"},
+
+    {"id": "usm-tvboard", "name": "TV Board", "columns": [750, 1000, 750], "rows": [300], "depths": [450],
+     "back_panels": true, "shelves": false, "dividers": false, "color": "USM Graphite Black",
+     "notes": "wide low media board, deep bays, full back"},
+
+    {"id": "usm-accent", "name": "Accent Shelf (mixed colours)", "columns": [500, 500], "rows": [350, 350], "depths": [300],
+     "shelves": true, "dividers": false, "color": "USM Light Gray",
+     "panels": [
+       {"ix": 0, "iy": 0, "iz": 0, "face": "back", "color": "USM Gentian Blue"},
+       {"ix": 1, "iy": 0, "iz": 1, "face": "back", "color": "USM Golden Yellow"}
+     ],
+     "notes": "shelves plus two accent-coloured back panels via an explicit panel list"}
+  ]
+}

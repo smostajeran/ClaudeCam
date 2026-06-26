@@ -1,0 +1,13 @@
+{
+    "autodeskProduct": "Fusion360",
+    "type": "addin",
+    "id": "b7e1f3a9-2c64-4d18-9f3a-usmconfig0001",
+    "author": "USM Configurator",
+    "description": {
+        "": "Configure and build a parametric USM Haller modular structure (ball connectors, chrome tubes, colour panels) from a dialog."
+    },
+    "version": "1.0.0",
+    "runOnStartup": false,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}
