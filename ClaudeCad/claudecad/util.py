@@ -158,16 +158,22 @@ def nest_panels(panels, sheet_w=2440.0, sheet_h=1220.0, kerf=3.0):
     total sheet vs used area, utilisation %, and any oversized panels that don't fit a sheet.
     Approximate (first-fit-decreasing shelf packing) but good for an estimate.
     """
-    usable_w, usable_h = float(sheet_w), float(sheet_h)
+    # Normalise the sheet to long/short axes and always pack a panel's long side along the
+    # sheet's long axis. This makes packing orientation-agnostic — a panel and a sheet given in
+    # either orientation are treated the same — and (critically) prevents an accepted panel from
+    # never fitting the pack axis, which would spin `while remaining` forever (e.g. a 2400x700
+    # panel on a 1220x2440 sheet entered portrait).
+    usable_long = max(float(sheet_w), float(sheet_h))
+    usable_short = min(float(sheet_w), float(sheet_h))
     kerf = float(kerf)
     items, oversized, used_area = [], [], 0.0
     for w, h in panels:
         w, h = float(w), float(h)
-        used_area += w * h
         a, b = max(w + kerf, h + kerf), min(w + kerf, h + kerf)  # longer side first
-        if a > max(usable_w, usable_h) + 1e-6 or b > min(usable_w, usable_h) + 1e-6:
-            oversized.append((w, h))
+        if a > usable_long + 1e-6 or b > usable_short + 1e-6:
+            oversized.append((w, h))  # excluded from packing, so excluded from used area too
             continue
+        used_area += w * h
         items.append((a, b))
     items.sort(key=lambda t: (-t[1], -t[0]))  # tallest first
 
@@ -177,24 +183,24 @@ def nest_panels(panels, sheet_w=2440.0, sheet_h=1220.0, kerf=3.0):
         sheets += 1
         y = 0.0
         while remaining:
-            # open a shelf with the first remaining panel that still fits the sheet height
+            # open a shelf with the first remaining panel that still fits the remaining short span
             idx = next((i for i, (a, b) in enumerate(remaining)
-                        if b <= usable_h - y + 1e-6 and a <= usable_w + 1e-6), None)
+                        if b <= usable_short - y + 1e-6 and a <= usable_long + 1e-6), None)
             if idx is None:
                 break
             a, b = remaining.pop(idx)
             shelf_h, x = b, a
             i = 0
-            while i < len(remaining):  # fill the shelf left-to-right
+            while i < len(remaining):  # fill the shelf along the long axis
                 aa, bb = remaining[i]
-                if bb <= shelf_h + 1e-6 and x + aa <= usable_w + 1e-6:
+                if bb <= shelf_h + 1e-6 and x + aa <= usable_long + 1e-6:
                     x += aa
                     remaining.pop(i)
                 else:
                     i += 1
             y += shelf_h
 
-    sheet_area = usable_w * usable_h * sheets
+    sheet_area = usable_long * usable_short * sheets
     utilization = (used_area / sheet_area * 100.0) if sheet_area else 0.0
     return {"sheets": sheets, "sheet_area_mm2": sheet_area, "used_area_mm2": used_area,
             "utilization_pct": utilization, "oversized": oversized}

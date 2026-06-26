@@ -18,9 +18,9 @@ RISK = {
     "get_design_summary": READ, "inspect_model": READ, "list_faces": READ,
     "list_edges": READ, "get_selection": READ, "get_mass_properties": READ,
     "list_materials": READ, "capture_view": READ,
-    "list_hardware": READ, "hardware_info": READ, "add_hardware": READ,
+    "list_hardware": READ, "hardware_info": READ,
     "estimate_materials": READ,
-    "list_cabinet_configs": READ, "save_cabinet_config": READ,
+    "list_cabinet_configs": READ,
     "apply_cabinet_config": BUILD,
     "create_parameter": BUILD, "create_sketch": BUILD, "draw_rectangle": BUILD,
     "draw_circle": BUILD, "draw_line": BUILD, "draw_polygon": BUILD,
@@ -40,6 +40,8 @@ RISK = {
     "import_model": MODIFY, "place_hardware": MODIFY,
     "export_model": EXPORT, "export_cut_list": EXPORT, "export_dxf": EXPORT, "export_bom": EXPORT,
     "export_config_table": EXPORT,
+    # Catalog writers persist a small JSON file under ~/.claudecad (no geometry) — a file write.
+    "add_hardware": EXPORT, "save_cabinet_config": EXPORT,
 }
 
 # Operations that consume/alter existing geometry in a way worth a heads-up.
@@ -333,11 +335,13 @@ def validate(name, tool_input):
             _check_len("kerf", ti.get("kerf"), allow_negative=True)
         if ti.get("sheet_price") is not None:
             _check_len("sheet_price", ti.get("sheet_price"))
-    elif name == "explode_assembly":
+    elif name in ("explode_assembly", "animate_assembly"):
         if ti.get("factor") is not None:
             f = _num(ti.get("factor"))
             if f is None or f <= 0 or f > 100:
                 raise ValueError("factor must be a number between 0 and 100.")
+        if name == "animate_assembly" and ti.get("steps") is not None:
+            _check_count("steps", ti.get("steps"), 2, 1000)
     elif name == "export_model":
         from . import util
         if util.export_extension(ti.get("format", "step")) is None:

@@ -570,7 +570,7 @@ TOOLS = [
                 "depth": {"type": "number", "description": "Override depth in mm (default per type)."},
                 "thickness": {"type": "number", "description": "Panel thickness in mm. Default 18."},
                 "back_thickness": {"type": "number", "description": "Back panel thickness in mm. Default 6."},
-                "front": {"type": "string", "enum": ["doors", "drawers", "none"], "description": "Front type. Default 'doors'."},
+                "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Front type: doors, drawers, door_drawer (drawer over door), sink (false front over doors), or open/none. Default 'doors'."},
                 "doors": {"type": "integer", "description": "Number of doors (default 1 if width<=600 else 2)."},
                 "drawers": {"type": "integer", "description": "Number of drawers when front='drawers'. Default 3."},
                 "shelves": {"type": "integer", "description": "Interior shelves (default per type)."},
@@ -677,6 +677,7 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "config_id": {"type": "string", "description": "Configuration id (from list_cabinet_configs), e.g. 'base-600'."},
+                "cabinet_type": {"type": "string", "enum": ["base", "wall", "tall"], "description": "Override cabinet type."},
                 "width": {"type": "number", "description": "Override width in mm."},
                 "height": {"type": "number", "description": "Override height in mm."},
                 "depth": {"type": "number", "description": "Override depth in mm."},
@@ -684,6 +685,7 @@ TOOLS = [
                 "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Override front type."},
                 "doors": {"type": "integer", "description": "Override door count."},
                 "shelves": {"type": "integer", "description": "Override shelf count."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Override joinery method."},
             },
             "required": ["config_id"],
         },
@@ -708,6 +710,7 @@ TOOLS = [
                 "front": {"type": "string", "enum": ["doors", "drawers", "none", "open", "door_drawer", "sink"], "description": "Front type."},
                 "doors": {"type": "integer", "description": "Door count."},
                 "shelves": {"type": "integer", "description": "Shelf count."},
+                "joinery": {"type": "string", "enum": ["screws", "dowels", "dado", "auto"], "description": "Joinery method."},
                 "notes": {"type": "string", "description": "Free-text note."},
             },
             "required": ["id", "width"],
@@ -1124,6 +1127,12 @@ def execute(name, tool_input, cad):
         return cad.drill_holes_on_face(int(ti["body_index"]), int(ti["face_index"]),
                                        list(ti["points"]), float(ti["diameter"]), ti.get("depth"))
     if name == "build_kitchen_cabinet":
+        if not ti.get("joinery"):
+            raise ValueError(
+                "No joinery method was provided. Ask the user which joinery they want "
+                "(screws / dowels / dado / auto) and wait for their answer before building — "
+                "do not guess."
+            )
         return cad.build_kitchen_cabinet(
             float(ti["width"]), ti.get("cabinet_type", "base"),
             (float(ti["height"]) if ti.get("height") is not None else None),
@@ -1136,6 +1145,12 @@ def execute(name, tool_input, cad):
             ti.get("joinery", "screws"), ti.get("back_joint", "groove"),
             float(ti.get("toe_kick_height", 100.0)), float(ti.get("toe_kick_recess", 50.0)))
     if name == "build_kitchen_run":
+        if not ti.get("joinery"):
+            raise ValueError(
+                "No joinery method was provided. Ask the user which joinery they want "
+                "(screws / dowels / dado / auto) and wait for their answer before building — "
+                "do not guess."
+            )
         return cad.build_kitchen_run(
             [float(w) for w in ti["widths"]], ti.get("cabinet_type", "base"),
             (float(ti["height"]) if ti.get("height") is not None else None),
@@ -1182,7 +1197,7 @@ def execute(name, tool_input, cad):
         from . import configs
         entry = {k: ti[k] for k in
                  ("id", "name", "cabinet_type", "width", "height", "depth", "thickness",
-                  "front", "doors", "shelves", "notes") if k in ti}
+                  "front", "doors", "shelves", "joinery", "notes") if k in ti}
         return "Saved cabinet configuration '{}' to your presets.".format(configs.save_config(entry))
     if name == "export_config_table":
         return cad.export_config_table(ti.get("filename"))

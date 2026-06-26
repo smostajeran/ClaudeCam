@@ -289,6 +289,15 @@ def test_nest_panels_flags_oversized():
     stats = util.nest_panels([(3000, 1500), (600, 400)], sheet_w=2440, sheet_h=1220)
     assert (3000, 1500) in stats["oversized"]
     assert stats["sheets"] == 1  # only the fitting panel is packed
+    assert stats["utilization_pct"] <= 100.0  # oversized area excluded from the ratio
+
+
+def test_nest_panels_portrait_sheet_does_not_hang():
+    # A sheet entered portrait (short x long) must pack the same as landscape — not spin forever.
+    stats = util.nest_panels([(2400, 700)] * 3, sheet_w=1220, sheet_h=2440, kerf=3)
+    assert stats["sheets"] >= 1 and not stats["oversized"]
+    landscape = util.nest_panels([(2400, 700)] * 3, sheet_w=2440, sheet_h=1220, kerf=3)
+    assert stats["sheets"] == landscape["sheets"]  # orientation-agnostic
 
 
 def test_validation_new_tools():
@@ -485,7 +494,7 @@ SAMPLES = {
     "cut_hole_selection": {"diameter": 6},
     "build_cabinet": {"width": 600, "height": 720, "depth": 580, "joinery": "screws"},
     "build_kitchen_cabinet": {"width": 600, "cabinet_type": "base", "front": "doors", "joinery": "screws"},
-    "build_kitchen_run": {"widths": [600, 600, 900], "cabinet_type": "base", "front": "doors"},
+    "build_kitchen_run": {"widths": [600, 600, 900], "cabinet_type": "base", "front": "doors", "joinery": "screws"},
     "add_door_hardware": {"body_index": 5, "face_index": 0, "hinge_side": "left", "hinges": 2},
     "estimate_materials": {"sheet_width": 2440, "sheet_height": 1220, "sheet_price": 60, "kerf": 3},
     "list_cabinet_configs": {},
@@ -533,6 +542,18 @@ def test_execute_routes_every_tool_to_a_cad_method():
         assert result is not None, "execute({}) returned None".format(name)
         if name not in _MODULE_TOOLS:
             assert cad.calls, "execute({}) did not call any CadBuilder method".format(name)
+
+
+def test_kitchen_build_tools_require_joinery():
+    # Like build_cabinet, the kitchen builders must not silently guess joinery.
+    for name, ti in (("build_kitchen_cabinet", {"width": 600}),
+                     ("build_kitchen_run", {"widths": [600, 600]})):
+        cad = MockCad()
+        try:
+            tools.execute(name, ti, cad)
+            assert False, "{} should refuse to build without joinery".format(name)
+        except ValueError:
+            pass
 
 
 def test_execute_validates_before_dispatch():
