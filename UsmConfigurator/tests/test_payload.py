@@ -88,6 +88,39 @@ def test_parse_tolerates_empty_payload():
     assert parsed["primitives"] == [] and parsed["counts"] == {}
 
 
+# -- catalogue part placement ------------------------------------------------
+
+def test_part_size_from_dims_then_id():
+    assert payload._part_size_mm("door-element-175x500", [175, 500]) == (175.0, 500.0)
+    assert payload._part_size_mm("glass-350x250", []) == (350.0, 250.0)   # parsed from id
+    assert payload._part_size_mm("tube-750", []) == (750.0, 750.0)        # single number
+    assert payload._part_size_mm("ball-connector", []) == (350.0, 350.0)  # fallback
+
+
+def test_catalog_primitive_by_family():
+    ball = payload.catalog_primitive("ball-connector", "connector", [], 0)
+    assert ball["kind"] == "sphere" and ball["frame"]
+    tube = payload.catalog_primitive("tube-750", "tube", [], 0)
+    assert tube["kind"] == "cylinder"
+    assert abs(math.dist(tube["p0"], tube["p1"]) - 75.0) < 1e-6  # 750 mm -> 75 cm
+    door = payload.catalog_primitive("door-element-350x500", "door", [350, 500], 0)
+    assert door["kind"] == "box"
+    assert abs(door["size"][0] - 35.0) < 1e-6 and abs(door["size"][2] - 50.0) < 1e-6  # vertical
+    shelf = payload.catalog_primitive("tablar-750", "shelf", [750, 350], 0)
+    assert shelf["size"][2] < shelf["size"][0]  # horizontal slab: thin in Z
+
+
+def test_catalog_primitive_rows_by_index():
+    a = payload.catalog_primitive("door-element-350x500", "door", [350, 500], 0)
+    b = payload.catalog_primitive("door-element-350x500", "door", [350, 500], 2)
+    assert b["center"][0] > a["center"][0]  # later index placed further along X
+
+
+def test_catalog_primitive_glass_uses_chrome_thin():
+    g = payload.catalog_primitive("glass-350x350", "glass", [350, 350], 0)
+    assert g["glass"] and g["size"][1] <= payload.GLASS_T * payload.MM_TO_CM + 1e-9
+
+
 if __name__ == "__main__":
     failures = 0
     tests = [(n, f) for n, f in sorted(globals().items())

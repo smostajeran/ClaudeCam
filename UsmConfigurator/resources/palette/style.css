@@ -150,7 +150,9 @@ footer {
 .catrow {
   display: flex; justify-content: space-between; gap: 8px;
   padding: 4px 6px; border-bottom: 1px solid #ededee; font-size: 11px;
+  cursor: pointer;
 }
+.catrow:hover { background: #eef1f3; }
 .catrow .catid { color: var(--muted); font-size: 9.5px; text-align: right; white-space: nowrap; }
 .muted { color: var(--muted); font-size: 11px; padding: 4px 6px; }
 .actions { display: flex; gap: 8px; }

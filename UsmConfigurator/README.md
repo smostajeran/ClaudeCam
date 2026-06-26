@@ -37,7 +37,9 @@ from the exact `quad` corners), converting metres/Y-up → Fusion cm/Z-up.
 2. Open **⚙** and set your **usm-engine URL** (defaults to the known deployment)
    and the **username / password** your deployment requires (sent as HTTP Basic
    auth); **Test** checks `/health`. **Load catalogue** pulls the engine's IP-safe
-   part catalogue (≈471 one52 parts) into a filterable, family-grouped browser.
+   part catalogue (≈471 one52 parts) into a filterable, family-grouped browser;
+   **click a part to place** it (a primitive sized from its dims) in the active
+   design — placements row up along X. **Clear** removes them.
 3. Pick the **Width/Height/Depth** modules, **Columns/Rows**, the **Cell content**,
    and a **Panel colour**.
 4. **Build** calls the engine and materialises the parts in the active design;

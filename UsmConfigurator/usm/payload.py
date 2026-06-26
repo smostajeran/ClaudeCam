@@ -142,6 +142,62 @@ def parse(payload, options=None):
     }
 
 
+def _part_size_mm(part, dims):
+    """Best-effort (a, b) size in mm for a catalogue part, from its dims or its id."""
+    nums = [float(d) for d in (dims or []) if isinstance(d, (int, float))]
+    if len(nums) >= 2:
+        return nums[0], nums[1]
+    m = re.search(r"(\d{2,4})[x_\-](\d{2,4})", str(part or ""))
+    if m:
+        return float(m.group(1)), float(m.group(2))
+    m = re.search(r"(\d{2,4})", str(part or ""))
+    if len(nums) == 1:
+        return nums[0], nums[0]
+    if m:
+        return float(m.group(1)), float(m.group(1))
+    return 350.0, 350.0
+
+
+# Families drawn as a horizontal slab (X*depth, thin in Z) vs a vertical panel (X*height, thin in Y).
+_HORIZONTAL = {"shelf", "drawer", "pullout"}
+
+
+def catalog_primitive(part, family, dims, index=0, options=None):
+    """A single Fusion primitive (cm) for a catalogue part, placed in a row by ``index``
+    so successive placements don't overlap. Pure — no Fusion dependency."""
+    options = dict(options or {})
+    spacing = float(options.get("spacing_cm", 80.0))
+    ox = index * spacing
+    rgb = tuple(options.get("panel_rgb", DEFAULT_PANEL_RGB))
+    a_mm, b_mm = _part_size_mm(part, dims)
+    name = options.get("label") or part
+
+    if family == "connector":
+        r = (float(options.get("ball_diameter", BALL_D)) / 2.0) * MM_TO_CM
+        return {"kind": "sphere", "center": (ox, 0.0, r), "radius_cm": r,
+                "rgb": CHROME_RGB, "frame": True, "part": part, "label": name}
+
+    if family == "tube":
+        length = max(a_mm, b_mm) * MM_TO_CM
+        r = (float(options.get("tube_diameter", TUBE_D)) / 2.0) * MM_TO_CM
+        return {"kind": "cylinder", "p0": (ox, 0.0, r), "p1": (ox + length, 0.0, r),
+                "radius_cm": r, "rgb": CHROME_RGB, "frame": True, "part": part, "label": name}
+
+    # everything else -> a sized box (panel / door / glass / drawer / fitting / …)
+    w = a_mm * MM_TO_CM
+    glass = family == "glass"
+    t = (GLASS_T if glass else PANEL_T) * MM_TO_CM
+    if family in _HORIZONTAL:
+        size = (w, b_mm * MM_TO_CM, t)              # X width, Y depth, thin in Z
+        center = (ox + w / 2.0, b_mm * MM_TO_CM / 2.0, t / 2.0)
+    else:
+        size = (w, t, b_mm * MM_TO_CM)              # X width, thin in Y, Z height
+        center = (ox + w / 2.0, 0.0, b_mm * MM_TO_CM / 2.0)
+    return {"kind": "box", "center": center, "size": size,
+            "rgb": CHROME_RGB if glass else rgb, "glass": glass,
+            "frame": family in ("fitting", "hardware"), "part": part, "label": name}
+
+
 def summary_text(parsed):
     """A short human-readable build summary from a parsed payload."""
     c = parsed["counts"]

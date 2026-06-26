@@ -49,6 +49,7 @@ class UsmConfiguratorUI:
         self.ui = ui
         self.palette = None
         self._handlers = []
+        self._placed = 0  # catalogue parts placed this session (row offset)
 
     # -- setup / teardown ----------------------------------------------------
     def setup(self):
@@ -124,6 +125,8 @@ class UsmConfiguratorUI:
             self._check_engine()
         elif action == "load_catalog":
             self._load_catalog()
+        elif action == "place_part":
+            self._place_part(data)
 
     def _send_config(self):
         if not self.palette:
@@ -177,9 +180,26 @@ class UsmConfiguratorUI:
         def do():
             try:
                 from .builder import UsmBuilder
+                self._placed = 0
                 self._result(UsmBuilder(self.app).clear(), "ok")
             except Exception as exc:  # noqa: BLE001
                 self._result("Clear failed: {}".format(exc), "error")
+        self._on_main(do)
+
+    def _place_part(self, data):
+        """Place one catalogue part (clicked in the browser) into the design."""
+        index = self._placed
+        self._placed += 1
+
+        def do():
+            try:
+                from .builder import UsmBuilder
+                msg = UsmBuilder(self.app).place_part(
+                    data.get("part"), data.get("family"), data.get("dims") or [],
+                    index, data.get("render"))
+                self._result(msg, "ok")
+            except Exception:
+                self._result("Place failed in Fusion:\n{}".format(traceback.format_exc()), "error")
         self._on_main(do)
 
     def _save_settings(self, data):

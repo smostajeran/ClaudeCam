@@ -248,9 +248,34 @@ class UsmBuilder:
                 return tmgr.createCylinderOrCone(p0, prim["radius_cm"], p1, prim["radius_cm"])
             if kind == "panel":
                 return self._panel_from_corners(tmgr, prim["corners"], prim["thickness_cm"])
+            if kind == "box":
+                cx, cy, cz = prim["center"]
+                dx, dy, dz = prim["size"]
+                obb = adsk.core.OrientedBoundingBox3D.create(
+                    adsk.core.Point3D.create(cx, cy, cz),
+                    adsk.core.Vector3D.create(1, 0, 0), adsk.core.Vector3D.create(0, 1, 0),
+                    max(dx, 1e-3), max(dy, 1e-3), max(dz, 1e-3))
+                return tmgr.createBox(obb)
         except Exception:
             return None
         return None
+
+    def place_part(self, part, family, dims, index=0, render=None):
+        """Place a single catalogue part as a sized primitive. Returns a summary string."""
+        from . import payload as payload_mod
+        opts = {}
+        if render and render.get("color"):
+            from .ui import COLORS  # render colour lookup lives with the palette config
+            opts["panel_rgb"] = COLORS.get(render["color"], payload_mod.DEFAULT_PANEL_RGB)
+        prim = payload_mod.catalog_primitive(part, family, dims, index, opts)
+        temp = self._primitive(adsk.fusion.TemporaryBRepManager.get(), prim)
+        if temp is None:
+            return "Could not build a primitive for '{}'.".format(part)
+        design = self._design()
+        name = prim.get("label") or part
+        self._commit(design, design.rootComponent,
+                     [(temp, bool(prim.get("frame")), tuple(prim.get("rgb", payload_mod.CHROME_RGB)), name)])
+        return "Placed {}.".format(name)
 
     @staticmethod
     def _cm(p):

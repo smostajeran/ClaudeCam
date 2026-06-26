@@ -84,6 +84,11 @@
       groups[fam].forEach(function (p) {
         var dims = (p.dims && p.dims.length) ? " · " + p.dims.join("×") + " mm" : "";
         var row = el("div", "catrow", "<span>" + p.label + "</span><span class='catid'>" + p.part + dims + "</span>");
+        row.title = "Click to place in Fusion";
+        row.onclick = function () {
+          setStatus("Placing " + p.label + "…");
+          sendData("place_part", { part: p.part, family: p.family, dims: p.dims, render: { color: state.color } });
+        };
         host.appendChild(row);
       });
     });
