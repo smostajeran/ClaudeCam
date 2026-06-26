@@ -7,14 +7,14 @@ These steps exercise the Fusion-coupled builder, which needs the host.
    then Utilities → Add-Ins → Scripts and Add-Ins → `UsmConfigurator` → **Run**.
    A **USM Configurator** button appears in the Add-Ins panel.
 
-2. **Open a design** (parametric is the default) and click the button. The dialog
-   shows: Preset, Columns/Column width, Rows/Row height, Depth, Ball Ø, Tube Ø,
-   Panel thickness, Back panels / Shelves / Vertical dividers, Panel colour.
+2. **Open a design** (parametric is the default). The **USM Haller** palette
+   docks on the right (Base forms, Width/Depth modules, Columns/Rows steppers,
+   Components, Panel colour, Build/Clear, a live BOM line).
 
-3. **Custom build.** Leave Preset = *Custom*, defaults (2 columns, 1 row),
-   Back panels + Shelves on. **OK.** Expect: a chrome lattice of balls + tubes
-   with back panels, and a message box with the bill of materials
-   (12 balls, tube count + total length, panel count + area).
+3. **Custom build.** Leave Base = *Open*, defaults (Width 750, 2 columns, 1 row),
+   toggle **Back** on, pick a colour, **Build**. Expect: a chrome lattice of
+   balls + tubes with back panels, and the BOM line updates to the result
+   (12 balls, 20 tubes, panel count + area).
 
 4. **Counts sanity.** The BOM ball count must equal
    `(columns+1) × (depths+1) × (rows+1)`. For the defaults that's `3 × 2 × 2 = 12`.

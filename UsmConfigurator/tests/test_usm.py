@@ -70,6 +70,15 @@ def test_dividers_rule_makes_vertical_dividers():
     assert len(rights) == (3 - 1) * 1 * 1  # interior vertical lines
 
 
+def test_door_rule_makes_front_panels():
+    spec = geometry.build_spec([500, 500], [350, 350], [350], {"door": True})
+    fronts = [p for p in spec["panels"] if p["face"] == "front"]
+    assert len(fronts) == (2) * (2)  # (nx-1) columns x (nz-1) rows, on the front plane
+    ymin = spec["coords"]["y"][0]
+    for p in fronts:
+        assert abs((p["box"][1] + p["box"][4]) / 2.0 - ymin) < 1e-6
+
+
 def test_explicit_panel_list_and_dedup():
     opts = {"back_panels": True, "panels": [
         {"ix": 0, "iy": 0, "iz": 0, "face": "back", "color": "USM Ruby Red"},  # duplicates a rule cell

@@ -5,8 +5,12 @@ import os
 # --- Fusion UI identifiers --------------------------------------------------
 CMD_ID = "usmConfiguratorCmd"
 CMD_NAME = "USM Configurator"
-CMD_TOOLTIP = "Configure and build a parametric USM Haller modular structure"
+CMD_TOOLTIP = "Open the USM Haller configurator palette"
 PANEL_ID = "SolidScriptsAddinsPanel"  # Fusion's Utilities > Add-Ins panel
+
+PALETTE_ID = "usmConfiguratorPalette"
+PALETTE_NAME = "USM Haller"
+PALETTE_HTML = "resources/palette/index.html"
 
 # The add-in folder is the parent of this package (…/AddIns/UsmConfigurator).
 ADDIN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

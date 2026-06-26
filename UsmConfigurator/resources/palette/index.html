@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>USM Haller</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="title">USM Haller</header>
+
+    <!-- Base form: pick a starting configuration -->
+    <section>
+      <div class="label">Base</div>
+      <div class="grid" id="base"></div>
+    </section>
+
+    <!-- Column module width -->
+    <section>
+      <div class="label">Width module</div>
+      <div class="chips" id="widths"></div>
+    </section>
+
+    <!-- Depth module -->
+    <section>
+      <div class="label">Depth</div>
+      <div class="chips" id="depths"></div>
+    </section>
+
+    <!-- Columns / rows steppers -->
+    <section class="steppers">
+      <div class="stepper">
+        <div class="label">Columns</div>
+        <div class="step"><button data-step="cols" data-d="-1">–</button><span id="cols">2</span><button data-step="cols" data-d="1">+</button></div>
+      </div>
+      <div class="stepper">
+        <div class="label">Rows</div>
+        <div class="step"><button data-step="rows" data-d="-1">–</button><span id="rows">1</span><button data-step="rows" data-d="1">+</button></div>
+      </div>
+    </section>
+
+    <!-- Components: toggle panels in/out -->
+    <section>
+      <div class="label">Components</div>
+      <div class="grid" id="components"></div>
+    </section>
+
+    <!-- Colour swatches -->
+    <section>
+      <div class="label">Panel colour</div>
+      <div class="swatches" id="colors"></div>
+    </section>
+
+    <footer>
+      <div class="bom" id="bom">Pick options, then Build.</div>
+      <div class="actions">
+        <button class="primary" id="build">Build</button>
+        <button id="clear">Clear</button>
+      </div>
+      <div class="ver" id="ver"></div>
+    </footer>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

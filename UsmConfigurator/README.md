@@ -9,6 +9,12 @@ It is **independent of the ClaudeCad chat add-in** — its own command, dialog a
 geometry — but its builder **reuses ClaudeCad's proven CAD engine** when that
 add-in is present, for design binding, unit handling and material assignment.
 
+<img src="docs/palette.png" width="300" alt="USM Haller configurator palette" />
+
+*The configurator palette: pick a base form, width/depth module, columns/rows,
+the components that fill the bays (back / shelf / divider / drop door) and a USM
+colour, then **Build**. The bill of materials updates live.*
+
 ![Bookshelf preset](docs/preview_bookshelf.png)
 ![Accent shelf preset](docs/preview_accent.png)
 
@@ -20,14 +26,15 @@ per-cell coloured back panels.*
 ## Workflow
 
 1. **Utilities → Add-Ins → Scripts and Add-Ins → `UsmConfigurator` → Run.** The
-   configurator dialog opens straight away.
+   **USM Haller** palette docks on the right.
 2. To re-open it later, click **USM Configurator** in the **Design workspace →
    Utilities tab → ADD-INS** panel.
-3. Pick a **Preset**, or set **Custom**: columns × rows × depth, cell sizes, the
-   ball/tube diameters, panel thickness, which bays carry **back panels /
-   shelves / dividers**, and a **panel colour**.
-4. **OK** builds the structure in the active design and reports the bill of
-   materials (balls, tubes + total length, panels + area).
+3. In the palette: pick a **Base** form (or leave Open), a **Width/Depth**
+   module, the number of **Columns/Rows**, toggle the **Components** that fill
+   the bays (Back / Shelf / Divider / Drop door) and a **Panel colour**. The
+   bill of materials updates live.
+4. **Build** materialises the structure in the active design. **Clear** removes a
+   previous build's bodies.
 
 ## How it works
 
@@ -37,8 +44,9 @@ per-cell coloured back panels.*
 | `usm/geometry.py` | **Pure** USM maths: a config → balls, tubes, panels + BOM. No `adsk`; unit tested. |
 | `usm/presets.py` | **Pure** preset catalogue (bundled + `~/.usmconfigurator/presets.json`). |
 | `usm/builder.py` | Fusion build: spheres/cylinders/boxes via `TemporaryBRepManager`, colours/materials. Reuses ClaudeCad's engine. |
-| `usm/ui.py` | The configurator command + dialog and its handlers. |
-| `usm/addin.py` | Add-in lifecycle (create/remove the command + button). |
+| `usm/ui.py` | Hosts the HTML palette, bridges its events, and drives geometry + builder. |
+| `usm/addin.py` | Add-in lifecycle (create/remove the command + palette). |
+| `resources/palette/` | The configurator palette UI (HTML/CSS/JS, own SVG icons). |
 | `resources/presets/usm.json` | Bundled starting configurations (sideboard, bookshelf, credenza, …). |
 
 The geometry layer is deliberately Fusion-free so the layout logic — grid nodes,

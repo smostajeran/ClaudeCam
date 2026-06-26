@@ -89,6 +89,12 @@ def expand_panels(nx, ny, nz, options):
                 # one back panel per column, spanning the full depth's rear plane
                 add(ix, ncy - 1, iz, "back")
 
+    if options.get("door") or options.get("front_panels"):
+        # a drop-down door / front panel on the front (min-Y) plane of every bay
+        for iz in range(ncz):
+            for ix in range(ncx):
+                add(ix, 0, iz, "front")
+
     if options.get("shelves"):
         # interior horizontal dividers: the top face of every bay below the top row
         for iz in range(ncz - 1):
