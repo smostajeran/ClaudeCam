@@ -47,6 +47,15 @@ def rk_to_fusion_cm(p):
     return (p[0] * M_TO_CM, -p[2] * M_TO_CM, p[1] * M_TO_CM)
 
 
+def native_to_rk(v):
+    """Bring a part-mesh vertex from the engine's native Z-up CAD frame into the
+    RealityKit (Y-up) frame the placement ``quat`` is authored in: (x, z, -y).
+
+    Without this the Y-up quat is applied to a Z-up mesh and every oriented part
+    is tipped 90° (the lattice positions stay right, but tubes/panels lie down)."""
+    return (v[0], v[2], -v[1])
+
+
 # -- placement ---------------------------------------------------------------
 def placement_parts(payload):
     """Extract the placed parts from a ``/api/build`` (or ``/api/configure``)
@@ -82,7 +91,8 @@ def transform_mesh(positions_m, quat, pos_m):
     px, py, pz = pos_m
     out = []
     for v in positions_m:
-        w = _qrot(quat, (float(v[0]), float(v[1]), float(v[2])))
+        vr = native_to_rk((float(v[0]), float(v[1]), float(v[2])))  # native Z-up -> RK Y-up
+        w = _qrot(quat, vr)
         f = rk_to_fusion_cm((w[0] + px, w[1] + py, w[2] + pz))
         out.append(f[0]); out.append(f[1]); out.append(f[2])
     return out

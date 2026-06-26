@@ -67,18 +67,18 @@ def test_placement_skips_parts_without_pos():
 
 # -- mesh transform ----------------------------------------------------------
 
-def test_transform_mesh_identity_maps_to_fusion_cm():
-    # native vertex (metres) with identity pose -> Fusion cm via the Z-up map
-    flat = payload.transform_mesh([[0.75, 0.03, -0.35]], [0, 0, 0, 1], [0, 0, 0])
-    assert flat == [75.0, 35.0, 3.0]
+def test_transform_mesh_identity_preserves_native_zup_axes():
+    # The part mesh is native Z-up; with an identity pose it maps straight to
+    # Fusion (also Z-up), axis-for-axis, scaled m->cm. Up stays up — no tipping.
+    flat = payload.transform_mesh([[0.4, 0.3, 0.5]], [0, 0, 0, 1], [0, 0, 0])
+    assert flat == [40.0, 30.0, 50.0]
 
 
-def test_transform_mesh_applies_quat_then_translation():
-    # a vertex at native +Y, rotated 90° about Z (-> world +X), then translated.
+def test_transform_mesh_width_quat_lays_native_z_rod_along_fusion_x():
+    # A native +Z rod, rotated by the width-tube quat, should run along Fusion X.
     q = [0, 0, -math.sqrt(0.5), math.sqrt(0.5)]
-    flat = payload.transform_mesh([[0.0, 1.0, 0.0]], q, [0.375, 0.03, 0.0])
-    # world_rk = (0.375+1, 0.03, 0) -> fusion cm = (137.5, 0, 3)
-    assert abs(flat[0] - 137.5) < 1e-4 and abs(flat[1]) < 1e-4 and abs(flat[2] - 3.0) < 1e-4
+    flat = payload.transform_mesh([[0.0, 0.0, 1.0]], q, [0, 0, 0])
+    assert abs(flat[0] - 100.0) < 1e-4 and abs(flat[1]) < 1e-4 and abs(flat[2]) < 1e-4
 
 
 def test_transform_mesh_flattens_all_vertices():
