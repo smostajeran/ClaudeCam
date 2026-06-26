@@ -232,7 +232,20 @@ class UsmConfiguratorUI:
         def work():
             try:
                 h = engine_client.health()
-                self._result("Engine OK — {}".format(json.dumps(h)), "ok")
+            except engine_client.EngineError as exc:
+                self._result(str(exc), "error")
+                return
+            if not h.get("auth"):
+                self._result("Engine reachable (local/open — no sign-in needed).", "ok")
+                return
+            # Auth is enforced — verify the username/password by signing in.
+            if not (config.get_engine_user() and config.get_engine_password()):
+                self._result("Engine reachable but requires sign-in. Enter your username/password "
+                             "and Save.", "error")
+                return
+            try:
+                engine_client.login()
+                self._result("Engine reachable and signed in OK.", "ok")
             except engine_client.EngineError as exc:
                 self._result(str(exc), "error")
         threading.Thread(target=work, daemon=True).start()
