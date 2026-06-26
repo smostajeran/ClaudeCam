@@ -8,27 +8,35 @@
 </head>
 <body>
   <div class="app">
-    <header class="title">USM Haller</header>
+    <header class="title">USM Haller<span class="gear" id="gear" title="Engine settings">⚙</span></header>
 
-    <!-- Base form: pick a starting configuration -->
-    <section>
-      <div class="label">Base</div>
-      <div class="grid" id="base"></div>
+    <!-- Settings (engine endpoint), hidden by default -->
+    <section id="settings" class="settings hidden">
+      <div class="label">usm-engine URL</div>
+      <input id="engineUrl" type="text" placeholder="https://…up.railway.app" />
+      <div class="label">Auth token (optional)</div>
+      <input id="engineToken" type="password" placeholder="Bearer token, if required" />
+      <div class="actions">
+        <button id="saveSettings" class="primary">Save</button>
+        <button id="checkEngine">Test</button>
+      </div>
     </section>
 
-    <!-- Column module width -->
     <section>
-      <div class="label">Width module</div>
+      <div class="label">Width module (mm)</div>
       <div class="chips" id="widths"></div>
     </section>
 
-    <!-- Depth module -->
     <section>
-      <div class="label">Depth</div>
+      <div class="label">Height module (mm)</div>
+      <div class="chips" id="heights"></div>
+    </section>
+
+    <section>
+      <div class="label">Depth (mm)</div>
       <div class="chips" id="depths"></div>
     </section>
 
-    <!-- Columns / rows steppers -->
     <section class="steppers">
       <div class="stepper">
         <div class="label">Columns</div>
@@ -40,20 +48,18 @@
       </div>
     </section>
 
-    <!-- Components: toggle panels in/out -->
     <section>
-      <div class="label">Components</div>
-      <div class="grid" id="components"></div>
+      <div class="label">Cell content</div>
+      <div class="grid" id="cells"></div>
     </section>
 
-    <!-- Colour swatches -->
     <section>
       <div class="label">Panel colour</div>
       <div class="swatches" id="colors"></div>
     </section>
 
     <footer>
-      <div class="bom" id="bom">Pick options, then Build.</div>
+      <div class="bom" id="bom">Set options, then Build.</div>
       <div class="actions">
         <button class="primary" id="build">Build</button>
         <button id="clear">Clear</button>

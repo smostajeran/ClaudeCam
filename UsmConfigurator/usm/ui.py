@@ -1,23 +1,46 @@
 """Fusion palette + command wiring for the USM Configurator.
 
-A single command (button in Utilities > Add-Ins) toggles an HTML **palette** — a
-visual USM Haller configurator: pick a base form, a width/depth module, the
-number of columns/rows, which components fill the bays (back / shelf / divider /
-door) and a colour, then Build. The palette posts its configuration to Fusion,
-which computes the geometry (:mod:`usm.geometry`) and builds it
-(:mod:`usm.builder`).
+A single command (button in Utilities > Add-Ins) toggles an HTML **palette** — the
+USM Haller configurator: pick the bay widths/heights/depth and per-cell content,
+then Build. The palette posts a **Path P** configuration to Fusion, which calls
+the deployed **usm-engine** (`/api/build`) for the geometry + validation
+(:mod:`usm.engine_client`), maps the returned one52 payload to primitives
+(:mod:`usm.payload`) and builds them (:mod:`usm.builder`).
 
-Palette events are delivered on Fusion's main thread, so the builder is called
-directly from the event handler — no background marshalling needed.
+The engine is the source of truth; this add-in renders its IP-safe payload.
 """
 
 import json
+import threading
 import traceback
 
 import adsk.core
 
 from . import config
-from . import geometry
+from . import engine_client
+from . import payload as payload_mod
+
+# Engine vocabulary (mirrors usm-engine build_frame.ts: WIDTH_VOCAB / DEPTH_DOMAIN
+# and the per-cell content families whose component types are source-verified).
+WIDTH_VOCAB = [175, 250, 350, 395, 500, 750]
+DEPTH_DOMAIN = [250, 350, 500]
+CELL_TYPES = [
+    {"id": "open", "name": "Open"},
+    {"id": "closed", "name": "Closed box"},
+    {"id": "shelf", "name": "Shelf"},
+    {"id": "pullout", "name": "Pull-out"},
+    {"id": "door", "name": "Door"},
+    {"id": "glass", "name": "Glass"},
+    {"id": "panel", "name": "Back panel"},
+]
+COLORS = {
+    "USM Matte Silver": (188, 190, 192), "USM Light Gray": (200, 201, 199),
+    "USM Pure White": (236, 236, 233), "USM Anthracite": (61, 62, 64),
+    "USM Graphite Black": (42, 42, 44), "USM Steel Blue": (74, 96, 122),
+    "USM Gentian Blue": (38, 64, 116), "USM Green": (92, 117, 86),
+    "USM Golden Yellow": (240, 196, 78), "USM Pure Orange": (224, 106, 40),
+    "USM Ruby Red": (151, 36, 44), "USM Beige": (212, 201, 175), "USM Brown": (92, 66, 54),
+}
 
 
 class UsmConfiguratorUI:
@@ -25,7 +48,7 @@ class UsmConfiguratorUI:
         self.app = app
         self.ui = ui
         self.palette = None
-        self._handlers = []  # keep handler refs alive
+        self._handlers = []
 
     # -- setup / teardown ----------------------------------------------------
     def setup(self):
@@ -45,33 +68,35 @@ class UsmConfiguratorUI:
         self.show_palette()
 
     def teardown(self):
-        try:
-            if self.palette:
-                self.palette.deleteMe()
-                self.palette = None
-        except Exception:
-            pass
-        try:
-            panel = self.ui.allToolbarPanels.itemById(config.PANEL_ID)
-            if panel:
-                ctrl = panel.controls.itemById(config.CMD_ID)
-                if ctrl:
-                    ctrl.deleteMe()
-        except Exception:
-            pass
-        try:
-            cmd_def = self.ui.commandDefinitions.itemById(config.CMD_ID)
-            if cmd_def:
-                cmd_def.deleteMe()
-        except Exception:
-            pass
+        for delete in (
+            lambda: self.palette and self.palette.deleteMe(),
+            lambda: self._del_control(),
+            lambda: self._del_cmd(),
+        ):
+            try:
+                delete()
+            except Exception:
+                pass
+        self.palette = None
+
+    def _del_control(self):
+        panel = self.ui.allToolbarPanels.itemById(config.PANEL_ID)
+        if panel:
+            ctrl = panel.controls.itemById(config.CMD_ID)
+            if ctrl:
+                ctrl.deleteMe()
+
+    def _del_cmd(self):
+        cmd_def = self.ui.commandDefinitions.itemById(config.CMD_ID)
+        if cmd_def:
+            cmd_def.deleteMe()
 
     def show_palette(self):
         self.palette = self.ui.palettes.itemById(config.PALETTE_ID)
         if not self.palette:
             self.palette = self.ui.palettes.add(
                 config.PALETTE_ID, config.PALETTE_NAME, config.PALETTE_HTML,
-                True, True, True, 300, 560,
+                True, True, True, 300, 600,
             )
             self.palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateRight
             incoming = _IncomingHandler(self)
@@ -93,56 +118,107 @@ class UsmConfiguratorUI:
             self._build(data)
         elif action == "clear":
             self._clear()
+        elif action == "save_settings":
+            self._save_settings(data)
+        elif action == "check_engine":
+            self._check_engine()
 
     def _send_config(self):
         if not self.palette:
             return
         self.palette.sendInfoToHTML("config", json.dumps({
-            "colors": geometry.COLORS,
-            "presets": self._preset_list(),
+            "colors": COLORS,
+            "widths": WIDTH_VOCAB,
+            "depths": DEPTH_DOMAIN,
+            "cellTypes": CELL_TYPES,
+            "engineUrl": config.get_engine_url(),
+            "hasToken": bool(config.get_engine_token()),
             "version": config.get_version(),
         }))
 
-    @staticmethod
-    def _preset_list():
-        from . import presets
-        out = []
-        for e in presets.list_presets():
-            out.append({k: e.get(k) for k in
-                        ("id", "name", "columns", "rows", "depths",
-                         "back_panels", "shelves", "dividers", "color")})
-        return out
-
-    def _result(self, text):
+    def _result(self, text, level="info"):
         if self.palette:
-            self.palette.sendInfoToHTML("result", json.dumps({"text": text}))
+            self.palette.sendInfoToHTML("result", json.dumps({"text": text, "level": level}))
 
     def _build(self, data):
-        try:
-            columns = [float(c) for c in (data.get("columns") or [])]
-            rows = [float(r) for r in (data.get("rows") or [])]
-            depths = [float(d) for d in (data.get("depths") or [])] or None
-            options = data.get("options") or {}
-            spec = geometry.build_spec(columns, rows, depths, options)
-            from .builder import UsmBuilder
-            summary = UsmBuilder(self.app).build(spec)
-            self._result(summary)
-        except Exception as exc:
-            self._result("Build failed: {}".format(exc))
-            if self.ui:
-                self.ui.messageBox("USM Configurator failed to build:\n{}".format(traceback.format_exc()))
+        """Path P -> engine /api/build -> payload -> Fusion bodies. Network runs off
+        the main thread; the build itself is marshalled back on (Fusion is main-thread only)."""
+        path_p = data.get("path_p") or {}
+        render = data.get("render") or {}
+
+        def work():
+            try:
+                payload = engine_client.build(path_p)
+            except engine_client.EngineError as exc:
+                self._result(str(exc), "error")
+                return
+            except Exception as exc:  # noqa: BLE001
+                self._result("Build failed: {}".format(exc), "error")
+                return
+            parsed = payload_mod.parse(payload, {
+                "panel_rgb": COLORS.get(render.get("color"), payload_mod.DEFAULT_PANEL_RGB),
+            })
+
+            def do_build():
+                try:
+                    from .builder import UsmBuilder
+                    summary = UsmBuilder(self.app).build_payload(parsed)
+                    self._result(summary, "ok")
+                except Exception:
+                    self._result("Build failed in Fusion:\n{}".format(traceback.format_exc()), "error")
+
+            self._on_main(do_build)
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _clear(self):
+        def do():
+            try:
+                from .builder import UsmBuilder
+                self._result(UsmBuilder(self.app).clear(), "ok")
+            except Exception as exc:  # noqa: BLE001
+                self._result("Clear failed: {}".format(exc), "error")
+        self._on_main(do)
+
+    def _save_settings(self, data):
         try:
-            from .builder import UsmBuilder
-            self._result(UsmBuilder(self.app).clear())
-        except Exception as exc:
-            self._result("Clear failed: {}".format(exc))
+            config.save_engine_settings(url=data.get("engine_url"), token=data.get("engine_token"))
+            self._send_config()
+            self._result("Engine settings saved.", "ok")
+        except Exception as exc:  # noqa: BLE001
+            self._result("Could not save settings: {}".format(exc), "error")
+
+    def _check_engine(self):
+        def work():
+            try:
+                h = engine_client.health()
+                self._result("Engine OK — {}".format(json.dumps(h)), "ok")
+            except engine_client.EngineError as exc:
+                self._result(str(exc), "error")
+        threading.Thread(target=work, daemon=True).start()
+
+    def _on_main(self, fn):
+        """Run a callable on Fusion's main thread (CAD/UI are main-thread only).
+
+        Uses a custom event so a background worker can safely trigger geometry.
+        """
+        try:
+            event_id = "usmConfiguratorRun"
+            ev = self.app.registerCustomEvent(event_id)
+            handler = _RunOnceHandler(fn, event_id, self.app)
+            ev.add(handler)
+            self._handlers.append(handler)
+            self.app.fireCustomEvent(event_id)
+        except Exception:
+            # Fall back to running inline (already on main thread, e.g. clear()).
+            try:
+                fn()
+            except Exception:
+                pass
 
 
 # -- Fusion handlers ---------------------------------------------------------
 class _CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
-    """The toolbar button: show the palette, then cancel the command (no dialog)."""
     def __init__(self, owner):
         super().__init__()
         self.owner = owner
@@ -166,3 +242,21 @@ class _IncomingHandler(adsk.core.HTMLEventHandler):
         except Exception:
             if self.owner.ui:
                 self.owner.ui.messageBox("USM Configurator event error:\n{}".format(traceback.format_exc()))
+
+
+class _RunOnceHandler(adsk.core.CustomEventHandler):
+    """Runs a callable once on the main thread, then unregisters its event."""
+    def __init__(self, fn, event_id, app):
+        super().__init__()
+        self.fn = fn
+        self.event_id = event_id
+        self.app = app
+
+    def notify(self, args):
+        try:
+            self.fn()
+        finally:
+            try:
+                self.app.unregisterCustomEvent(self.event_id)
+            except Exception:
+                pass

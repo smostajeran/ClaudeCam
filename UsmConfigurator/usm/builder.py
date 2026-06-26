@@ -199,8 +199,82 @@ class UsmBuilder:
             queued.append((self._panel_box(tmgr, panel), False, rgb,
                            "Panel {} ({})".format(i + 1, panel.get("face", ""))))
 
-        # Commit every temp body. Base features need a parametric design; in a
-        # direct-modelling design we can add bodies straight to the component.
+        self._commit(design, comp, queued, material)
+        n_frame = sum(1 for _, f, _, _ in queued if f)
+        n_panel = len(queued) - n_frame
+        return "{}\n\nBuilt {} frame bodies (balls + tubes) and {} panel(s).{}".format(
+            geometry.summary_text(spec), n_frame, n_panel,
+            "" if self.engine_available else
+            "\n(Note: ClaudeCad engine not found — built standalone; materials best-effort.)")
+
+    # -- engine-payload build (the live path: geometry from usm-engine) -------
+    def build_payload(self, parsed, material=None):
+        """Build the parts in a parsed usm-engine payload (see :mod:`usm.payload`).
+
+        ``parsed['primitives']`` carry coordinates already in Fusion centimetres,
+        so they are drawn directly — the engine, not this add-in, decided the
+        geometry. Returns a summary string (incl. any conflicts the engine flagged).
+        """
+        from . import payload as payload_mod
+        design = self._design()
+        comp = design.rootComponent
+        tmgr = adsk.fusion.TemporaryBRepManager.get()
+
+        queued = []  # (temp body, is_frame, rgb, name)
+        for i, prim in enumerate(parsed.get("primitives", [])):
+            temp = self._primitive(tmgr, prim)
+            if temp is None:
+                continue
+            name = "{} {}".format(prim.get("label") or prim.get("kind"), i + 1)
+            queued.append((temp, bool(prim.get("frame")), tuple(prim.get("rgb", payload_mod.CHROME_RGB)), name))
+
+        if not queued:
+            return "The engine returned no buildable parts for this configuration."
+        self._commit(design, comp, queued, material)
+        return payload_mod.summary_text(parsed) + (
+            "" if self.engine_available else
+            "\n(ClaudeCad engine not found — materials best-effort.)")
+
+    def _primitive(self, tmgr, prim):
+        """Build one temp BRep body from a payload primitive (cm coordinates)."""
+        try:
+            kind = prim.get("kind")
+            if kind == "sphere":
+                return tmgr.createSphere(self._cm(prim["center"]), prim["radius_cm"])
+            if kind == "cylinder":
+                p0, p1 = self._cm(prim["p0"]), self._cm(prim["p1"])
+                if p0.distanceTo(p1) < 1e-6:
+                    return None
+                return tmgr.createCylinderOrCone(p0, prim["radius_cm"], p1, prim["radius_cm"])
+            if kind == "panel":
+                return self._panel_from_corners(tmgr, prim["corners"], prim["thickness_cm"])
+        except Exception:
+            return None
+        return None
+
+    @staticmethod
+    def _cm(p):
+        return adsk.core.Point3D.create(p[0], p[1], p[2])
+
+    def _panel_from_corners(self, tmgr, corners, thickness_cm):
+        """A thin box spanning the 4 quad corners (cm), thickness along the face normal."""
+        c0, c1, _c2, c3 = [self._cm(c) for c in corners[:4]]
+        e1 = c0.vectorTo(c1)   # length edge
+        e2 = c0.vectorTo(c3)   # width edge
+        ln, wd = e1.length, e2.length
+        if ln < 1e-6 or wd < 1e-6:
+            return None
+        e1.normalize(); e2.normalize()
+        center = adsk.core.Point3D.create(
+            (corners[0][0] + corners[2][0]) / 2.0,
+            (corners[0][1] + corners[2][1]) / 2.0,
+            (corners[0][2] + corners[2][2]) / 2.0)
+        obb = adsk.core.OrientedBoundingBox3D.create(center, e1, e2, ln, wd, max(thickness_cm, 1e-3))
+        return tmgr.createBox(obb)
+
+    def _commit(self, design, comp, queued, material=None):
+        """Commit queued temp bodies (base feature in parametric, direct add otherwise),
+        then name, tag and colour them. Shared by both build paths."""
         parametric = False
         try:
             parametric = design.designType == adsk.fusion.DesignTypes.ParametricDesignType
@@ -229,20 +303,12 @@ class UsmBuilder:
             self._own(body)
             self._apply_appearance(design, body, rgb, frame)
 
-        # Reuse ClaudeCad's engine to assign a physical material (mass/realism),
-        # best-effort — USM is powder-coated steel.
         if self.engine is not None:
             try:
                 self.engine.set_material(0, material or "Steel", all_bodies=True)
             except Exception:
                 pass
-
-        n_frame = sum(1 for _, f, _, _ in created if f)
-        n_panel = len(created) - n_frame
-        return "{}\n\nBuilt {} frame bodies (balls + tubes) and {} panel(s).{}".format(
-            geometry.summary_text(spec), n_frame, n_panel,
-            "" if self.engine_available else
-            "\n(Note: ClaudeCad engine not found — built standalone; materials best-effort.)")
+        return created
 
     def clear(self):
         """Remove everything this add-in created in the active design (tagged bodies/features)."""

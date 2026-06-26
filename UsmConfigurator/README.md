@@ -1,57 +1,64 @@
 # USM Configurator
 
-A standalone Fusion 360 add-in that builds **parametric USM Haller–style modular
-furniture** from a configuration dialog: a 3D grid of chrome **ball connectors**,
-**tubes** along every grid edge, and powder-coated steel **panels** (backs,
-shelves, dividers) in any of the USM colours.
+A standalone Fusion 360 add-in that builds **USM Haller modular furniture** from a
+configuration palette, with the geometry and validation computed by the real
+**[usm-engine](https://github.com/smostajeran/usm-engine)** (decoded from the
+Perspectix VCML). You choose the bay widths/heights/depth and per-cell content;
+the add-in calls the engine's `/api/build`, then materialises the returned parts
+— chrome **ball connectors**, **tubes**, levelling **feet**, and steel **panels /
+shelves / doors / glass** — in the active design.
 
-It is **independent of the ClaudeCad chat add-in** — its own command, dialog and
-geometry — but its builder **reuses ClaudeCad's proven CAD engine** when that
-add-in is present, for design binding, unit handling and material assignment.
+It is **independent of the ClaudeCad chat add-in** — its own command, palette and
+client — but its builder **reuses ClaudeCad's proven CAD engine** when that add-in
+is present, for design binding, unit handling and material assignment.
 
 <img src="docs/palette.png" width="300" alt="USM Haller configurator palette" />
 
-*The configurator palette: pick a base form, width/depth module, columns/rows,
-the components that fill the bays (back / shelf / divider / drop door) and a USM
-colour, then **Build**. The bill of materials updates live.*
+*The palette uses the engine's own vocabulary: width/height modules
+(175/250/350/395/500/750 mm), depth (250/350/500 mm), column/row counts, and the
+source-verified cell-content families (Open / Closed box / Shelf / Pull-out /
+Door / Glass / Back panel). The ⚙ sets the engine URL.*
 
-![Bookshelf preset](docs/preview_bookshelf.png)
-![Accent shelf preset](docs/preview_accent.png)
+## The engine is the source of truth
 
-*Previews rendered straight from `usm/geometry.py` — the same balls, tubes and
-panels the Fusion builder turns into solids. Left: the Bookshelf Tall preset
-(open lattice, shelves + dividers). Right: the Accent Shelf preset, showing
-per-cell coloured back panels.*
+The add-in does **not** invent USM geometry. On **Build** it sends a *Path P*
+configuration — `{columnWidths, rowHeights, depth, cells}` — to the engine's
+`POST /api/build` and receives the **IP-safe one52 payload**: parts as
+`{id, part, label, family, pos, quat, quad}` with English labels and RealityKit
+geometry (metres, Y-up). No USM codes, article numbers or prices are ever sent to
+the client — the engine enforces that boundary. The add-in maps each part to a
+Fusion primitive (connector→sphere, tube→cylinder, panel/shelf/door/glass→box
+from the exact `quad` corners), converting metres/Y-up → Fusion cm/Z-up.
 
 ## Workflow
 
 1. **Utilities → Add-Ins → Scripts and Add-Ins → `UsmConfigurator` → Run.** The
    **USM Haller** palette docks on the right.
-2. To re-open it later, click **USM Configurator** in the **Design workspace →
-   Utilities tab → ADD-INS** panel.
-3. In the palette: pick a **Base** form (or leave Open), a **Width/Depth**
-   module, the number of **Columns/Rows**, toggle the **Components** that fill
-   the bays (Back / Shelf / Divider / Drop door) and a **Panel colour**. The
-   bill of materials updates live.
-4. **Build** materialises the structure in the active design. **Clear** removes a
-   previous build's bodies.
+2. Open **⚙** and set your **usm-engine URL** (defaults to the known deployment)
+   and an auth token if your deployment requires one; **Test** checks `/health`.
+3. Pick the **Width/Height/Depth** modules, **Columns/Rows**, the **Cell content**,
+   and a **Panel colour**.
+4. **Build** calls the engine and materialises the parts in the active design;
+   the status line shows the part counts and any conflicts the engine flagged.
+   **Clear** removes a previous build's bodies.
 
 ## How it works
 
 | Piece | Responsibility |
 |-------|----------------|
 | `UsmConfigurator.py` | Fusion entry point (`run`/`stop`); fresh-imports the package each Run. |
-| `usm/geometry.py` | **Pure** USM maths: a config → balls, tubes, panels + BOM. No `adsk`; unit tested. |
-| `usm/presets.py` | **Pure** preset catalogue (bundled + `~/.usmconfigurator/presets.json`). |
+| `usm/engine_client.py` | **Pure stdlib** HTTP client for the engine's `/api/build` and `/health`. |
+| `usm/payload.py` | **Pure** mapping: engine payload → Fusion primitives (metres/Y-up → cm/Z-up, tube axis from the quat, `quad`→box). Unit tested against a real captured payload. |
 | `usm/builder.py` | Fusion build: spheres/cylinders/boxes via `TemporaryBRepManager`, colours/materials. Reuses ClaudeCad's engine. |
-| `usm/ui.py` | Hosts the HTML palette, bridges its events, and drives geometry + builder. |
+| `usm/ui.py` | Hosts the HTML palette, bridges its events, calls the engine off the main thread, and builds on it. |
+| `usm/config.py` | Engine URL/token settings (`~/.usmconfigurator/config.json`, env overrides). |
 | `usm/addin.py` | Add-in lifecycle (create/remove the command + palette). |
 | `resources/palette/` | The configurator palette UI (HTML/CSS/JS, own SVG icons). |
-| `resources/presets/usm.json` | Bundled starting configurations (sideboard, bookshelf, credenza, …). |
+| `usm/geometry.py`, `usm/presets.py` | A self-contained offline fallback layout + preset catalogue (used by the preview renders / offline tests; the live path uses the engine). |
 
-The geometry layer is deliberately Fusion-free so the layout logic — grid nodes,
-edge tubes, panel placement, the BOM — runs and is tested without the host
-(`python tests/test_usm.py`).
+The client and payload-mapping layers are Fusion-free, so the contract is tested
+without the host: `python tests/test_payload.py` checks the mapping against a real
+`/api/build` payload (`tests/fixtures/engine_build_sample.json`).
 
 ### Reusing the ClaudeCad engine
 

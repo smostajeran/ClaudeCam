@@ -1,0 +1,1186 @@
+{
+  "request": {
+    "columnWidths": [
+      750,
+      500
+    ],
+    "rowHeights": [
+      350
+    ],
+    "depth": 350,
+    "cells": [
+      {
+        "col": 0,
+        "row": 0,
+        "type": "closed"
+      },
+      {
+        "col": 1,
+        "row": 0,
+        "type": "shelf"
+      }
+    ]
+  },
+  "meta": {
+    "owner": "one52",
+    "notice": "one52 derived representation. Geometry computed by the one52 configurator engine. Proprietary Perspectix/USM source identifiers, article numbers and prices are processed internally and are NOT included here.",
+    "frame": "RealityKit",
+    "units": "m",
+    "up": "Y",
+    "generated": "configure"
+  },
+  "parts": [
+    {
+      "id": "1",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0,
+        0.03,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "2",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0,
+        0.38,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "3",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0,
+        0.03,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "4",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0,
+        0.38,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "5",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.03,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "6",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.38,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "7",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.03,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "8",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.38,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "9",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.03,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "10",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.38,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "11",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.03,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "12",
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.38,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "13",
+      "part": "tube-750",
+      "label": "Tube 750 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.375,
+        0.03,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "14",
+      "part": "tube-750",
+      "label": "Tube 750 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.375,
+        0.38,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "15",
+      "part": "tube-750",
+      "label": "Tube 750 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.375,
+        0.03,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "16",
+      "part": "tube-750",
+      "label": "Tube 750 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.375,
+        0.38,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "17",
+      "part": "tube-500",
+      "label": "Tube 500 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1,
+        0.03,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "18",
+      "part": "tube-500",
+      "label": "Tube 500 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1,
+        0.38,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "19",
+      "part": "tube-500",
+      "label": "Tube 500 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1,
+        0.03,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "20",
+      "part": "tube-500",
+      "label": "Tube 500 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1,
+        0.38,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ]
+    },
+    {
+      "id": "21",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0,
+        0.205,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "22",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0,
+        0.205,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "23",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.205,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "24",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.205,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "25",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.205,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "26",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.205,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "27",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0,
+        0.03,
+        -0.175
+      ],
+      "quat": [
+        0.707107,
+        0,
+        0,
+        0.707107
+      ]
+    },
+    {
+      "id": "28",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0,
+        0.38,
+        -0.175
+      ],
+      "quat": [
+        0.707107,
+        0,
+        0,
+        0.707107
+      ]
+    },
+    {
+      "id": "29",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.03,
+        -0.175
+      ],
+      "quat": [
+        0.707107,
+        0,
+        0,
+        0.707107
+      ]
+    },
+    {
+      "id": "30",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.38,
+        -0.175
+      ],
+      "quat": [
+        0.707107,
+        0,
+        0,
+        0.707107
+      ]
+    },
+    {
+      "id": "31",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.03,
+        -0.175
+      ],
+      "quat": [
+        0.707107,
+        0,
+        0,
+        0.707107
+      ]
+    },
+    {
+      "id": "32",
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "material": "metal",
+      "pos": [
+        1.25,
+        0.38,
+        -0.175
+      ],
+      "quat": [
+        0.707107,
+        0,
+        0,
+        0.707107
+      ]
+    },
+    {
+      "id": "33",
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support",
+      "material": "plastic",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "34",
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support",
+      "material": "plastic",
+      "pos": [
+        0,
+        0,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "35",
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support",
+      "material": "plastic",
+      "pos": [
+        0.75,
+        0,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "36",
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support",
+      "material": "plastic",
+      "pos": [
+        0.75,
+        0,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "37",
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support",
+      "material": "plastic",
+      "pos": [
+        1.25,
+        0,
+        0
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "38",
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support",
+      "material": "plastic",
+      "pos": [
+        1.25,
+        0,
+        -0.35
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "39",
+      "part": "metal-panel-750x350",
+      "label": "Metal panel 750 × 350 mm",
+      "family": "panel",
+      "material": "metal",
+      "pos": [
+        0.375,
+        0.205,
+        -0.35
+      ],
+      "quat": [
+        0.707107,
+        0,
+        0,
+        0.707107
+      ],
+      "quad": [
+        [
+          0,
+          0.03,
+          -0.35
+        ],
+        [
+          0.75,
+          0.03,
+          -0.35
+        ],
+        [
+          0.75,
+          0.38,
+          -0.35
+        ],
+        [
+          0,
+          0.38,
+          -0.35
+        ]
+      ]
+    },
+    {
+      "id": "40",
+      "part": "metal-panel-750x350",
+      "label": "Metal panel 750 × 350 mm",
+      "family": "panel",
+      "material": "metal",
+      "pos": [
+        0.375,
+        0.38,
+        -0.175
+      ],
+      "quat": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "quad": [
+        [
+          0,
+          0.38,
+          0
+        ],
+        [
+          0.75,
+          0.38,
+          0
+        ],
+        [
+          0.75,
+          0.38,
+          -0.35
+        ],
+        [
+          0,
+          0.38,
+          -0.35
+        ]
+      ]
+    },
+    {
+      "id": "41",
+      "part": "metal-panel-750x350",
+      "label": "Metal panel 750 × 350 mm",
+      "family": "panel",
+      "material": "metal",
+      "pos": [
+        0.375,
+        0.03,
+        -0.175
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "quad": [
+        [
+          0,
+          0.03,
+          0
+        ],
+        [
+          0.75,
+          0.03,
+          0
+        ],
+        [
+          0.75,
+          0.03,
+          -0.35
+        ],
+        [
+          0,
+          0.03,
+          -0.35
+        ]
+      ]
+    },
+    {
+      "id": "42",
+      "part": "metal-panel-350x350",
+      "label": "Metal panel 350 × 350 mm",
+      "family": "panel",
+      "material": "metal",
+      "pos": [
+        0,
+        0.205,
+        -0.175
+      ],
+      "quat": [
+        0,
+        0,
+        -0.707107,
+        0.707107
+      ],
+      "quad": [
+        [
+          0,
+          0.03,
+          0
+        ],
+        [
+          0,
+          0.03,
+          -0.35
+        ],
+        [
+          0,
+          0.38,
+          -0.35
+        ],
+        [
+          0,
+          0.38,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "43",
+      "part": "metal-panel-350x350",
+      "label": "Metal panel 350 × 350 mm",
+      "family": "panel",
+      "material": "metal",
+      "pos": [
+        0.75,
+        0.205,
+        -0.175
+      ],
+      "quat": [
+        0,
+        0,
+        0.707107,
+        0.707107
+      ],
+      "quad": [
+        [
+          0.75,
+          0.03,
+          0
+        ],
+        [
+          0.75,
+          0.03,
+          -0.35
+        ],
+        [
+          0.75,
+          0.38,
+          -0.35
+        ],
+        [
+          0.75,
+          0.38,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "44",
+      "part": "shelf-350x500",
+      "label": "Shelf 350 × 500 mm",
+      "family": "panel",
+      "material": "metal",
+      "pos": [
+        1,
+        0.03,
+        -0.175
+      ],
+      "quat": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "quad": [
+        [
+          0.75,
+          0.03,
+          0
+        ],
+        [
+          1.25,
+          0.03,
+          0
+        ],
+        [
+          1.25,
+          0.03,
+          -0.35
+        ],
+        [
+          0.75,
+          0.03,
+          -0.35
+        ]
+      ]
+    }
+  ],
+  "catalog": [
+    {
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector"
+    },
+    {
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support"
+    },
+    {
+      "part": "metal-panel-350x350",
+      "label": "Metal panel 350 × 350 mm",
+      "family": "panel"
+    },
+    {
+      "part": "metal-panel-750x350",
+      "label": "Metal panel 750 × 350 mm",
+      "family": "panel"
+    },
+    {
+      "part": "shelf-350x500",
+      "label": "Shelf 350 × 500 mm",
+      "family": "panel"
+    },
+    {
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube"
+    },
+    {
+      "part": "tube-500",
+      "label": "Tube 500 mm",
+      "family": "tube"
+    },
+    {
+      "part": "tube-750",
+      "label": "Tube 750 mm",
+      "family": "tube"
+    }
+  ],
+  "bom": [
+    {
+      "part": "ball-connector-standard",
+      "label": "Ball connector (standard)",
+      "family": "connector",
+      "qty": 12
+    },
+    {
+      "part": "leveling-foot",
+      "label": "Leveling foot",
+      "family": "support",
+      "qty": 6
+    },
+    {
+      "part": "metal-panel-350x350",
+      "label": "Metal panel 350 × 350 mm",
+      "family": "panel",
+      "qty": 2
+    },
+    {
+      "part": "metal-panel-750x350",
+      "label": "Metal panel 750 × 350 mm",
+      "family": "panel",
+      "qty": 3
+    },
+    {
+      "part": "shelf-350x500",
+      "label": "Shelf 350 × 500 mm",
+      "family": "panel",
+      "qty": 1
+    },
+    {
+      "part": "tube-350",
+      "label": "Tube 350 mm",
+      "family": "tube",
+      "qty": 12
+    },
+    {
+      "part": "tube-500",
+      "label": "Tube 500 mm",
+      "family": "tube",
+      "qty": 4
+    },
+    {
+      "part": "tube-750",
+      "label": "Tube 750 mm",
+      "family": "tube",
+      "qty": 4
+    }
+  ],
+  "conflicts": {
+    "counts": {
+      "severe": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "items": []
+  },
+  "affordances": [],
+  "slots": [],
+  "options": {
+    "structure": {
+      "columns": {
+        "current": [
+          750,
+          500
+        ],
+        "addWidths": [
+          175,
+          250,
+          350,
+          395,
+          500,
+          750
+        ],
+        "removableIndices": [
+          0,
+          1
+        ]
+      },
+      "rows": {
+        "current": [
+          350
+        ],
+        "addHeights": [
+          175,
+          250,
+          350,
+          395,
+          500,
+          750
+        ],
+        "removableIndices": []
+      },
+      "depth": {
+        "current": 350,
+        "options": [
+          250,
+          350,
+          500
+        ]
+      },
+      "base": {
+        "current": "feet",
+        "options": [
+          "feet"
+        ]
+      }
+    },
+    "cells": [
+      {
+        "col": 0,
+        "row": 0,
+        "width": 750,
+        "height": 350,
+        "current": "closed",
+        "available": [
+          {
+            "id": "open",
+            "name": "Open"
+          },
+          {
+            "id": "closed",
+            "name": "Closed box"
+          },
+          {
+            "id": "shelf",
+            "name": "Shelf"
+          },
+          {
+            "id": "pullout",
+            "name": "Pull-out shelf"
+          },
+          {
+            "id": "door",
+            "name": "Door"
+          },
+          {
+            "id": "glass",
+            "name": "Glass"
+          },
+          {
+            "id": "panel",
+            "name": "Closed panel"
+          }
+        ]
+      },
+      {
+        "col": 1,
+        "row": 0,
+        "width": 500,
+        "height": 350,
+        "current": "shelf",
+        "available": [
+          {
+            "id": "open",
+            "name": "Open"
+          },
+          {
+            "id": "closed",
+            "name": "Closed box"
+          },
+          {
+            "id": "shelf",
+            "name": "Shelf"
+          },
+          {
+            "id": "pullout",
+            "name": "Pull-out shelf"
+          },
+          {
+            "id": "door",
+            "name": "Door"
+          },
+          {
+            "id": "glass",
+            "name": "Glass"
+          },
+          {
+            "id": "panel",
+            "name": "Closed panel"
+          }
+        ]
+      }
+    ]
+  }
+}
