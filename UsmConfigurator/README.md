@@ -19,8 +19,10 @@ per-cell coloured back panels.*
 
 ## Workflow
 
-1. **Utilities → Add-Ins → Scripts and Add-Ins → `UsmConfigurator` → Run.**
-2. Click **USM Configurator** in the Add-Ins panel — the dialog opens.
+1. **Utilities → Add-Ins → Scripts and Add-Ins → `UsmConfigurator` → Run.** The
+   configurator dialog opens straight away.
+2. To re-open it later, click **USM Configurator** in the **Design workspace →
+   Utilities tab → ADD-INS** panel.
 3. Pick a **Preset**, or set **Custom**: columns × rows × depth, cell sizes, the
    ball/tube diameters, panel thickness, which bays carry **back panels /
    shelves / dividers**, and a **panel colour**.

@@ -44,20 +44,35 @@ class UsmConfiguratorUI:
         self.app = app
         self.ui = ui
         self._handlers = []  # keep handler refs alive
+        self.cmd_def = None
 
     def setup(self):
         cmd_defs = self.ui.commandDefinitions
         cmd_def = cmd_defs.itemById(config.CMD_ID)
         if not cmd_def:
             cmd_def = cmd_defs.addButtonDefinition(config.CMD_ID, config.CMD_NAME, config.CMD_TOOLTIP)
+        self.cmd_def = cmd_def
 
         created = _CommandCreatedHandler(self)
         cmd_def.commandCreated.add(created)
         self._handlers.append(created)
 
+        # Add a button to the Utilities > Add-Ins panel so it's reachable any time.
         panel = self.ui.allToolbarPanels.itemById(config.PANEL_ID)
         if panel and not panel.controls.itemById(config.CMD_ID):
             panel.controls.addCommand(cmd_def)
+
+        # Open the configurator dialog immediately on Run, so there's a visible UI
+        # without hunting for the button (best-effort; the button remains either way).
+        self.show()
+
+    def show(self):
+        """Open the configurator dialog now."""
+        try:
+            if self.cmd_def:
+                self.cmd_def.execute()
+        except Exception:
+            pass
 
     def teardown(self):
         try:
